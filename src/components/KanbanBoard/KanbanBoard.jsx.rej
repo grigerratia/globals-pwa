@@ -1,0 +1,24 @@
+--- src/components/KanbanBoard/KanbanBoard.jsx
++++ src/components/KanbanBoard/KanbanBoard.jsx
+@@ -197,6 +197,10 @@
+   };
+ 
+   const agregarColumnaSubmit = async (nombre) => {
++    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
++      showError('Acceso denegado: Solo el Líder Comercial puede agregar columnas.');
++      return;
++    }
+     try {
+       const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length }]);
+       if (error) {
+@@ -215,6 +219,10 @@
+   };
+ 
+   const handleUpdateColumna = async (oldName, newName) => {
++    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
++      showError('Acceso denegado: Solo el Líder Comercial puede editar columnas.');
++      return;
++    }
+     setEstados(prev => prev.map(e => e === oldName ? newName : e));
+     setColumnas(prev => prev.map(c => c.estadoOriginal === oldName ? { ...c, estadoOriginal: newName } : c));
+     await supabase.from('columnas').update({ nombre: newName }).eq('nombre', oldName);

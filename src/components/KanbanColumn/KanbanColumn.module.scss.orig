@@ -1,0 +1,112 @@
+.column {
+  background-color: var(--bg-column);
+  border-radius: var(--radius-lg);
+  /* El secreto del diseño móvil: ocupa el 85% de la pantalla para dejar asomar la siguiente */
+  width: 85vw;
+  max-width: 320px;
+  min-width: 290px;
+  height: max-content;
+  max-height: 100%;
+  
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  
+  /* Comportamiento de imán al hacer scroll en móvil */
+  scroll-snap-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s ease;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1rem 0.75rem 1rem;
+  /* Pegajoso para que al hacer scroll siga viéndose (opcional) */
+  position: sticky;
+  top: 0;
+  background-color: inherit;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  z-index: 10;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.contador {
+  background: rgba(9, 30, 66, 0.08);
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.settingsBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.2rem;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: rgba(9, 30, 66, 0.08);
+    color: var(--text-main);
+  }
+}
+
+.listaTarjetas {
+  padding: 0.25rem 0.75rem;
+  overflow-y: auto;
+  flex-grow: 1;
+  min-height: 50px; /* Para que siempre haya espacio para arrastrar */
+  
+  /* Scrollbar estético dentro de la columna */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(9, 30, 66, 0.15) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(9,30,66,0.15);
+    border-radius: 3px;
+  }
+}
+
+.botonAgregar {
+  margin: 0.5rem 0.75rem 0.75rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background-color: rgba(9, 30, 66, 0.08);
+    color: var(--text-main);
+  }
+  
+  &:active { background-color: rgba(9, 30, 66, 0.12); }
+}
+
+.columnActiva {
+  background-color: #e4e6ea;
+  box-shadow: inset 0 0 0 2px var(--accent-color);
+}.columnDragging { opacity: 0.4; } .columnOverlay { opacity: 0.95; transform: rotate(2deg) scale(1.02); cursor: grabbing; box-shadow: var(--shadow-md); }

@@ -1,0 +1,102 @@
+.card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  color: var(--text-main); 
+  
+  /* Transición fluida para el hover y el drag */
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+  
+  &:hover {
+    background-color: var(--bg-card-hover);
+  }
+}
+
+.titulo {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.detalles {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.infoGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.alerta {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.diasLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: var(--success-bg);
+  color: var(--success);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* EL HUECO QUE QUEDA EN LA COLUMNA CUANDO ARRASTRAS */
+.cardDragging {
+  opacity: 0.4;
+  transition: none; 
+  box-shadow: none;
+  background-color: #e0e4eb;
+  border: 1px dashed #a5b0c2;
+}
+
+/* LA TARJETA VOLADORA EN EL AIRE */
+.cardOverlay {
+  cursor: grabbing;
+  opacity: 0.95; 
+  transform: rotate(4deg) scale(1.03); 
+  box-shadow: var(--shadow-md);
+  transition: none;
+}
+/* SLA Stalled Alert */
+.stalledCard {
+  border: 1px solid #ff4d4f !important;
+  box-shadow: 0 0 10px rgba(255, 77, 79, 0.3);
+  animation: pulseRed 2s infinite;
+}
+
+@keyframes pulseRed {
+  0% { box-shadow: 0 0 5px rgba(255, 77, 79, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(255, 77, 79, 0.5); }
+  100% { box-shadow: 0 0 5px rgba(255, 77, 79, 0.2); }
+}
+
+.cardStalled {
+  background-color: #fff1f2;
+  border-left: 4px solid #e11d48;
+}
+
+.creadoLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.5rem;
+  font-style: italic;
+}

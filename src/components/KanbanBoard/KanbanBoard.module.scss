@@ -1,0 +1,399 @@
+.topHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+
+  @media (max-width: 768px) {
+    padding: 0.75rem 1rem;
+  }
+
+  @media (max-width: 480px) {
+    flex-direction: row;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    
+    h2 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.5rem;
+      font-weight: 700;
+      
+      @media (max-width: 768px) {
+        font-size: 1.25rem;
+      }
+    }
+    span {
+      color: #64748b;
+      font-weight: 500;
+      font-size: 0.9rem;
+      
+      @media (max-width: 768px) {
+        font-size: 0.8rem;
+      }
+    }
+  }
+
+  .userInfo {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    @media (max-width: 768px) {
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 480px) {
+      width: auto;
+      justify-content: flex-end;
+      gap: 0.25rem;
+    }
+
+    .userEmail {
+      color: #475569;
+      font-weight: 500;
+      font-size: 0.95rem;
+
+      @media (max-width: 768px) {
+        display: none; // Hide email on small screens to save space
+      }
+    }
+
+    .btnAgent {
+      @media (max-width: 768px) {
+        padding: 0.4rem;
+        gap: 0;
+      }
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+
+      @media (max-width: 768px) {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      &:hover {
+        box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
+        transform: translateY(-1px);
+      }
+    }
+
+    .btnLogout {
+      @media (max-width: 768px) {
+        padding: 0.4rem;
+        gap: 0;
+      }
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      @media (max-width: 768px) {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      &:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+    }
+  }
+}
+
+.boardContainer {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  padding: 0.75rem 1.5rem;
+  gap: 1rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+
+  @media (max-width: 768px) {
+    flex-direction: row;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .searchInput {
+    width: 100%;
+    padding: 0.5rem 1rem 0.5rem 2.2rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: #6366f1;
+    }
+  }
+
+  .btnArchive {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    @media (max-width: 768px) {
+      padding: 0.5rem;
+    }
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+    
+    &.active {
+      background: #6366f1;
+      color: white;
+      border-color: #6366f1;
+    }
+  }
+}
+
+.board {
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  height: 100%;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  
+  /* Aceleración de hardware en móviles para scroll ultra suave */
+  -webkit-overflow-scrolling: touch;
+  
+  /* Fondo moderno estilo Trello */
+  background: linear-gradient(135deg, #0079bf 0%, #0052cc 100%);
+  
+  /* Ocultar la barra de scroll inferior en móviles y agregar snap */
+  @media (max-width: 768px) {
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+    scroll-snap-type: x mandatory;
+  }
+}
+
+.boardDragging {
+  scroll-snap-type: none !important;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(9, 30, 66, 0.54);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.bottomSheet {
+  background: var(--bg-app);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 20px 20px 0 0;
+  padding: 1.5rem;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.sheetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  
+  h4 {
+    margin: 0;
+    color: var(--text-main);
+  }
+  
+  button {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+}
+
+.opcionesLista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.opcion, .opcionActiva {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: none;
+  text-align: left;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.opcion {
+  background: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  &:active { background: var(--bg-column); }
+}
+
+.opcionActiva {
+  background: var(--accent-color);
+  color: white;
+  pointer-events: none;
+}.spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+.botonAgregarColumna { background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 1rem; border-radius: var(--radius-lg); min-width: 280px; height: max-content; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; transition: background 0.2s; flex-shrink: 0; } .botonAgregarColumna:hover { background: rgba(255, 255, 255, 0.3); }
+
+
+.isDraggingBoard {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  scroll-snap-type: none !important;
+
+  /* Desactiva eventos de puntero en los hijos (columnas y tarjetas) para que no interfieran al arrastrar el fondo */
+  * {
+    pointer-events: none !important;
+  }
+}
+.boardError {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: slideIn 0.3s ease-out;
+
+  /* PC: Arriba a la izquierda */
+  top: 1.5rem;
+  left: 1.5rem;
+  
+  /* Mobile: Abajo a la derecha */
+  @media (max-width: 768px) {
+    top: auto;
+    left: auto;
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+.btnCloseError {
+  background: none;
+  border: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  
+  &:hover {
+    background: rgba(185, 28, 28, 0.1);
+  }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hideOnMobile {
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.btnActionMobile {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+
+  @media (max-width: 768px) {
+    padding: 0.4rem;
+    gap: 0;
+  }
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+
+  .searchIcon {
+    position: absolute;
+    left: 10px;
+    color: #94a3b8;
+  }
+}
+

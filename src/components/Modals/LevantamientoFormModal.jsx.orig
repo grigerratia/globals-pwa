@@ -1,0 +1,224 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X, FileText, Camera, Download } from 'lucide-react';
+import styles from './LevantamientoFormModal.module.scss';
+import imageCompression from 'browser-image-compression';
+import { jsPDF } from 'jspdf';
+import { supabase } from '../../supabase';
+import { logAudit } from '../../utils/audit';
+
+export default function LevantamientoFormModal({ proyecto, onClose, session, onProjectUpdated }) {
+  const [formData, setFormData] = useState({
+    cliente: proyecto.cliente_nombre || '',
+    contacto: '',
+    telefono: proyecto.cliente_telefono || '',
+    responsableGlobals: (proyecto.encargados || []).map(e => e.nombre).join(', ') || '',
+    motivo: '',
+    fechaEntrega: '',
+    responsableMedidas: '',
+    materiales: (proyecto.materiales || []).map(m => m.nombre).join(', ') || '',
+    descripcion: proyecto.notas || '',
+    imagenUrl: null,
+    imagenFile: null
+  });
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleImageUpload = async (e) => {
+    let file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type.startsWith('image/')) {
+      const options = { maxSizeMB: 0.5, maxWidthOrHeight: 800, useWebWorker: true };
+      try {
+        const compressedBlob = await imageCompression(file, options);
+        file = new File([compressedBlob], file.name, { type: compressedBlob.type });
+      } catch (err) {
+        console.error("Error comprimiendo:", err);
+      }
+      setFormData(prev => ({ 
+        ...prev, 
+        imagenFile: file, 
+        imagenUrl: URL.createObjectURL(file) 
+      }));
+    }
+  };
+
+  const handleExportPDF = async () => {
+    const doc = new jsPDF();
+    let yPos = 20;
+    
+    // Título
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("HOJA DE LEVANTAMIENTO DE TRABAJO", 105, yPos, { align: "center" });
+    
+    yPos += 15;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+
+    const addLine = (label, text) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 20, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.text(text || '___________________', 70, yPos);
+      yPos += 10;
+    };
+
+    addLine("Cliente", formData.cliente);
+    addLine("Persona Contacto", formData.contacto);
+    addLine("Teléfono", formData.telefono);
+    addLine("Responsable Global's", formData.responsableGlobals);
+    addLine("Responsable Medidas", formData.responsableMedidas);
+    addLine("Fecha de Entrega", formData.fechaEntrega);
+    addLine("Motivo del Trabajo", formData.motivo);
+    
+    yPos += 5;
+    doc.setFont("helvetica", "bold");
+    doc.text("Materiales Requeridos:", 20, yPos);
+    yPos += 7;
+    doc.setFont("helvetica", "normal");
+    const splitMateriales = doc.splitTextToSize(formData.materiales || '___________________', 170);
+    doc.text(splitMateriales, 20, yPos);
+    yPos += splitMateriales.length * 7 + 5;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Descripción / Observaciones:", 20, yPos);
+    yPos += 7;
+    doc.setFont("helvetica", "normal");
+    const splitDesc = doc.splitTextToSize(formData.descripcion || '___________________', 170);
+    doc.text(splitDesc, 20, yPos);
+    yPos += splitDesc.length * 7 + 5;
+
+    if (formData.imagenUrl) {
+      if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text("Gráfica / Evidencia:", 20, yPos);
+      yPos += 10;
+      
+      // Necesitamos cargar la imagen para jsPDF
+      const img = new Image();
+      img.src = formData.imagenUrl;
+      await new Promise((resolve) => {
+        img.onload = () => {
+          doc.addImage(img, 'JPEG', 20, yPos, 160, 100);
+          resolve();
+        };
+      });
+    }
+
+    doc.save(`Levantamiento_${formData.cliente || 'Proyecto'}.pdf`);
+    
+    // Guardar en BD para marcar el levantamiento como completado
+    const fechaActual = new Date().toISOString();
+    const updateData = {
+      levantamiento_fecha: fechaActual
+    };
+    if (formData.fechaEntrega) updateData.fecha_entrega = formData.fechaEntrega;
+
+    const { error } = await supabase.from('proyectos').update(updateData).eq('id', proyecto.id);
+    if (!error) {
+      if (onProjectUpdated) {
+        onProjectUpdated({ ...proyecto, ...updateData });
+      }
+      logAudit(session, 'Exportó Hoja de Levantamiento', { proyecto_id: proyecto.id, titulo: proyecto.titulo });
+    }
+  };
+
+  const modalContent = (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <button className={styles.btnClose} onClick={onClose}><X size={24} /></button>
+        
+        <div className={styles.header}>
+          <h2><FileText size={24} /> Hoja de Levantamiento</h2>
+          <p>Llene los datos del levantamiento para exportar el documento.</p>
+          {proyecto.levantamiento_fecha && (
+            <p style={{ color: '#10b981', fontWeight: 600, marginTop: '0.5rem' }}>
+              ✅ Llenada el: {new Date(proyecto.levantamiento_fecha).toLocaleString()}
+            </p>
+          )}
+        </div>
+
+        <div className={styles.formGrid}>
+          <div className={styles.row}>
+            <div className={styles.formGroup}>
+              <label>Cliente</label>
+              <input type="text" name="cliente" value={formData.cliente} onChange={handleChange} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Persona Contacto</label>
+              <input type="text" name="contacto" value={formData.contacto} onChange={handleChange} />
+            </div>
+          </div>
+          
+          <div className={styles.row}>
+            <div className={styles.formGroup}>
+              <label>Teléfono</label>
+              <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Responsable Global's</label>
+              <input type="text" name="responsableGlobals" value={formData.responsableGlobals} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className={styles.row}>
+            <div className={styles.formGroup}>
+              <label>Responsable de Medidas</label>
+              <input type="text" name="responsableMedidas" value={formData.responsableMedidas} onChange={handleChange} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Fecha de Entrega (Aprox)</label>
+              <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Motivo del Trabajo</label>
+            <input type="text" name="motivo" value={formData.motivo} onChange={handleChange} />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Materiales Requeridos</label>
+            <textarea name="materiales" value={formData.materiales} onChange={handleChange} rows="2" />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Descripción / Observaciones</label>
+            <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} rows="3" />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Gráfica / Foto del Lugar</label>
+            <label className={styles.imageUpload}>
+              <input type="file" accept="image/*" onChange={handleImageUpload} capture="environment" />
+              {!formData.imagenUrl ? (
+                <div>
+                  <Camera size={32} style={{ color: '#94a3b8', margin: '0 auto 0.5rem auto' }} />
+                  <span style={{ color: '#64748b' }}>Haz clic para tomar foto o subir imagen</span>
+                </div>
+              ) : (
+                <img src={formData.imagenUrl} alt="Gráfica" />
+              )}
+            </label>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <button className={styles.btnCancel} onClick={onClose}>Cancelar</button>
+          <button className={styles.btnSubmit} onClick={handleExportPDF}>
+            <Download size={18} /> Exportar a PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modalContent, document.body);
+}
