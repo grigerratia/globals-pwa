@@ -588,7 +588,7 @@ export default function KanbanBoard({ session }) {
                   onAddProject={() => setAddProjectColumnId(col.estadoOriginal)}
                   onCardClick={setProyectoDetalleId}
                   onSettingsClick={setColumnSettingsId}
-                  onBotClick={() => setIsAgentOpen(columna.estadoOriginal)}
+                  onBotClick={() => setIsAgentOpen(col.estadoOriginal)}
                 />
               );
             })}
