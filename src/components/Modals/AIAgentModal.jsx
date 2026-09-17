@@ -1,10 +1,57 @@
-import { useState } from 'react';
-import { X, Sparkles, Send } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { X, Sparkles, Send, Mic } from 'lucide-react';
 import styles from './Modals.module.scss'; // Reusamos los estilos limpios de los otros modales
 
 export default function AIAgentModal({ estadoPredefinido, onClose, onProjectCreated }) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Tu navegador no soporta reconocimiento de voz por micrófono.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+      }
+      if (finalTranscript) {
+        setPrompt(prev => prev + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.error('Error micrófono:', e);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsListening(true);
+  };
+
 
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -84,6 +131,7 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
       }
 
       // Pass parsed data to the Kanban handler
+      if (estadoPredefinido && typeof estadoPredefinido === 'string') { parsed.estado = estadoPredefinido; }
       await onProjectCreated(parsed);
       onClose();
     } catch (err) {
@@ -95,6 +143,13 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
 
   return (
     <div className={styles.overlay} onClick={onClose}>
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h2 className={styles.title} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -137,6 +192,26 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
             <button type="button" className={styles.btnCancel} onClick={onClose}>
               Cancelar
+            </button>
+                        <button
+              type="button"
+              onClick={toggleListening}
+              style={{
+                background: isListening ? '#ef4444' : '#e2e8f0',
+                color: isListening ? 'white' : '#475569',
+                border: 'none',
+                padding: '0.65rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                animation: isListening ? 'pulse 1.5s infinite' : 'none'
+              }}
+              title={isListening ? 'Detener grabación' : 'Dictar por voz'}
+            >
+              <Mic size={20} />
             </button>
             <button 
               type="submit" 
