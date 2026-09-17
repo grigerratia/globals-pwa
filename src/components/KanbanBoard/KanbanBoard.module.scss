@@ -128,6 +128,7 @@
   min-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
+  background: linear-gradient(135deg, #0079bf 0%, #0052cc 100%);
 }
 
 .toolbar {
@@ -187,6 +188,7 @@
 
 .board {
   display: flex;
+  flex: 1;
   gap: 1.25rem;
   padding: 1.5rem;
   height: 100%;
@@ -196,9 +198,6 @@
   
   /* Aceleración de hardware en móviles para scroll ultra suave */
   -webkit-overflow-scrolling: touch;
-  
-  /* Fondo moderno estilo Trello */
-  background: linear-gradient(135deg, #0079bf 0%, #0052cc 100%);
   
   /* Ocultar la barra de scroll inferior en móviles y agregar snap */
   @media (max-width: 768px) {
