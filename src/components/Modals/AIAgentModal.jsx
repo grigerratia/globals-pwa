@@ -126,11 +126,24 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
         }
       }
 
-      if (!success || !parsed) {
+            if (!success || !parsed) {
         throw new Error(lastError?.message || "Todos los modelos de Gemini fallaron o están saturados.");
       }
 
-      // Pass parsed data to the Kanban handler
+      // Sanitizar datos vacíos que rompen Supabase
+      if (parsed.fecha_entrega === "" || parsed.fecha_entrega === "null") {
+        parsed.fecha_entrega = null;
+      }
+      if (parsed.presupuesto_vendido === "" || isNaN(parsed.presupuesto_vendido)) {
+        parsed.presupuesto_vendido = 0;
+      }
+      if (parsed.costo_materiales === "" || isNaN(parsed.costo_materiales)) {
+        parsed.costo_materiales = 0;
+      }
+      if (parsed.costo_operativo === "" || isNaN(parsed.costo_operativo)) {
+        parsed.costo_operativo = 0;
+      }
+
       if (estadoPredefinido && typeof estadoPredefinido === 'string') { parsed.estado = estadoPredefinido; }
       await onProjectCreated(parsed);
       onClose();
