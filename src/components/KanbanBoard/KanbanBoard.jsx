@@ -37,6 +37,21 @@ const defaultEstados = [
 
 import BellNotifications from './BellNotifications';
 
+
+const getTextForBg = (bg) => {
+  const map = {
+    '#f8fafc': '#334155',
+    '#fee2e2': '#991b1b',
+    '#ffedd5': '#9a3412',
+    '#fef3c7': '#92400e',
+    '#dcfce7': '#166534',
+    '#e0f2fe': '#075985',
+    '#ede9fe': '#5b21b6',
+    '#fce7f3': '#9d174d'
+  };
+  return map[bg] || '#334155';
+};
+
 export default function KanbanBoard({ session }) {
   const [estados, setEstados] = useState([]);
   const [columnas, setColumnas] = useState([]);
@@ -564,6 +579,8 @@ export default function KanbanBoard({ session }) {
               return (
                 <KanbanColumn 
                   key={col.estadoOriginal} 
+                  colorBg={columnColors[col.estadoOriginal] || '#f8fafc'}
+                  colorText={getTextForBg(columnColors[col.estadoOriginal] || '#f8fafc')}
                   titulo={col.estadoOriginal} 
                   cantidad={proyectosFiltrados.length}
                   proyectos={proyectosFiltrados}
@@ -585,6 +602,8 @@ export default function KanbanBoard({ session }) {
         <DragOverlay>
           {columnaActiva ? (
             <KanbanColumn 
+              colorBg={columnColors[columnaActiva.estadoOriginal] || '#f8fafc'}
+              colorText={getTextForBg(columnColors[columnaActiva.estadoOriginal] || '#f8fafc')}
               titulo={columnaActiva.estadoOriginal} 
               cantidad={columnaActiva.proyectos.length}
               proyectos={columnaActiva.proyectos}
