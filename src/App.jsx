@@ -4,7 +4,7 @@ import Login from './components/Auth/Login';
 import WhatsAppAdmin from './components/WhatsAppAdmin';
 import { supabase } from './supabase';
 import { logAudit } from './utils/audit';
-import { requestFirebaseToken, onMessageListener } from './firebase';
+import { requestFirebaseToken, setupOnMessageListener } from './firebase';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -48,9 +48,17 @@ function App() {
           user_id: currentSession.user.id 
         });
       }
-      onMessageListener().then((payload) => {
+            setupOnMessageListener((payload) => {
         console.log('Mensaje FCM recibido en primer plano:', payload);
-      }).catch(err => console.log('Error FCM foreground: ', err));
+        // Aquí puedes mostrar un Toast o usar un estado global si lo deseas.
+        // Como solución rápida para mostrar la notificación visual en primer plano:
+        if (Notification.permission === 'granted') {
+           new Notification(payload.notification?.title || "Notificación", {
+              body: payload.notification?.body,
+              icon: '/vite.svg'
+           });
+        }
+      });
     } catch (error) {
       console.error('Error configurando Firebase Push:', error);
     }

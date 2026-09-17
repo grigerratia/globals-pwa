@@ -31,13 +31,11 @@ export const requestFirebaseToken = async () => {
   }
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    if (!messaging) return;
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
+export const setupOnMessageListener = (callback) => {
+  if (!messaging) return () => {};
+  return onMessage(messaging, (payload) => {
+    callback(payload);
   });
+};
 
 export { app, messaging };
-
