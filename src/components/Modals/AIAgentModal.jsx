@@ -39,7 +39,7 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
   "prioridad": "Si menciona urgencia, elige entre Baja, Media, Alta (por defecto Media)"
 }`;
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
