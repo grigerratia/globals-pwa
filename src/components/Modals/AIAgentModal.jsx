@@ -36,7 +36,6 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
   "costo_materiales": "Si menciona costos de materiales, pon el número, sino 0",
   "costo_operativo": "Si menciona costos operativos, pon el número, sino 0",
   "fecha_entrega": "Si menciona una fecha de entrega, intenta ponerla en formato YYYY-MM-DD, sino omite",
-  "prioridad": "Si menciona urgencia, elige entre Baja, Media, Alta (por defecto Media)"
 }`;
 
       
