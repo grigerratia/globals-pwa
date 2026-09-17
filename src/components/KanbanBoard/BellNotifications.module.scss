@@ -137,3 +137,11 @@
     }
   }
 }
+@media (max-width: 600px) {
+  .dropdown {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    width: calc(100vw - 20px) !important;
+  }
+}

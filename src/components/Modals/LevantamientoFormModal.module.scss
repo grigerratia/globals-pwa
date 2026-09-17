@@ -131,3 +131,9 @@
   
   &:hover { background: #2563eb; }
 }
+
+@media (max-width: 600px) {
+  .modal {
+    padding: 1rem !important;
+  }
+}

@@ -215,3 +215,9 @@
     background: #ffffff;
   }
 }
+
+@media (max-width: 600px) {
+  .modal {
+    padding: 1rem !important;
+  }
+}

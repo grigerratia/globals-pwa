@@ -56,7 +56,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
         )}
       </div>
       <div className={styles.creadoLabel}>
-        Creado: {proyecto.created_at ? new Date(proyecto.created_at).toLocaleDateString() : 'N/A'}
+        Creado: {proyecto.fecha_creacion ? new Date(proyecto.fecha_creacion).toLocaleDateString() : 'N/A'}
       </div>
     </>
   );

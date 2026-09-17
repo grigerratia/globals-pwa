@@ -204,12 +204,10 @@
   @media (max-width: 768px) {
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
-    scroll-snap-type: x mandatory;
   }
 }
 
 .boardDragging {
-  scroll-snap-type: none !important;
 }
 
 .overlay {
@@ -298,7 +296,6 @@
   cursor: grabbing !important;
   user-select: none !important;
   -webkit-user-select: none !important;
-  scroll-snap-type: none !important;
 
   /* Desactiva eventos de puntero en los hijos (columnas y tarjetas) para que no interfieran al arrastrar el fondo */
   * {

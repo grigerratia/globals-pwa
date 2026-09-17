@@ -5,6 +5,7 @@
   margin-bottom: 0.75rem;
   box-shadow: var(--shadow-sm);
   cursor: grab;
+  border: none !important;
   color: var(--text-main); 
   
   /* Transición fluida para el hover y el drag */
@@ -91,7 +92,7 @@
 
 .cardStalled {
   background-color: #fff1f2;
-  border-left: 4px solid #e11d48;
+  
 }
 
 .creadoLabel {

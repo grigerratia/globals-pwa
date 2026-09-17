@@ -23,7 +23,7 @@
 .modal {
   background: #ffffff;
   width: 95%;
-  max-width: 720px;
+  max-width: 900px;
   margin: 0 auto;
   box-sizing: border-box;
   border-radius: 16px;
@@ -876,3 +876,9 @@
 .negative { color: #dc2626; }
 .warningText { color: #d97706; }
 
+
+@media (max-width: 600px) {
+  .modal {
+    padding: 1rem !important;
+  }
+}

@@ -22,6 +22,7 @@ import ProjectDetailModal from '../Modals/ProjectDetailModal';
 import ColumnSettingsModal from '../Modals/ColumnSettingsModal';
 import AIAgentModal from '../Modals/AIAgentModal';
 import { logAudit } from '../../utils/audit';
+import logo from '../../assets/logo.png';
 
 const defaultEstados = [
   'Levantamiento', 
@@ -59,6 +60,9 @@ export default function KanbanBoard({ session }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [boardError, setBoardError] = useState(null);
+  const [columnColors, setColumnColors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch(e) { return {}; }
+  });
 
   // Drag to scroll logic
   const boardRef = useRef(null);
@@ -169,10 +173,21 @@ export default function KanbanBoard({ session }) {
     return null;
   };
 
-  const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
+    const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
+    let encargados = nuevoProyectoData.encargados;
+    if (!encargados || encargados.length === 0) {
+      // Buscar al lider comercial en la BD
+      const { data: liderData } = await supabase.from('usuarios').select('nombre, rol').eq('rol', 'Líder Comercial').limit(1);
+      if (liderData && liderData.length > 0) {
+        encargados = [{ nombre: liderData[0].nombre, rol: 'Líder Comercial' }];
+      } else {
+        encargados = [{ nombre: 'Asignar', rol: 'Líder Comercial' }];
+      }
+    }
+
     const nuevoProyecto = {
       ...nuevoProyectoData,
-      encargados: nuevoProyectoData.encargados?.length > 0 ? nuevoProyectoData.encargados : [{ nombre: 'Asignar', rol: 'Líder Comercial' }],
+      encargados: encargados,
       orden: 999, // Al final
     };
 
@@ -217,17 +232,23 @@ export default function KanbanBoard({ session }) {
     setIsAddColumnOpen(false);
   };
 
-  const handleUpdateColumna = async (oldName, newName) => {
+  const handleUpdateColumna = async (oldName, newName, color) => {
     if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
       showError('Acceso denegado: Solo el Líder Comercial puede editar columnas.');
       return;
     }
-    // Optimistic update
     setEstados(prev => prev.map(e => e === oldName ? newName : e));
     setColumnas(prev => prev.map(c => c.estadoOriginal === oldName ? { ...c, estadoOriginal: newName } : c));
     setColumnSettingsId(null);
-    
-    // El trigger en supabase (ON UPDATE CASCADE) actualizará los proyectos
+
+    if (color) {
+      setColumnColors(prev => {
+         const updated = { ...prev, [newName]: color };
+         if (oldName !== newName) delete updated[oldName];
+         localStorage.setItem('globals_column_colors', JSON.stringify(updated));
+         return updated;
+      });
+    }
     await supabase.from('columnas').update({ nombre: newName }).eq('nombre', oldName);
   };
 
@@ -445,8 +466,8 @@ export default function KanbanBoard({ session }) {
     <>
       <header className={styles.topHeader}>
         <div className={styles.logo}>
-          <h2>Globals</h2>
-          <span className={styles.hideOnMobile}>Kanban</span>
+          <img src={logo} alt="Globals Logo" style={{ height: "40px" }} />
+          
         </div>
         <div className={styles.userInfo}>
           
@@ -550,7 +571,7 @@ export default function KanbanBoard({ session }) {
                   onAddProject={() => setAddProjectColumnId(col.estadoOriginal)}
                   onCardClick={setProyectoDetalleId}
                   onSettingsClick={setColumnSettingsId}
-                  onBotClick={() => setIsAgentOpen(true)}
+                  onBotClick={() => setIsAgentOpen(columna.estadoOriginal)}
                 />
               );
             })}
@@ -622,7 +643,7 @@ export default function KanbanBoard({ session }) {
 
       {columnSettingsId && (
         <ColumnSettingsModal
-          columna={columnas.find(c => c.estadoOriginal === columnSettingsId)}
+          columna={{ ...columnas.find(c => c.estadoOriginal === columnSettingsId), color: columnColors[columnSettingsId] }}
           onClose={() => setColumnSettingsId(null)}
           onUpdate={handleUpdateColumna}
           onDelete={handleDeleteColumna}
