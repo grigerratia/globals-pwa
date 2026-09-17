@@ -38,7 +38,12 @@ export default function AssignEmployeeSelect({ onSelect, defaultRole = 'Líder C
       if (selectedUserId) {
         const emp = empleados.find(e => e.id === selectedUserId);
         if (emp) {
-          onSelect({ nombre: emp.nombre || emp.email, rol: selectedRole, user_id: emp.id });
+          onSelect({ 
+            nombre: emp.nombre || emp.email, 
+            rol: selectedRole, 
+            user_id: emp.id,
+            telefono: emp.telefono 
+          });
         }
       }
     }

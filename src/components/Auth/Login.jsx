@@ -24,13 +24,21 @@ export default function Login({ onLogin }) {
     let authError;
 
     if (isRegistering) {
+      // Normalizar número de teléfono de Venezuela
+      let telNorm = telefono.replace(/[^0-9]/g, '');
+      if (telNorm.startsWith('0')) {
+        telNorm = '58' + telNorm.substring(1);
+      } else if (telNorm.length === 10 && (telNorm.startsWith('4'))) {
+        telNorm = '58' + telNorm;
+      }
+
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data: {
             nombre: nombre,
-            telefono: telefono,
+            telefono: telNorm,
             rol: rol
           }
         }
@@ -91,7 +99,7 @@ export default function Login({ onLogin }) {
                   value={telefono} 
                   onChange={(e) => setTelefono(e.target.value.replace(/[^0-9]/g, ''))} 
                   required 
-                  placeholder="Ej: 584141234567"
+                  placeholder="Ej: 04141234567"
                 />
               </div>
             </>
