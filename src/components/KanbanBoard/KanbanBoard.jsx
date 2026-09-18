@@ -488,9 +488,19 @@ export default function KanbanBoard({ session }) {
           
 
 
+
           <BellNotifications session={session} />
 
+          <button className={styles.btnActionMobile} style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a' }} onClick={() => window.location.href = '/cotizador'}>
+            <span style={{fontWeight: 'bold'}}>Cotizador</span>
+          </button>
+          
+          <button className={styles.btnActionMobile} style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', background: '#25D366', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => window.location.href = '/admin/whatsapp'}>
+            <span style={{fontWeight: 'bold'}}>WhatsApp Admin</span>
+          </button>
+
           <span className={styles.userEmail}>
+
             {session?.user?.user_metadata?.nombre || session?.user?.email}
           </span>
           <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
