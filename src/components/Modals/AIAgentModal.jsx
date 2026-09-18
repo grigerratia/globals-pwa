@@ -23,18 +23,19 @@ export default function AIAgentModal({ estadoPredefinido, onClose, onProjectCrea
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    // Desactivamos continuous y interim para evitar duplicados en navegadores inconsistentes
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
     recognition.onresult = (event) => {
       let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      for (let i = 0; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
           finalTranscript += event.results[i][0].transcript + ' ';
         }
       }
       if (finalTranscript) {
-        setPrompt(prev => prev + finalTranscript);
+        setPrompt(prev => prev + ' ' + finalTranscript.trim());
       }
     };
 
