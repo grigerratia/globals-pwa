@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import KanbanBoard from './components/KanbanBoard/KanbanBoard';
 import Login from './components/Auth/Login';
 import WhatsAppAdmin from './components/WhatsAppAdmin';
+import Cotizador from './components/Cotizador/Cotizador';
 import { supabase } from './supabase';
 import { logAudit } from './utils/audit';
 import { requestFirebaseToken, setupOnMessageListener } from './firebase';
@@ -75,6 +76,10 @@ function App() {
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {
     return <WhatsAppAdmin />;
+  }
+
+  if (window.location.pathname === '/cotizador') {
+    return <Cotizador />;
   }
 
   return (

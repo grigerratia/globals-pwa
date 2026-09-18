@@ -130,22 +130,37 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
         throw new Error(lastError?.message || "Todos los modelos de Gemini fallaron o están saturados.");
       }
 
-      // Sanitizar datos vacíos que rompen Supabase
-      if (parsed.fecha_entrega === "" || parsed.fecha_entrega === "null") {
-        parsed.fecha_entrega = null;
-      }
-      if (parsed.presupuesto_vendido === "" || isNaN(parsed.presupuesto_vendido)) {
-        parsed.presupuesto_vendido = 0;
-      }
-      if (parsed.costo_materiales === "" || isNaN(parsed.costo_materiales)) {
-        parsed.costo_materiales = 0;
-      }
-      if (parsed.costo_operativo === "" || isNaN(parsed.costo_operativo)) {
-        parsed.costo_operativo = 0;
+
+      // Sanitizar datos vacíos y extraer solo las columnas válidas que Supabase espera
+      const validFields = [
+        'titulo', 'cliente_nombre', 'cliente_empresa', 'cliente_telefono',
+        'notas', 'estado', 'presupuesto_vendido', 'costo_materiales',
+        'costo_operativo', 'fecha_entrega'
+      ];
+      
+      const finalData = {};
+      for (const key of validFields) {
+        if (parsed[key] !== undefined) {
+          finalData[key] = parsed[key];
+        }
       }
 
-      if (estadoPredefinido && typeof estadoPredefinido === 'string') { parsed.estado = estadoPredefinido; }
-      await onProjectCreated(parsed);
+      if (finalData.fecha_entrega === "" || finalData.fecha_entrega === "null" || !finalData.fecha_entrega) {
+        finalData.fecha_entrega = null;
+      }
+      
+      const parseNumber = (val) => {
+        const n = parseFloat(val);
+        return isNaN(n) ? 0 : n;
+      };
+
+      finalData.presupuesto_vendido = parseNumber(finalData.presupuesto_vendido);
+      finalData.costo_materiales = parseNumber(finalData.costo_materiales);
+      finalData.costo_operativo = parseNumber(finalData.costo_operativo);
+
+      if (estadoPredefinido && typeof estadoPredefinido === 'string') { finalData.estado = estadoPredefinido; }
+      await onProjectCreated(finalData);
+
       onClose();
     } catch (err) {
       console.error(err);
