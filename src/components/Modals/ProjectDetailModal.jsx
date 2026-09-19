@@ -310,9 +310,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
             {/* DESCRIPCIÓN */}
             <div className={styles.section}>
-              <AlignLeft className={styles.icon} size={24} />
               <div className={styles.sectionContent}>
-                <h3>Descripción</h3>
+                <h3><AlignLeft className={styles.icon} size={20} /> Descripción</h3>
                 <textarea 
                   className={styles.textareaBox}
                   placeholder="Añadir una descripción más detallada..."
@@ -325,9 +324,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
             {/* CHECKLIST DE MATERIALES */}
             <div className={styles.section}>
-              <CheckSquare className={styles.icon} size={24} />
               <div className={styles.sectionContent}>
-                <h3>Lista de Materiales y Tareas</h3>
+                <h3><CheckSquare className={styles.icon} size={20} /> Lista de Materiales y Tareas</h3>
                 
                 <div className={styles.progressBar}>
                   <div 
@@ -417,11 +415,20 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
               </div>
             </div>
 
+            
+            <button 
+              className={styles.toggleMoreBtn} 
+              onClick={() => setShowMoreInfo(!showMoreInfo)}
+            >
+              {showMoreInfo ? 'Ocultar información adicional' : 'Ver más información (Archivos, Finanzas, etc.)'}
+            </button>
+
+            {showMoreInfo && (
+              <>
             {proyecto.estado === 'Levantamiento' && (
               <div className={styles.section} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
-                <FileText className={styles.icon} size={24} style={{ color: '#2563eb' }} />
                 <div className={styles.sectionContent}>
-                  <h3 style={{ color: '#1e3a8a' }}>Hoja de Levantamiento de Trabajo</h3>
+                <h3 style={{ color: '#1e3a8a' }}><FileText className={styles.icon} size={20} style={{ color: '#2563eb' }} /> Hoja de Levantamiento de Trabajo</h3>
                   <p style={{ fontSize: '0.85rem', color: '#3b82f6', marginBottom: '0.75rem' }}>
                     Este proyecto está en fase de levantamiento. Haz clic para llenar el formato oficial.
                   </p>
@@ -440,9 +447,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             {/* FINANZAS Y RENTABILIDAD (Solo Admin / Lider) */}
             {canViewFinances && (
               <div className={styles.section}>
-                <DollarSign className={styles.icon} size={24} />
                 <div className={styles.sectionContent}>
-                  <h3>Costos y Rentabilidad (Privado)</h3>
+                <h3><DollarSign className={styles.icon} size={20} /> Costos y Rentabilidad (Privado)</h3>
                   
                   <div className={styles.financeGrid}>
                     <div className={styles.financeField}>
@@ -495,9 +501,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
             {/* ARCHIVOS ADJUNTOS */}
             <div className={styles.section}>
-              <Paperclip className={styles.icon} size={24} />
               <div className={styles.sectionContent}>
-                <h3>Archivos y Bocetos</h3>
+                <h3><Paperclip className={styles.icon} size={20} /> Archivos y Bocetos</h3>
                 
                 <div className={styles.filesList}>
                   {(proyecto.archivos || []).map((file, idx) => (
@@ -539,9 +544,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
             {/* COMENTARIOS */}
             <div className={styles.section}>
-              <MessageSquare className={styles.icon} size={24} />
               <div className={styles.sectionContent}>
-                <h3>Comentarios y Actividad</h3>
+                <h3><MessageSquare className={styles.icon} size={20} /> Comentarios y Actividad</h3>
                 
                 <form onSubmit={handleAddComentario} className={styles.commentForm}>
                   <div className={styles.commentBox}>
@@ -579,7 +583,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 </div>
               </div>
             </div>
-
+            </>
+            )}
           </div>
 
           {/* SIDEBAR (Acciones) */}
