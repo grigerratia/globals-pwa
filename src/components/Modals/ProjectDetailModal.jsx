@@ -14,6 +14,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [cargando, setCargando] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showLevantamiento, setShowLevantamiento] = useState(false);
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
 
   const autorEmail = session?.user?.email || 'Usuario';
 
