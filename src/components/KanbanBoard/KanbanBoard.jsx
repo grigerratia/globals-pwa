@@ -12,7 +12,7 @@ import {
   closestCorners 
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, QrCode } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
 import KanbanColumn from '../KanbanColumn/KanbanColumn';
 import KanbanCard from '../KanbanCard/KanbanCard';
