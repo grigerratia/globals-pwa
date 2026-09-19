@@ -21,8 +21,8 @@ messaging.onBackgroundMessage(function(payload) {
     const notificationTitle = payload.data?.title || 'Global\\'s PWA';
     const notificationOptions = {
       body: payload.data?.body || 'Nueva notificación',
-      icon: '/vite.svg',
-      badge: '/vite.svg',
+      icon: 'https://globals-pwa.vercel.app/vite.svg',
+      badge: 'https://globals-pwa.vercel.app/vite.svg',
       data: payload.data
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
