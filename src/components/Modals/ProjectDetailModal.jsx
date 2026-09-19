@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { X, Layout, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
+import { X, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
 import AssignEmployeeSelect from './AssignEmployeeSelect';
 import imageCompression from 'browser-image-compression';
@@ -15,6 +15,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showLevantamiento, setShowLevantamiento] = useState(false);
   const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const [isEditingClient, setIsEditingClient] = useState(false);
 
   const autorEmail = session?.user?.email || 'Usuario';
 
@@ -275,36 +276,67 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
           {/* COLUMNA PRINCIPAL */}
           <div className={styles.mainCol}>
             {/* INFO DEL CLIENTE */}
-            <div className={styles.clientInfoBox}>
-              <div className={styles.clientField}>
-                <label>Cliente:</label>
-                <input 
-                  type="text" 
-                  value={proyecto.cliente_nombre || ''} 
-                  placeholder="Nombre del Cliente"
-                  onChange={(e) => setProyecto(prev => ({ ...prev, cliente_nombre: e.target.value }))}
-                  onBlur={(e) => handleChange('cliente_nombre', e.target.value)}
-                />
-              </div>
-              <div className={styles.clientField}>
-                <label>Empresa:</label>
-                <input 
-                  type="text" 
-                  value={proyecto.cliente_empresa || ''} 
-                  placeholder="Nombre de Empresa"
-                  onChange={(e) => setProyecto(prev => ({ ...prev, cliente_empresa: e.target.value }))}
-                  onBlur={(e) => handleChange('cliente_empresa', e.target.value)}
-                />
-              </div>
-              <div className={styles.clientField}>
-                <label>Teléfono:</label>
-                <input 
-                  type="text" 
-                  value={proyecto.cliente_telefono || ''} 
-                  placeholder="Número (Ej: +58414...)"
-                  onChange={(e) => setProyecto(prev => ({ ...prev, cliente_telefono: e.target.value }))}
-                  onBlur={(e) => handleChange('cliente_telefono', e.target.value)}
-                />
+            <div className={styles.section}>
+              <div className={styles.sectionContent}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0 }}>Datos del Cliente</h3>
+                  <button 
+                    onClick={() => setIsEditingClient(!isEditingClient)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0.25rem' }}
+                  >
+                    {isEditingClient ? <Check size={18} color="#22c55e" /> : <Edit2 size={18} />}
+                  </button>
+                </div>
+                
+                {isEditingClient ? (
+                  <div className={styles.clientInfoBox} style={{ border: 'none', padding: 0, margin: 0, background: 'transparent' }}>
+                    <div className={styles.clientField}>
+                      <label>Cliente:</label>
+                      <input 
+                        type="text" 
+                        value={proyecto.cliente_nombre || ''} 
+                        placeholder="Nombre del Cliente"
+                        onChange={(e) => setProyecto(prev => ({ ...prev, cliente_nombre: e.target.value }))}
+                        onBlur={(e) => handleChange('cliente_nombre', e.target.value)}
+                      />
+                    </div>
+                    <div className={styles.clientField}>
+                      <label>Empresa:</label>
+                      <input 
+                        type="text" 
+                        value={proyecto.cliente_empresa || ''} 
+                        placeholder="Nombre de Empresa"
+                        onChange={(e) => setProyecto(prev => ({ ...prev, cliente_empresa: e.target.value }))}
+                        onBlur={(e) => handleChange('cliente_empresa', e.target.value)}
+                      />
+                    </div>
+                    <div className={styles.clientField}>
+                      <label>Teléfono:</label>
+                      <input 
+                        type="text" 
+                        value={proyecto.cliente_telefono || ''} 
+                        placeholder="Número (Ej: +58414...)"
+                        onChange={(e) => setProyecto(prev => ({ ...prev, cliente_telefono: e.target.value }))}
+                        onBlur={(e) => handleChange('cliente_telefono', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cliente</span>
+                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_nombre || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Empresa</span>
+                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_empresa || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Teléfono</span>
+                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_telefono || '—'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -191,12 +191,18 @@ export default function KanbanBoard({ session }) {
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
     let encargados = nuevoProyectoData.encargados;
     if (!encargados || encargados.length === 0) {
-      // Buscar al lider comercial en la BD
-      const { data: liderData } = await supabase.from('usuarios').select('nombre, rol').eq('rol', 'Líder Comercial').limit(1);
-      if (liderData && liderData.length > 0) {
-        encargados = [{ nombre: liderData[0].nombre, rol: 'Líder Comercial' }];
+      // Si el usuario que crea el proyecto es el líder comercial, nos asignamos a nosotros mismos
+      if (session?.user?.user_metadata?.rol === 'Líder Comercial') {
+        encargados = [{ id: session.user.id, nombre: session.user.user_metadata.nombre || session.user.email, rol: 'Líder Comercial' }];
       } else {
-        encargados = [{ nombre: 'Asignar', rol: 'Líder Comercial' }];
+        // Sino, buscamos al primer líder comercial de la base de datos para asignarlo por defecto
+        const { data: liderData } = await supabase.from('usuarios').select('id, nombre, rol').eq('rol', 'Líder Comercial').limit(1);
+        if (liderData && liderData.length > 0) {
+          encargados = [{ id: liderData[0].id, nombre: liderData[0].nombre, rol: 'Líder Comercial' }];
+        } else {
+          // Si no existe, dejamos solo el rol
+          encargados = [{ nombre: 'Asignar', rol: 'Líder Comercial' }];
+        }
       }
     }
 
