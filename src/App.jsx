@@ -7,9 +7,20 @@ import { supabase } from './supabase';
 import { logAudit } from './utils/audit';
 import { requestFirebaseToken, setupOnMessageListener } from './firebase';
 
+
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes slideIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+`;
+document.head.appendChild(styleSheet);
+
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState(null);
   const authLogDone = useRef(false);
 
   useEffect(() => {
@@ -51,8 +62,13 @@ function App() {
       }
             setupOnMessageListener((payload) => {
         console.log('Mensaje FCM recibido en primer plano:', payload);
-        // Aquí puedes mostrar un Toast o usar un estado global si lo deseas.
-        // Como solución rápida para mostrar la notificación visual en primer plano:
+        // Show in-app toast
+        setToastMessage({
+          title: payload.notification?.title || "Notificación",
+          body: payload.notification?.body || "Tienes un nuevo mensaje"
+        });
+        setTimeout(() => setToastMessage(null), 5000);
+        
         if (Notification.permission === 'granted') {
            if ('serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
@@ -94,6 +110,28 @@ function App() {
   return (
     <>
       <KanbanBoard session={session} />
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: '#3b82f6',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          <strong style={{ fontSize: '14px' }}>{toastMessage.title}</strong>
+          <span style={{ fontSize: '12px' }}>{toastMessage.body}</span>
+        </div>
+      )}
+
     </>
   );
 }
