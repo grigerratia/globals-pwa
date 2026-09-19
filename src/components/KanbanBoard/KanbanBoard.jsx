@@ -84,6 +84,8 @@ export default function KanbanBoard({ session }) {
   const boardRef = useRef(null);
   const dragInfo = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
   const originalColumnasRef = useRef(null);
+  const columnasRef = useRef(columnas);
+  useEffect(() => { columnasRef.current = columnas; }, [columnas]);
 
   const handleMouseDown = (e) => {
     // Only apply drag-to-scroll if clicking directly on the board background
@@ -346,6 +348,13 @@ export default function KanbanBoard({ session }) {
     }
   };
 
+  const encontrarEstadoPorIdEnRef = (id) => {
+    if (estados.includes(id)) return id; 
+    for (let col of columnasRef.current) {
+      if (col.proyectos.find(p => p.id === id)) return col.estadoOriginal; 
+    }
+    return null;
+  };
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     setProyectoActivo(null);
@@ -379,15 +388,15 @@ export default function KanbanBoard({ session }) {
     }
 
     if (type === 'Card') {
-      const activeColumn = encontrarEstadoPorId(active.id);
-      const overColumn = encontrarEstadoPorId(over.id);
+      const activeColumn = encontrarEstadoPorIdEnRef(active.id);
+      const overColumn = encontrarEstadoPorIdEnRef(over.id);
 
       if (!activeColumn || !overColumn) return;
 
       const cambioDeFase = estadoOrigenReal !== activeColumn;
       
       // Compute from current state `columnas`
-      const pryHover = columnas.flatMap(c => c.proyectos).find(p => p.id === active.id);
+      const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
       if (pryHover) {
         const isLider = session?.user?.user_metadata?.rol === 'Líder Comercial';
         const isEncargado = (pryHover.encargados || []).some(enc => enc.user_id === session?.user?.id || enc.id === session?.user?.id);
@@ -398,7 +407,7 @@ export default function KanbanBoard({ session }) {
         }
       }
 
-      const nuevasColumnas = columnas.map(c => ({ ...c, proyectos: [...c.proyectos] }));
+      const nuevasColumnas = columnasRef.current.map(c => ({ ...c, proyectos: [...c.proyectos] }));
       const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
       const proyectosColumna = nuevasColumnas[colIndex].proyectos;
 
@@ -467,6 +476,7 @@ export default function KanbanBoard({ session }) {
           const updateData = { orden: p.orden, estado: p.estado };
           if (p.id === active.id && cambioDeFase) {
             updateData.fecha_ultima_actualizacion = p.fecha_ultima_actualizacion;
+            updateData.dias_estancado = 0;
             logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
           }
           await supabase.from('proyectos').update(updateData).eq('id', p.id);
