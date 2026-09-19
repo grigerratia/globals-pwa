@@ -64,22 +64,22 @@ function App() {
         console.log('Mensaje FCM recibido en primer plano:', payload);
         // Show in-app toast
         setToastMessage({
-          title: payload.notification?.title || "Notificación",
-          body: payload.notification?.body || "Tienes un nuevo mensaje"
+          title: payload.notification?.title || payload.data?.title || "Notificación",
+          body: payload.notification?.body || payload.data?.body || "Tienes un nuevo mensaje"
         });
         setTimeout(() => setToastMessage(null), 5000);
         
         if (Notification.permission === 'granted') {
            if ('serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
-               registration.showNotification(payload.notification?.title || "Notificación", {
-                 body: payload.notification?.body,
+               registration.showNotification(payload.notification?.title || payload.data?.title || "Notificación", {
+                 body: payload.notification?.body || payload.data?.body,
                  icon: '/vite.svg'
                });
              });
            } else {
-             new Notification(payload.notification?.title || "Notificación", {
-                body: payload.notification?.body,
+             new Notification(payload.notification?.title || payload.data?.title || "Notificación", {
+                body: payload.notification?.body || payload.data?.body,
                 icon: '/vite.svg'
              });
            }
