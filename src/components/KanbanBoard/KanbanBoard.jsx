@@ -26,6 +26,7 @@ import logo from '../../assets/logo.png';
 
 const defaultEstados = [
   'Levantamiento', 
+  'En Diseño', 
   'Presupuesto enviado', 
   'Logística y compras', 
   'En fabricación', 

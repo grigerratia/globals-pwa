@@ -672,7 +672,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   onProjectUpdated({ ...proyecto, estado: 'Archivado' });
                   onClose();
                 }}
-                style={{ background: '#fef3c7', color: '#d97706', borderColor: '#fde68a', marginBottom: '1rem' }}
+                style={{ background: '#fef3c7', color: '#d97706', borderColor: '#fde68a', marginBottom: '0' }}
               >
                 <Archive size={16} /> Archivar Proyecto
               </button>

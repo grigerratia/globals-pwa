@@ -58,9 +58,9 @@ export default function KanbanColumn({ colorBg, colorText, titulo, cantidad, pro
         <button className={styles.botonAgregar} onClick={onAddProject}>
           <Plus size={16} /> Añadir proyecto
         </button>
-        <button className={styles.botonBot} onClick={() => onBotClick(idEstado)}>
+        {idEstado.toLowerCase().includes('conversaci') && <button className={styles.botonBot} onClick={() => onBotClick(idEstado)}>
           <Sparkles size={16} />
-        </button>
+        </button>}
       </div>
     </div>
   );

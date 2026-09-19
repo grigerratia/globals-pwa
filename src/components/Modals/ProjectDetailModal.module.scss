@@ -217,7 +217,7 @@
 .content {
   display: grid;
   grid-template-columns: 3fr 1fr;
-  gap: 2.5rem;
+  gap: 0.5rem;
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -227,7 +227,7 @@
 .mainCol {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 0.5rem;
 }
 
 .sidebar {
