@@ -54,10 +54,19 @@ function App() {
         // Aquí puedes mostrar un Toast o usar un estado global si lo deseas.
         // Como solución rápida para mostrar la notificación visual en primer plano:
         if (Notification.permission === 'granted') {
-           new Notification(payload.notification?.title || "Notificación", {
-              body: payload.notification?.body,
-              icon: '/vite.svg'
-           });
+           if ('serviceWorker' in navigator) {
+             navigator.serviceWorker.ready.then((registration) => {
+               registration.showNotification(payload.notification?.title || "Notificación", {
+                 body: payload.notification?.body,
+                 icon: '/vite.svg'
+               });
+             });
+           } else {
+             new Notification(payload.notification?.title || "Notificación", {
+                body: payload.notification?.body,
+                icon: '/vite.svg'
+             });
+           }
         }
       });
     } catch (error) {
