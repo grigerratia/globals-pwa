@@ -18,7 +18,7 @@ messaging.onBackgroundMessage(function(payload) {
   // Si el payload trae "notification", Firebase ya muestra la notificacion automaticamente.
   // Solo mostramos una manual si fuera un data-message sin la propiedad "notification".
   if (!payload.notification) {
-    const notificationTitle = payload.data?.title || 'Global\\'s PWA';
+    const notificationTitle = payload.data?.title || 'Globals PWA';
     const notificationOptions = {
       body: payload.data?.body || 'Nueva notificación',
       icon: 'https://globals-pwa.vercel.app/vite.svg',
