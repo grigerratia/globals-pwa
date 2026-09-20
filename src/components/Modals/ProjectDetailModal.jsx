@@ -462,14 +462,14 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 <div className={styles.sectionContent}>
                 <h3 style={{ color: '#1e3a8a' }}><FileText className={styles.icon} size={20} style={{ color: '#2563eb' }} /> Hoja de Levantamiento de Trabajo</h3>
                   <p style={{ fontSize: '0.85rem', color: '#3b82f6', marginBottom: '0.75rem' }}>
-                    Este proyecto está en fase de levantamiento. Haz clic para llenar el formato oficial.
+                    Accede al formato oficial de levantamiento del proyecto.
                   </p>
                   <button 
                     className={styles.actionButton} 
                     style={{ background: '#3b82f6', color: 'white', borderColor: '#2563eb' }}
                     onClick={() => setShowLevantamiento(true)}
                   >
-                    <FileText size={16} /> Llenar Hoja de Levantamiento
+                    <FileText size={16} /> Ver/Editar Hoja de Levantamiento
                   </button>
                 </div>
               </div>
