@@ -457,7 +457,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
             {showMoreInfo && (
               <>
-                        {!['Nuevo', 'Contactado', 'Cotizando'].includes(proyecto.estado) && (
+                        {!['Nuevo', 'Contactado', 'Cotizando', 'En Conversación'].includes(proyecto.estado) && (
               <div className={styles.section} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
                 <div className={styles.sectionContent}>
                 <h3 style={{ color: '#1e3a8a' }}><FileText className={styles.icon} size={20} style={{ color: '#2563eb' }} /> Hoja de Levantamiento de Trabajo</h3>
