@@ -63,23 +63,23 @@ export default function AddProjectModal({ columnaEstado, onClose, onAdd }) {
             />
           </div>
           <div className={styles.formGroup}>
-            <label>Nombre del Cliente</label>
+            <label>Cliente (Empresa/Negocio)</label>
+            <input 
+              type="text" 
+              name="cliente_empresa" 
+              value={formData.cliente_empresa || ''} 
+              onChange={handleChange} 
+              placeholder="Ej. Hato Grill"
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Persona de Contacto</label>
             <input 
               type="text" 
               name="cliente_nombre" 
               value={formData.cliente_nombre || ''} 
               onChange={handleChange} 
               placeholder="Ej. Juan Pérez"
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Empresa (Opcional)</label>
-            <input 
-              type="text" 
-              name="cliente_empresa" 
-              value={formData.cliente_empresa || ''} 
-              onChange={handleChange} 
-              placeholder="Ej. Cerramax"
             />
           </div>
           <div className={`${styles.formGroup} ${styles.fullWidth}`}>

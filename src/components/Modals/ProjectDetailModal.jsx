@@ -291,23 +291,22 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 {isEditingClient ? (
                   <div className={styles.clientInfoBox} style={{ border: 'none', padding: 0, margin: 0, background: 'transparent' }}>
                     <div className={styles.clientField}>
-                      <label>Cliente:</label>
-                      <input 
-                        type="text" 
-                        value={proyecto.cliente_nombre || ''} 
-                        placeholder="Nombre del Cliente"
-                        onChange={(e) => setProyecto(prev => ({ ...prev, cliente_nombre: e.target.value }))}
-                        onBlur={(e) => handleChange('cliente_nombre', e.target.value)}
-                      />
-                    </div>
-                    <div className={styles.clientField}>
-                      <label>Empresa:</label>
+                      <label>Cliente (Empresa):</label>
                       <input 
                         type="text" 
                         value={proyecto.cliente_empresa || ''} 
-                        placeholder="Nombre de Empresa"
+                        placeholder="Ej. Hato Grill"
                         onChange={(e) => setProyecto(prev => ({ ...prev, cliente_empresa: e.target.value }))}
                         onBlur={(e) => handleChange('cliente_empresa', e.target.value)}
+                      />
+
+                      <label>Persona de Contacto:</label>
+                      <input 
+                        type="text" 
+                        value={proyecto.cliente_nombre || ''} 
+                        placeholder="Nombre del Contacto"
+                        onChange={(e) => setProyecto(prev => ({ ...prev, cliente_nombre: e.target.value }))}
+                        onBlur={(e) => handleChange('cliente_nombre', e.target.value)}
                       />
                     </div>
                     <div className={styles.clientField}>
@@ -324,12 +323,12 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 ) : (
                   <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cliente</span>
-                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_nombre || '—'}</span>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cliente (Empresa)</span>
+                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_empresa || '—'}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Empresa</span>
-                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_empresa || '—'}</span>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Persona de Contacto</span>
+                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_nombre || '—'}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Teléfono</span>
