@@ -54,6 +54,8 @@ const getTextForBg = (bg) => {
 };
 
 export default function KanbanBoard({ session }) {
+  const userRole = session?.user?.user_metadata?.rol;
+  const canViewFinances = userRole === "Administración" || userRole === "Administrador" || userRole === "Líder Comercial";
   const [estados, setEstados] = useState([]);
   const [columnas, setColumnas] = useState([]);
   const [cargando, setCargando] = useState(true);
