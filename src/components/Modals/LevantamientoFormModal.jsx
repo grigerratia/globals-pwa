@@ -22,6 +22,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
   });
 
   const [empleados, setEmpleados] = useState([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     async function fetchEmpleados() {
@@ -284,9 +285,28 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
           </div>
 
           <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-            <label>Gráfica / Foto del Lugar</label>
-            <label style={{ cursor: 'pointer', display: 'block' }}>
-              <input type="file" accept="image/*" onChange={handleImageUpload} capture="environment" style={{ display: 'none' }} />
+            <label>Gráfica / Foto del Lugar para el PDF</label>
+            
+            {proyecto.archivos && proyecto.archivos.filter(a => a.url.match(/\.(jpeg|jpg|gif|png|webp)/i)).length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.5rem' }}>
+                {proyecto.archivos.filter(a => a.url.match(/\.(jpeg|jpg|gif|png|webp)/i)).map((arch, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => setFormData(prev => ({ ...prev, imagenUrl: arch.url }))}
+                    style={{ 
+                      minWidth: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer',
+                      border: formData.imagenUrl === arch.url ? '3px solid #3b82f6' : '1px solid #e2e8f0',
+                      opacity: formData.imagenUrl === arch.url ? 1 : 0.6
+                    }}
+                  >
+                    <img src={arch.url} alt="Archivo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label style={{ cursor: uploadingImage ? 'wait' : 'pointer', display: 'block' }}>
+              <input type="file" accept="image/*" onChange={handleImageUpload} capture="environment" style={{ display: 'none' }} disabled={uploadingImage} />
               {!formData.imagenUrl ? (
                 <div 
                   style={{ padding: '2.5rem 1rem', border: '2px dashed #cbd5e1', borderRadius: '12px', textAlign: 'center', backgroundColor: '#f8fafc', transition: 'all 0.2s' }} 
@@ -294,12 +314,14 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
                   onMouseOut={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
                 >
                   <Camera size={32} style={{ color: '#94a3b8', margin: '0 auto 0.5rem auto' }} />
-                  <span style={{ color: '#64748b', fontWeight: 500 }}>Haz clic para tomar foto o subir archivo</span>
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>{uploadingImage ? 'Subiendo imagen...' : 'Selecciona una imagen de arriba, o haz clic para subir una nueva'}</span>
                 </div>
               ) : (
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   <img src={formData.imagenUrl} alt="Gráfica" style={{ maxWidth: '100%', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
-                  <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 500 }}>Cambiar imagen</div>
+                  <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 500 }}>
+                    {uploadingImage ? 'Subiendo...' : 'Subir otra imagen'}
+                  </div>
                 </div>
               )}
             </label>

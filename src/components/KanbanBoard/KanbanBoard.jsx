@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { BarChart2,  useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
 import { Bot, BellRing, LogOut, Search, Archive } from 'lucide-react';
 import { requestFirebaseToken } from '../../firebase';
@@ -512,6 +512,17 @@ export default function KanbanBoard({ session }) {
             <span style={{fontWeight: 'bold'}}>Cotizador</span>
           </button> */}
           
+          {canViewFinances && (
+            <button 
+              className={styles.btnActionMobile} 
+              title="Dashboard"
+              style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              onClick={() => window.location.href = '/dashboard'}
+            >
+              <BarChart2 size={20} />
+            </button>
+          )}
+
           <button 
             className={styles.btnActionMobile} 
             title="WhatsApp Admin"

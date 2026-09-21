@@ -3,6 +3,7 @@ import KanbanBoard from './components/KanbanBoard/KanbanBoard';
 import Login from './components/Auth/Login';
 import WhatsAppAdmin from './components/WhatsAppAdmin';
 import Cotizador from './components/Cotizador/Cotizador';
+import Dashboard from './components/Dashboard/Dashboard';
 import { supabase } from './supabase';
 import { logAudit } from './utils/audit';
 import { requestFirebaseToken, setupOnMessageListener } from './firebase';
@@ -105,6 +106,10 @@ function App() {
 
   if (window.location.pathname === '/cotizador') {
     return <Cotizador />;
+  }
+
+  if (window.location.pathname === '/dashboard') {
+    return <Dashboard session={session} />;
   }
 
   return (
