@@ -9,8 +9,8 @@ import { logAudit } from '../../utils/audit';
 
 export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpdated, session }) {
   const [formData, setFormData] = useState({
-    cliente: proyecto.cliente_nombre || '',
-    contacto: '',
+    cliente: proyecto.cliente_empresa || '',
+    contacto: proyecto.cliente_nombre || '',
     telefono: proyecto.cliente_telefono || '',
     responsableGlobals: (proyecto.encargados || []).map(e => e.nombre).join(', ') || '',
     motivo: '',
@@ -57,7 +57,8 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
 
   const handleSave = async (conFechaLevantamiento = true) => {
     const updateData = {
-      cliente_nombre: formData.cliente,
+      cliente_empresa: formData.cliente,
+      cliente_nombre: formData.contacto,
       cliente_telefono: formData.telefono,
       notas: formData.descripcion,
     };
