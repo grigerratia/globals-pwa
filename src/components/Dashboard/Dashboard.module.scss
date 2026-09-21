@@ -41,7 +41,7 @@
 .aiCard {
   background: linear-gradient(to right bottom, #3b82f6, #8b5cf6);
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   color: white;
   margin-bottom: 2rem;
   box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
@@ -73,30 +73,37 @@
   backdrop-filter: blur(10px);
 }
 
-.loadingAi {
+.tabs {
   display: flex;
-  align-items: center;
   gap: 1rem;
-  font-style: italic;
-  opacity: 0.9;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s ease-in-out infinite;
-}
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  &:hover {
+    color: #3b82f6;
+  }
+
+  &.activeTab {
+    color: #3b82f6;
+    border-bottom: 3px solid #3b82f6;
+  }
 }
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -110,6 +117,7 @@
   gap: 1.5rem;
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  position: relative;
 }
 
 .kpiIcon {
@@ -141,9 +149,22 @@
   color: #0f172a;
 }
 
+.kpiTrend {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  .positive { color: #16a34a; }
+  .negative { color: #ef4444; }
+  .neutral { color: #64748b; }
+}
+
 .chartsGrid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 1.5rem;
 }
 
@@ -152,6 +173,7 @@
   border-radius: 12px;
   padding: 1.5rem;
   border: 1px solid #e2e8f0;
+  min-height: 350px;
 
   h3 {
     margin-top: 0;
@@ -179,6 +201,11 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: #475569;
+  
+  .barMoney {
+    color: #16a34a;
+    font-weight: 600;
+  }
 }
 
 .barTrack {
@@ -193,4 +220,10 @@
   background: #3b82f6;
   border-radius: 999px;
   transition: width 1s ease-out;
+}
+
+@media (max-width: 768px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
 }
