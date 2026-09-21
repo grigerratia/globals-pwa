@@ -71,6 +71,32 @@
   font-size: 1.05rem;
   line-height: 1.6;
   backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+
+  p {
+    margin: 0;
+  }
+}
+
+.geminiBtn {
+  background: white;
+  color: #3b82f6;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  transition: opacity 0.2s;
+  
+  &:hover {
+    opacity: 0.9;
+  }
 }
 
 .tabs {
@@ -78,6 +104,14 @@
   gap: 1rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  white-space: nowrap;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .tab {
@@ -127,6 +161,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .kpiInfo {
@@ -174,6 +209,7 @@
   padding: 1.5rem;
   border: 1px solid #e2e8f0;
   min-height: 350px;
+  overflow: hidden;
 
   h3 {
     margin-top: 0;
@@ -222,8 +258,79 @@
   transition: width 1s ease-out;
 }
 
+/* 📱 Responsive Adjustments for Mobile */
 @media (max-width: 768px) {
+  .dashboardContainer {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+
+    h1 {
+      font-size: 1.4rem;
+    }
+  }
+
+  .aiCard {
+    padding: 1.25rem;
+  }
+  
+  .aiHeader h2 {
+    font-size: 1.1rem;
+  }
+  
+  .geminiBtn {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .tabs {
+    gap: 0.5rem;
+  }
+
+  .tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .kpiGrid {
+    grid-template-columns: 1fr; /* Full width cards */
+    gap: 1rem;
+  }
+
+  .kpiCard {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  
+  .kpiValue {
+    font-size: 1.4rem;
+  }
+
   .chartsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .chartCard {
+    padding: 1rem;
+    /* Allow charts to scale down properly */
+    min-height: 280px; 
+  }
+}
+
+@media (max-width: 480px) {
+  /* Very small devices */
+  .barLabel {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .barMoney {
+    align-self: flex-start;
   }
 }

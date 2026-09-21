@@ -205,9 +205,9 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
           <Sparkles size={20} className={styles.aiIcon} /> 
           <h2>Asesoría Avanzada con Gemini (COO & Analista Financiero)</h2>
         </div>
-        <div className={styles.aiBody} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
+        <div className={styles.aiBody}>
           <p style={{ margin: 0 }}>Basado en tu petición, he mejorado profundamente el análisis. Clic para enviar a tu Gemini Pro.</p>
-          <button onClick={handleGeminiPro} style={{ background: 'white', color: '#3b82f6', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button onClick={handleGeminiPro} className={styles.geminiBtn}>
             <Copy size={18} /> Copiar Mega-Prompt y Abrir Gemini <ExternalLink size={18} />
           </button>
         </div>
