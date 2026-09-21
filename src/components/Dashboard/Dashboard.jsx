@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { ArrowLeft, TrendingUp, DollarSign, Activity, AlertCircle, Calendar, Sparkles } from 'lucide-react';
+import { ArrowLeft, TrendingUp, DollarSign, Activity, AlertCircle, Sparkles, Copy, ExternalLink } from 'lucide-react';
 import styles from './Dashboard.module.scss';
 
 export default function Dashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [aiInsight, setAiInsight] = useState('');
-  const [loadingAi, setLoadingAi] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -17,25 +15,22 @@ export default function Dashboard({ session }) {
     const { data, error } = await supabase.from('proyectos').select('*');
     if (!error && data) {
       setProyectos(data);
-      generateAiInsight(data);
     }
     setLoading(false);
   };
 
-  const generateAiInsight = async (data) => {
-    setLoadingAi(true);
-    
-    const presupuestos = data.reduce((acc, p) => acc + (p.presupuesto_vendido || 0), 0);
-    const costos = data.reduce((acc, p) => acc + (p.costo_materiales || 0) + (p.costo_operativo || 0), 0);
+  const handleGeminiPro = () => {
+    const presupuestos = proyectos.reduce((acc, p) => acc + (p.presupuesto_vendido || 0), 0);
+    const costos = proyectos.reduce((acc, p) => acc + (p.costo_materiales || 0) + (p.costo_operativo || 0), 0);
     const ganancia = presupuestos - costos;
     
-    const estadosCount = data.reduce((acc, p) => {
+    const estadosCount = proyectos.reduce((acc, p) => {
       acc[p.estado] = (acc[p.estado] || 0) + 1;
       return acc;
     }, {});
     
     const hoy = new Date();
-    const estancados = data.filter(p => {
+    const estancados = proyectos.filter(p => {
       if (['Entregado y cerrado', 'Cancelado'].includes(p.estado)) return false;
       const fUltima = new Date(p.fecha_ultima_actualizacion);
       const diffTime = Math.abs(hoy - fUltima);
@@ -43,42 +38,25 @@ export default function Dashboard({ session }) {
       return diffDays > 3;
     });
 
-    const statsText = `
-      Total proyectos: ${data.length}
-      Presupuesto Total: $${presupuestos}
-      Costos Totales: $${costos}
-      Ganancia Estimada: $${ganancia}
-      Proyectos por estado: ${JSON.stringify(estadosCount)}
-      Proyectos estancados (>3 días sin cambios): ${estancados.length}
-    `;
+    const promptText = `Eres un asesor de negocios experto en agencias de publicidad. Analiza las siguientes estadísticas de Global's y proporciona un resumen ejecutivo (3-4 párrafos cortos). Felicita por lo bueno, alerta sobre lo malo (ej. proyectos estancados, baja rentabilidad si la hay), y dale una recomendación clave al líder comercial sobre en qué enfocarse hoy para cerrar más ventas y mantener el flujo. Usa un tono motivador, directo y profesional.
 
-    const systemInstruction = `Eres un asesor de negocios experto en agencias de publicidad. Analiza las siguientes estadísticas de Global's y proporciona un resumen ejecutivo (3-4 párrafos cortos). Felicita por lo bueno, alerta sobre lo malo (ej. proyectos estancados, baja rentabilidad si la hay), y dale una recomendación clave al líder comercial sobre en qué enfocarse hoy para cerrar más ventas y mantener el flujo. Usa un tono motivador, directo y profesional.`;
+Estadísticas actuales:
+- Total proyectos: ${proyectos.length}
+- Presupuesto Total Vendido: $${presupuestos}
+- Costos Totales: $${costos}
+- Ganancia Estimada (Rentabilidad): $${ganancia}
+- Proyectos por estado: ${JSON.stringify(estadosCount)}
+- Proyectos estancados (>3 días sin cambios): ${estancados.length}`;
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      setAiInsight("No se configuró la API de Gemini para generar insights.");
-      setLoadingAi(false);
-      return;
-    }
-
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents: [{ parts: [{ text: statsText }] }]
-        })
+    navigator.clipboard.writeText(promptText)
+      .then(() => {
+        alert("¡Datos copiados al portapapeles! Se abrirá Gemini Pro. Solo pega (Ctrl+V) el mensaje para obtener tu análisis sin costo.");
+        window.open('https://gemini.google.com/app', '_blank');
+      })
+      .catch(err => {
+        console.error('Error al copiar: ', err);
+        alert("No se pudo copiar al portapapeles automáticamente. Intenta de nuevo.");
       });
-      const resData = await res.json();
-      if (resData.error) throw new Error(resData.error.message);
-      setAiInsight(resData.candidates[0].content.parts[0].text);
-    } catch (err) {
-      console.error(err);
-      setAiInsight("Error al conectar con la IA.");
-    } finally {
-      setLoadingAi(false);
-    }
   };
 
   if (loading) return <div style={{ display:'flex', justifyContent:'center', marginTop:'3rem' }}>Cargando estadísticas...</div>;
@@ -106,14 +84,19 @@ export default function Dashboard({ session }) {
       <div className={styles.aiCard}>
         <div className={styles.aiHeader}>
           <Sparkles size={20} className={styles.aiIcon} /> 
-          <h2>Análisis Estratégico AI</h2>
+          <h2>Asesoría con Gemini Advanced (Cero Costo)</h2>
         </div>
-        <div className={styles.aiBody}>
-          {loadingAi ? (
-            <div className={styles.loadingAi}>Generando análisis profundo de tus métricas... <span className={styles.spinner}></span></div>
-          ) : (
-            <div style={{ whiteSpace: 'pre-line' }}>{aiInsight}</div>
-          )}
+        <div className={styles.aiBody} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
+          <p style={{ margin: 0 }}>Usa tu suscripción personal de Gemini Advanced para analizar las estadísticas de la agencia sin gastar tokens de la API.</p>
+          <button 
+            onClick={handleGeminiPro} 
+            style={{ 
+              background: 'white', color: '#3b82f6', border: 'none', padding: '0.75rem 1.5rem', 
+              borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', gap: '0.5rem', alignItems: 'center' 
+            }}
+          >
+            <Copy size={18} /> Copiar Datos y Abrir Gemini <ExternalLink size={18} />
+          </button>
         </div>
       </div>
 

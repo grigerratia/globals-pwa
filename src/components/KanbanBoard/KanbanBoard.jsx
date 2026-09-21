@@ -1,4 +1,4 @@
-import { BarChart2,  useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
 import { Bot, BellRing, LogOut, Search, Archive } from 'lucide-react';
 import { requestFirebaseToken } from '../../firebase';
@@ -12,7 +12,7 @@ import {
   closestCorners 
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, X, QrCode } from 'lucide-react';
+import { BarChart2, Plus, X, QrCode } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
 import KanbanColumn from '../KanbanColumn/KanbanColumn';
 import KanbanCard from '../KanbanCard/KanbanCard';
