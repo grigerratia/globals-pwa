@@ -24,6 +24,7 @@ export default function WhatsAppAdmin() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}><a href="/" style={{ backgroundColor: '#3b82f6', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' }}>&larr; Volver al Tablero</a></div>
       <h1>Administración de WhatsApp</h1>
       <p style={{ marginBottom: '2rem', color: '#64748b' }}>
         Estado actual de la conexión: 
@@ -53,9 +54,7 @@ export default function WhatsAppAdmin() {
         </div>
       )}
       
-      <div style={{ marginTop: '3rem' }}>
-        <a href="/" style={{ color: '#3b82f6', textDecoration: 'none' }}>&larr; Volver al tablero</a>
-      </div>
+      
     </div>
   );
 }

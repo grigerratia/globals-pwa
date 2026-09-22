@@ -498,6 +498,7 @@ export default function KanbanBoard({ session }) {
 
   return (
     <>
+      <div className={styles.stickyHeader}>
       <header className={styles.topHeader}>
         <div className={styles.logo}>
           <img src={logo} alt="Globals Logo" style={{ height: "40px" }} />
@@ -566,6 +567,7 @@ export default function KanbanBoard({ session }) {
         </button>
       </div>
 
+      </div>
       {boardError && (
         <div className={styles.boardError}>
           <span>{boardError}</span>

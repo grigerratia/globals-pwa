@@ -21,7 +21,7 @@
 }
 
 .modal {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: linear-gradient(to right bottom, #3b82f6, #8b5cf6);
   width: 95%;
   max-width: 900px;
   margin: 0 auto;
@@ -113,7 +113,7 @@
   right: 1.5rem;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #ffffff;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
@@ -123,8 +123,8 @@
   justify-content: center;
   
   &:hover {
-    background: #f1f5f9;
-    color: #475569;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
     transform: scale(1.1);
   }
 }
@@ -137,7 +137,7 @@
   
   .icon {
     margin-top: 0.4rem;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.9);
   }
   
   .titleWrapper {
@@ -147,7 +147,7 @@
   .titleInput {
     font-size: 1.4rem;
     font-weight: 600;
-    color: #1e293b;
+    color: #ffffff;
     border: 1px solid transparent;
     background: transparent;
     width: 100%;
@@ -169,7 +169,7 @@
 
   .subtitle {
     font-size: 0.9rem;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.9);
     margin: 0.5rem 0 0 0;
     display: flex;
     align-items: center;
@@ -191,7 +191,7 @@
       }
       &:focus {
         outline: none;
-        border-color: #94a3b8;
+        border-color: rgba(255, 255, 255, 0.8);
       }
     }
   }
