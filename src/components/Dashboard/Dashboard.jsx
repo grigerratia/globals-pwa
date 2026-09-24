@@ -176,13 +176,29 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
 
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
-      const result = await model.generateContent(promptText);
-      setAiResponse(result.response.text());
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      setAiResponse(`Ocurrió un error: ${error.message}`);
+      const fallbackModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3-flash-preview"];
+    let success = false;
+    let lastError = null;
+
+    for (const modelName of fallbackModels) {
+      try {
+        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(promptText);
+        setAiResponse(`(Generado con: ${modelName})
+
+` + result.response.text());
+        success = true;
+        break; // Exit loop on success
+      } catch (err) {
+        console.warn(`Error con ${modelName}:`, err);
+        lastError = err;
+      }
+    }
+
+    if (!success) {
+      console.error('Error generating AI response with all models:', lastError);
+      setAiResponse(`Ocurrió un error (incluso tras probar modelos de respaldo): ${lastError?.message}`);
     } finally {
       setIsLoadingAi(false);
     }
