@@ -240,13 +240,13 @@ export default function KanbanBoard({ session }) {
     setAddProjectColumnId(null); // Cerrar modal
   };
 
-  const agregarColumnaSubmit = async (nombre) => {
+  const agregarColumnaSubmit = async (nombre, dias_defecto = 7) => {
     if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
       showError('Acceso denegado: Solo el Líder Comercial puede agregar columnas.');
       return;
     }
     if (!estados.includes(nombre)) {
-      const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length }]);
+      const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length, dias_defecto }]);
       
       if (error) {
         showError('Error al crear la columna: ' + error.message);
