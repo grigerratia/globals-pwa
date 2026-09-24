@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../supabase';
-import { X, FileText, Camera, Download, Save, Trash2 } from 'lucide-react';
+import { X, FileText, Camera, Download, Save, Trash2, AlertTriangle } from 'lucide-react';
 import styles from './Modals.module.scss';
 import jsPDF from 'jspdf';
 import imageCompression from 'browser-image-compression';
@@ -71,14 +71,27 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
     const daysDiff = getDaysDiff(formData.fechaEntrega);
     if (daysDiff !== null && daysDiff < 5 && !proceedAnyway) {
       setShowDateWarning(true);
+      setTimeout(() => {
+        document.getElementById('date-warning-box')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
       return;
     }
     setShowDateWarning(false);
+    
+    let finalNotas = formData.descripcion;
+    if (daysDiff !== null && daysDiff < 5 && proceedAnyway) {
+       const hasUrgencia = finalNotas.includes('[URGENCIA APROBADA POR:');
+       if (!hasUrgencia) {
+           const userName = session?.user?.user_metadata?.nombre || session?.user?.user_metadata?.full_name || session?.user?.email || 'Usuario';
+           finalNotas = `[URGENCIA APROBADA POR: ${userName}]\n\n` + finalNotas;
+       }
+    }
+
     const updateData = {
       cliente_empresa: formData.cliente,
       cliente_nombre: formData.contacto,
       cliente_telefono: formData.telefono,
-      notas: formData.descripcion,
+      notas: finalNotas,
     };
     
     if (formData.fechaEntrega) updateData.fecha_entrega = formData.fechaEntrega;
@@ -175,6 +188,9 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
     await handleSave(true);
   };
 
+  const urgenciaMatch = formData.descripcion.match(/\[URGENCIA APROBADA POR:\s*(.*?)\]/);
+  const urgenciaNombre = urgenciaMatch ? urgenciaMatch[1] : null;
+
   const modalContent = (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', position: 'relative' }}>
@@ -200,6 +216,17 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
             <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.95rem' }}>Llene los datos del levantamiento para guardar o exportar el documento.</p>
           </div>
         </div>
+        
+        {urgenciaNombre && (
+          <div style={{ backgroundColor: '#fef2f2', padding: '1rem', borderLeft: '4px solid #ef4444', marginBottom: '1.5rem', borderRadius: '4px' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertTriangle size={18} /> Urgencia de Entrega Aprobada
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#7f1d1d' }}>
+              Esta hoja fue marcada con un plazo de entrega muy corto. Aprobado por: <strong>{urgenciaNombre}</strong>
+            </p>
+          </div>
+        )}
         
         {proyecto.levantamiento_fecha && (
           <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: 500, fontSize: '0.9rem' }}>
@@ -252,7 +279,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
                setProceedAnyway(false);
             }} />
             {showDateWarning && (
-              <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontSize: '0.85rem' }}>
+              <div id="date-warning-box" style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontSize: '0.85rem' }}>
                 ⚠️ <strong>Aviso:</strong> El tiempo de entrega es menor a 5 días. Este plazo es muy corto.
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
                   <input type="checkbox" checked={proceedAnyway} onChange={e => setProceedAnyway(e.target.checked)} />
