@@ -194,6 +194,13 @@ export default function KanbanBoard({ session }) {
   };
 
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
+    const tituloLower = nuevoProyectoData.titulo.toLowerCase().trim();
+    const existe = columnas.some(col => col.proyectos.some(p => p.titulo.toLowerCase().trim() === tituloLower));
+    if (existe) {
+      showError(`Ya existe un proyecto con el título "${nuevoProyectoData.titulo}".`);
+      return;
+    }
+
     let encargados = nuevoProyectoData.encargados;
     if (!encargados || encargados.length === 0) {
       // Si el usuario que crea el proyecto es el líder comercial, nos asignamos a nosotros mismos
@@ -245,16 +252,22 @@ export default function KanbanBoard({ session }) {
       showError('Acceso denegado: Solo el Líder Comercial puede agregar columnas.');
       return;
     }
-    if (!estados.includes(nombre)) {
-      const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length, dias_defecto }]);
-      
-      if (error) {
-        showError('Error al crear la columna: ' + error.message);
-      } else {
-        setEstados(prev => [...prev, nombre]);
-        setColumnas(prev => [...prev, { estadoOriginal: nombre, proyectos: [] }]);
-      }
+    const nombreLower = nombre.toLowerCase().trim();
+    const existe = estados.some(est => est.toLowerCase().trim() === nombreLower);
+    if (existe) {
+      showError(`Ya existe una columna con el nombre "${nombre}".`);
+      return;
     }
+
+    const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length, dias_defecto }]);
+    
+    if (error) {
+      showError('Error al crear la columna: ' + error.message);
+    } else {
+      setEstados(prev => [...prev, nombre]);
+      setColumnas(prev => [...prev, { estadoOriginal: nombre, proyectos: [] }]);
+    }
+    
     setIsAddColumnOpen(false);
   };
 
