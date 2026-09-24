@@ -1,5 +1,0 @@
-allowBuilds:
-  '@firebase/util': set this to true or false
-  '@parcel/watcher': true
-  core-js: set this to true or false
-  protobufjs: set this to true or false
