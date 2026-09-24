@@ -177,12 +177,12 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
       const result = await model.generateContent(promptText);
       setAiResponse(result.response.text());
     } catch (error) {
       console.error('Error generating AI response:', error);
-      setAiResponse('Ocurrió un error al generar el reporte. Por favor, asegúrate de que VITE_GEMINI_API_KEY está configurado y es válido.');
+      setAiResponse(`Ocurrió un error: ${error.message}`);
     } finally {
       setIsLoadingAi(false);
     }
