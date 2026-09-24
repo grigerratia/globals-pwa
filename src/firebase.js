@@ -27,7 +27,7 @@ export const requestFirebaseToken = async () => {
     }
   } catch (err) {
     console.error('An error occurred while retrieving token. ', err);
-    alert("Error obteniendo token Push: " + err.message);
+    
     return null;
   }
 };
