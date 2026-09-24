@@ -177,7 +177,7 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
       const result = await model.generateContent(promptText);
       setAiResponse(result.response.text());
     } catch (error) {
