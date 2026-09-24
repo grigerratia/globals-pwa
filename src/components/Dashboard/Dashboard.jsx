@@ -206,7 +206,7 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
           <h2>Asesoría Avanzada con Gemini (COO & Analista Financiero)</h2>
         </div>
         <div className={styles.aiBody}>
-          <p style={{ margin: 0 }}>Basado en tu petición, he mejorado profundamente el análisis. Clic para enviar a tu Gemini Pro.</p>
+          <p style={{ margin: 0 }}>Analiza los indicadores financieros, descubre cuellos de botella en la operación y genera estrategias de venta accionables usando Gemini Advanced.</p>
           <button onClick={handleGeminiPro} className={styles.geminiBtn}>
             <Copy size={18} /> Copiar Mega-Prompt y Abrir Gemini <ExternalLink size={18} />
           </button>

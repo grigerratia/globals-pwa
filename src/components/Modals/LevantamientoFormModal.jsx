@@ -23,6 +23,17 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
 
   const [empleados, setEmpleados] = useState([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDateWarning, setShowDateWarning] = useState(false);
+  const [proceedAnyway, setProceedAnyway] = useState(false);
+
+  const getDaysDiff = (dateString) => {
+    if (!dateString) return null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const target = new Date(dateString + 'T00:00:00');
+    const diffTime = target - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
 
   useEffect(() => {
     async function fetchEmpleados() {
@@ -57,6 +68,12 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
   };
 
   const handleSave = async (conFechaLevantamiento = true) => {
+    const daysDiff = getDaysDiff(formData.fechaEntrega);
+    if (daysDiff !== null && daysDiff < 5 && !proceedAnyway) {
+      setShowDateWarning(true);
+      return;
+    }
+    setShowDateWarning(false);
     const updateData = {
       cliente_empresa: formData.cliente,
       cliente_nombre: formData.contacto,
@@ -229,7 +246,20 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
           </div>
           <div className={styles.formGroup}>
             <label>Fecha de Entrega (Aprox)</label>
-            <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} />
+            <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={(e) => {
+               handleChange(e);
+               setShowDateWarning(false);
+               setProceedAnyway(false);
+            }} />
+            {showDateWarning && (
+              <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontSize: '0.85rem' }}>
+                ⚠️ <strong>Aviso:</strong> El tiempo de entrega es menor a 5 días. Este plazo es muy corto.
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <input type="checkbox" checked={proceedAnyway} onChange={e => setProceedAnyway(e.target.checked)} />
+                  Entiendo el riesgo, guardar fecha
+                </label>
+              </div>
+            )}
           </div>
 
           <div className={`${styles.formGroup} ${styles.fullWidth}`}>
