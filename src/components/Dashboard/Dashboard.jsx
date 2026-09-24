@@ -199,6 +199,10 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
     if (!success) {
       console.error('Error generating AI response with all models:', lastError);
       setAiResponse(`Ocurrió un error (incluso tras probar modelos de respaldo): ${lastError?.message}`);
+    }
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      setAiResponse(`Ocurrió un error: ${error.message}`);
     } finally {
       setIsLoadingAi(false);
     }
