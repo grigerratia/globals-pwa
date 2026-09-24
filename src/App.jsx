@@ -4,6 +4,7 @@ import Login from './components/Auth/Login';
 import WhatsAppAdmin from './components/WhatsAppAdmin';
 import Cotizador from './components/Cotizador/Cotizador';
 import Dashboard from './components/Dashboard/Dashboard';
+import Legales from './components/Legales/Legales';
 import { supabase } from './supabase';
 import { logAudit } from './utils/audit';
 import { requestFirebaseToken, setupOnMessageListener } from './firebase';
@@ -108,6 +109,11 @@ function App() {
     return <Cotizador />;
   }
 
+  if (window.location.pathname.startsWith('/legales/')) {
+    const page = window.location.pathname.split('/').pop();
+    return <Legales pagina={page} />;
+  }
+
   if (window.location.pathname === '/dashboard') {
     return <Dashboard session={session} />;
   }
@@ -137,6 +143,26 @@ function App() {
         </div>
       )}
 
+      {/* Discreet Legal Footer */}
+      <div style={{
+        position: 'fixed',
+        bottom: '4px',
+        right: '12px',
+        fontSize: '0.65rem',
+        color: '#94a3b8',
+        display: 'flex',
+        gap: '8px',
+        zIndex: 100,
+        opacity: 0.7
+      }}>
+        <a href="/legales/terminos-y-condiciones" style={{ color: 'inherit', textDecoration: 'none' }}>Términos</a>
+        <span>|</span>
+        <a href="/legales/aviso-legal" style={{ color: 'inherit', textDecoration: 'none' }}>Legal</a>
+        <span>|</span>
+        <a href="/legales/politica-de-cookies" style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</a>
+        <span>|</span>
+        <a href="/legales/politica-de-privacidad" style={{ color: 'inherit', textDecoration: 'none' }}>Privacidad</a>
+      </div>
     </>
   );
 }
