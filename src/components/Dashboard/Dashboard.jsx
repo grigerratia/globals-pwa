@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { ArrowLeft, TrendingUp, DollarSign, Activity, AlertCircle, Sparkles, Copy, ExternalLink, Briefcase, Clock, Users, Target } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, FunnelChart, Funnel, LabelList } from 'recharts';
+import ReactMarkdown from 'react-markdown';
 import styles from './Dashboard.module.scss';
 
 export default function Dashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('finanzas');
+  const [aiResponse, setAiResponse] = useState(null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -145,7 +148,8 @@ export default function Dashboard({ session }) {
     { name: 'Cerrados (Éxito)', value: getFunnelValue(['Entregado y cerrado']), fill: '#14b8a6' }
   ].filter(f => f.value > 0);
 
-  const handleGeminiPro = () => {
+    const handleGeminiPro = async () => {
+    setIsLoadingAi(true);
     let pipelineStr = Object.entries(pipeline).map(([k, v]) => `${k}: ${v.count} ($${v.value})`).join(', ');
 
     const promptText = `Actúa como un Director de Operaciones (COO) y Analista Financiero. A continuación te presento los datos actuales extraídos de mi CRM (incluyendo finanzas, embudo de proyectos y atención al cliente).
@@ -161,8 +165,6 @@ Distribución y Valor del Pipeline:
 ${pipelineStr}
 Proyectos estancados (>3 días): ${estancados.length}
 
-Tiempo promedio de respuesta WS: 15 mins (Aprox).
-
 Tu tarea es entregar un reporte ejecutivo respondiendo a estos 4 puntos clave:
 
 Diagnóstico Financiero: Analiza el margen de ganancia neta sobre el presupuesto cerrado. ¿Es saludable para una agencia/empresa de servicios?
@@ -172,17 +174,19 @@ Pronóstico: Basado en la velocidad actual y los proyectos activos, ¿cuál es m
 
 Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni definiciones. Ve directamente a los hallazgos y a las acciones que debo tomar hoy.`;
 
-    navigator.clipboard.writeText(promptText)
-      .then(() => {
-        alert("¡Prompt copiado al portapapeles! Se abrirá Gemini Pro. Pega el mensaje para obtener tu reporte ejecutivo.");
-        window.open('https://gemini.google.com/app', '_blank');
-      })
-      .catch(err => {
-        console.error('Error al copiar: ', err);
-        alert("No se pudo copiar al portapapeles automáticamente.");
-      });
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      const result = await model.generateContent(promptText);
+      setAiResponse(result.response.text());
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      setAiResponse('Ocurrió un error al generar el reporte. Por favor, asegúrate de que VITE_GEMINI_API_KEY está configurado y es válido.');
+    } finally {
+      setIsLoadingAi(false);
+    }
   };
-
   if (loading) return <div style={{ display:'flex', justifyContent:'center', marginTop:'3rem' }}>Cargando estadísticas...</div>;
 
   const Trend = ({ val }) => (
@@ -206,10 +210,27 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
           <h2>Asesoría Avanzada con Gemini (COO & Analista Financiero)</h2>
         </div>
         <div className={styles.aiBody}>
-          <p style={{ margin: 0 }}>Analiza los indicadores financieros, descubre cuellos de botella en la operación y genera estrategias de venta accionables usando Gemini Advanced.</p>
-          <button onClick={handleGeminiPro} className={styles.geminiBtn}>
-            <Copy size={18} /> Copiar Mega-Prompt y Abrir Gemini <ExternalLink size={18} />
-          </button>
+          {!aiResponse && !isLoadingAi && (
+            <>
+              <p style={{ margin: 0 }}>Analiza los indicadores financieros, descubre cuellos de botella en la operación y genera estrategias de venta accionables usando Gemini Advanced.</p>
+              <button onClick={handleGeminiPro} className={styles.geminiBtn}>
+                <Sparkles size={18} /> Generar Reporte Ejecutivo Inline
+              </button>
+            </>
+          )}
+          {isLoadingAi && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6366f1' }}>
+              <Sparkles size={18} className={styles.pulse} /> Generando análisis estratégico...
+            </div>
+          )}
+          {aiResponse && (
+            <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <ReactMarkdown>{aiResponse}</ReactMarkdown>
+              <button onClick={() => setAiResponse(null)} style={{ marginTop: '1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+                Cerrar Reporte
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -334,3 +334,13 @@
     align-self: flex-start;
   }
 }
+
+@keyframes pulseAnim {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.pulse {
+  animation: pulseAnim 1.5s infinite ease-in-out;
+}
