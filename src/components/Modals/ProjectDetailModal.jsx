@@ -289,6 +289,19 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     );
   }
 
+  let diasEstimadosNota = null;
+  if (proyecto && proyecto.notas) {
+    const match = proyecto.notas.match(/\[DÍAS ESTIMADOS FASE ACTUAL: (\d+)\]/);
+    if (match) {
+      const diasTotales = parseInt(match[1], 10);
+      const hoy = new Date();
+      const ultima = new Date(proyecto.fecha_ultima_actualizacion || proyecto.fecha_creacion);
+      const diff = Math.floor((hoy - ultima) / 86400000);
+      let restantes = diasTotales - diff;
+      diasEstimadosNota = restantes >= 0 ? restantes : 0;
+    }
+  }
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
@@ -326,6 +339,14 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             <AlertTriangle size={18} />
             <span>Este proyecto no ha tenido movimiento en <strong>{diasEstancado} días</strong>.</span>
           </div>
+        )}
+
+        {diasEstimadosNota !== null && (
+           <div style={{ padding: '0.75rem 1.25rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', borderLeft: '4px solid #3b82f6', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
+             <span style={{ fontSize: '0.9rem', color: '#93c5fd', fontWeight: 500 }}>
+               Días estimados para terminar esta fase: <strong style={{ color: '#ffffff' }}>{diasEstimadosNota} días</strong>
+             </span>
+           </div>
         )}
 
         {(proyecto.estado?.toLowerCase().includes('espera') || proyecto.estado?.toLowerCase().includes('pausa') || proyecto.estado === 'Archivado' || proyecto.estado === 'Cancelado') && proyecto.motivo_cancelacion && (
