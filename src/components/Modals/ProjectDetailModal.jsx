@@ -732,10 +732,16 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 <h3><MessageSquare className={styles.icon} size={20} /> Comentarios y Actividad</h3>
                 
                 <form onSubmit={handleAddComentario} className={styles.commentForm}>
-                  <div className={styles.commentBox}>
+                  {replyingTo && (
+                    <div style={{ background: '#1e293b', padding: '0.5rem 1rem', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', fontSize: '0.85rem', color: '#94a3b8' }}>
+                      <span>Respondiendo a <strong>{replyingTo.email}</strong></span>
+                      <button type="button" onClick={() => setReplyingTo(null)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>✕ Cancelar</button>
+                    </div>
+                  )}
+                  <div className={styles.commentBox} style={replyingTo ? { borderRadius: '0 0 8px 8px', borderTop: 'none' } : {}}>
                     <textarea 
                       ref={textareaRef}
-                      placeholder="Escribe un comentario..." 
+                      placeholder={replyingTo ? "Escribe tu respuesta..." : "Escribe un comentario..."}
                       rows="2"
                       value={nuevoComentario}
                       onChange={(e) => setNuevoComentario(e.target.value)}
@@ -748,69 +754,106 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     />
                   </div>
                   <button type="submit" className={styles.btnSubmitComment} disabled={!nuevoComentario.trim()}>
-                    Guardar
+                    {replyingTo ? 'Enviar Respuesta' : 'Guardar'}
                   </button>
                 </form>
 
                 <div className={styles.commentsList}>
-                  {comentarios.map(c => {
-                    const parsed = parseComment(c.texto);
-                    const isSuperUser = (userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones');
-                    const canEdit = c.autor_email === autorEmail;
-                    const canDelete = isSuperUser || c.autor_email === autorEmail;
+                  {(() => {
+                    const parsedMap = new Map();
+                    comentarios.forEach(c => parsedMap.set(c.id, { ...c, parsed: parseComment(c.texto) }));
                     
-                    if (parsed.isDeleted && !isSuperUser) {
-                      return (
-                        <div key={c.id} className={styles.commentItem} style={{ opacity: 0.6 }}>
-                          <div className={styles.commentHeader}>
-                            <strong>{c.autor_email || 'Usuario'}</strong>
-                            <span>{new Date(c.fecha_creacion).toLocaleString()}</span>
+                    const roots = [];
+                    const childrenMap = new Map();
+                    
+                    // Organize tree
+                    comentarios.forEach(c => {
+                      const parsed = parsedMap.get(c.id).parsed;
+                      if (parsed.replyToId && parsedMap.has(parsed.replyToId)) {
+                        if (!childrenMap.has(parsed.replyToId)) childrenMap.set(parsed.replyToId, []);
+                        childrenMap.get(parsed.replyToId).push(c);
+                      } else {
+                        roots.push(c);
+                      }
+                    });
+
+                    // Sort roots descending (newest first), but children ascending (oldest first under parent)
+                    roots.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+                    
+                    const isSuperUser = (userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones');
+
+                    const renderNode = (c, depth = 0) => {
+                      const pData = parsedMap.get(c.id);
+                      const parsed = pData.parsed;
+                      const canEdit = c.autor_email === autorEmail;
+                      const canDelete = isSuperUser || c.autor_email === autorEmail;
+                      
+                      const marginLeft = depth > 0 ? `${depth * 20}px` : '0';
+                      const borderLeft = depth > 0 ? '2px solid #334155' : (parsed.isDeleted ? '3px solid #ef4444' : 'none');
+
+                      const replies = childrenMap.get(c.id) || [];
+                      replies.sort((a, b) => new Date(a.fecha_creacion) - new Date(b.fecha_creacion));
+
+                      if (parsed.isDeleted && !isSuperUser) {
+                        return (
+                          <div key={c.id}>
+                            <div className={styles.commentItem} style={{ opacity: 0.6, marginLeft, borderLeft }}>
+                              <div className={styles.commentHeader}>
+                                <strong>{c.autor_email || 'Usuario'}</strong>
+                                <span>{new Date(c.fecha_creacion).toLocaleString()}</span>
+                              </div>
+                              <p className={styles.commentText} style={{ fontStyle: 'italic', color: '#94a3b8' }}>
+                                (Mensaje eliminado)
+                              </p>
+                            </div>
+                            {replies.map(r => renderNode(r, depth + 1))}
                           </div>
-                          <p className={styles.commentText} style={{ fontStyle: 'italic', color: '#94a3b8' }}>
-                            (Mensaje eliminado)
-                          </p>
+                        );
+                      }
+
+                      return (
+                        <div key={c.id}>
+                          <div className={styles.commentItem} style={{ marginLeft, borderLeft, opacity: parsed.isDeleted ? 0.6 : 1, ...(parsed.isDeleted && depth === 0 ? { borderLeft: '3px solid #ef4444' } : {}) }}>
+                            <div className={styles.commentHeader}>
+                              <strong>{c.autor_email || 'Usuario'}</strong>
+                              <span>
+                                {new Date(c.fecha_creacion).toLocaleString()}
+                                {!parsed.isDeleted && (
+                                  <span style={{ marginLeft: '10px' }}>
+                                    <button onClick={() => { setReplyingTo({ id: c.id, email: c.autor_email }); setTimeout(() => textareaRef.current?.focus(), 100); }} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'0.8rem' }}>Responder</button>
+                                    {canEdit && <button onClick={() => { setEditingCommentId(c.id); setEditingCommentText(parsed.currentText); }} style={{ background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Editar</button>}
+                                    {canDelete && <button onClick={() => handleDeleteComment(c.id, c.texto)} style={{ background:'transparent', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Eliminar</button>}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            {editingCommentId === c.id ? (
+                              <div style={{ marginTop: '10px' }}>
+                                <textarea 
+                                  value={editingCommentText}
+                                  onChange={e => setEditingCommentText(e.target.value)}
+                                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155' }}
+                                />
+                                <div style={{ marginTop: '5px' }}>
+                                  <button onClick={() => handleEditCommentSubmit(c.id, c.texto)} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Guardar</button>
+                                  <button onClick={() => setEditingCommentId(null)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>Cancelar</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className={styles.commentText}>
+                                {parsed.isDeleted ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>(ELIMINADO) </span> : null}
+                                {parsed.currentText}
+                                {parsed.isEdited && !parsed.isDeleted && <span style={{ fontStyle: 'italic', fontSize: '0.8rem', color: '#94a3b8', marginLeft: '8px' }}>(Mensaje editado)</span>}
+                              </p>
+                            )}
+                          </div>
+                          {replies.map(r => renderNode(r, depth + 1))}
                         </div>
                       );
-                    }
+                    };
 
-                    return (
-                    <div key={c.id} className={styles.commentItem} style={parsed.isDeleted ? { opacity: 0.6, borderLeft: '3px solid #ef4444' } : {}}>
-                      <div className={styles.commentHeader}>
-                        <strong>{c.autor_email || 'Usuario'}</strong>
-                        <span>
-                          {new Date(c.fecha_creacion).toLocaleString()}
-                          {!parsed.isDeleted && (
-                            <span style={{ marginLeft: '10px' }}>
-                              <button onClick={() => { setNuevoComentario(prev => prev + `@${c.autor_email.split('@')[0]}: `); setTimeout(() => textareaRef.current?.focus(), 100); }} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'0.8rem' }}>Responder</button>
-                              {canEdit && <button onClick={() => { setEditingCommentId(c.id); setEditingCommentText(parsed.currentText); }} style={{ background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Editar</button>}
-                              {canDelete && <button onClick={() => handleDeleteComment(c.id, c.texto)} style={{ background:'transparent', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Eliminar</button>}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      {editingCommentId === c.id ? (
-                        <div style={{ marginTop: '10px' }}>
-                          <textarea 
-                            value={editingCommentText}
-                            onChange={e => setEditingCommentText(e.target.value)}
-                            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', background: '#0f172a', color: '#fff', border: '1px solid #334155' }}
-                          />
-                          <div style={{ marginTop: '5px' }}>
-                            <button onClick={() => handleEditCommentSubmit(c.id, c.texto)} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Guardar</button>
-                            <button onClick={() => setEditingCommentId(null)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem' }}>Cancelar</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className={styles.commentText}>
-                          {parsed.isDeleted ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>(ELIMINADO) </span> : null}
-                          {parsed.currentText}
-                          {parsed.isEdited && !parsed.isDeleted && <span style={{ fontStyle: 'italic', fontSize: '0.8rem', color: '#94a3b8', marginLeft: '8px' }}>(Mensaje editado)</span>}
-                        </p>
-                      )}
-                      
-
-                    </div>
-                  )})}
+                    return roots.map(r => renderNode(r, 0));
+                  })()}
                   {comentarios.length === 0 && (
                     <p className={styles.noComments}>No hay actividad reciente en este proyecto.</p>
                   )}
