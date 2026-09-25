@@ -24,6 +24,8 @@
   background: linear-gradient(to right bottom, #3b82f6, #8b5cf6);
   width: 95%;
   max-width: 900px;
+  max-height: 95vh;
+  overflow-y: auto;
   margin: 0 auto;
   box-sizing: border-box;
   border-radius: 16px;

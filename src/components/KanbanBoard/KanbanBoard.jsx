@@ -447,7 +447,8 @@ export default function KanbanBoard({ session }) {
         }
       } else {
         // VALIDADOR DE LEVANTAMIENTO
-        if (estadoOrigenReal === 'Levantamiento' && activeColumn !== 'Levantamiento') {
+        const isSpecialDestForLev = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
+        if (estadoOrigenReal === 'Levantamiento' && activeColumn !== 'Levantamiento' && !isSpecialDestForLev) {
           if (!pry.levantamiento_fecha) {
             showError('No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.');
             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
