@@ -572,6 +572,7 @@ export default function KanbanBoard({ session }) {
             className={styles.searchInput}
           />
         </div>
+        {session?.user?.user_metadata?.rol === 'Líder Comercial' && (
         <button 
           className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
           onClick={() => setShowArchived(!showArchived)}

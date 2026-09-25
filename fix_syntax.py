@@ -1,17 +1,37 @@
-with open('src/components/Dashboard/Dashboard.jsx', 'r') as f:
+with open('src/components/KanbanBoard/KanbanBoard.jsx', 'r') as f:
     content = f.read()
 
-content = content.replace("""    if (!success) {
-      console.error('Error generating AI response with all models:', lastError);
-      setAiResponse(`Ocurrió un error (incluso tras probar modelos de respaldo): ${lastError?.message}`);
-    } finally {""", """    if (!success) {
-      console.error('Error generating AI response with all models:', lastError);
-      setAiResponse(`Ocurrió un error (incluso tras probar modelos de respaldo): ${lastError?.message}`);
-    }
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      setAiResponse(`Ocurrió un error: ${error.message}`);
-    } finally {""")
+# I need to wrap the whole "Archivados" button in the Leader condition
+# Currently it is:
+#         <button 
+#           className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+#           onClick={() => setShowArchived(!showArchived)}
+#         >
+#           <Archive size={18} />
+#           <span className={styles.hideOnMobile}>
+#             {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+#           </span>
+#         </button>
+#         )}
 
-with open('src/components/Dashboard/Dashboard.jsx', 'w') as f:
+# Wait, let's just do a regex substitution
+
+import re
+
+old_chunk = r"""        <button \n          className=\{`\$\{styles\.btnArchive\} \$\{showArchived \? styles\.active : ''\}`\}\n          onClick=\{\(\) => setShowArchived\(!showArchived\)\}\n        >\n          <Archive size=\{18\} />\n          <span className=\{styles\.hideOnMobile\}>\n            \{showArchived \? 'Ocultar Archivados' : 'Ver Archivados'\}\n          </span>\n        </button>\n        \)\}"""
+
+new_chunk = """        {session?.user?.user_metadata?.rol === 'Líder Comercial' && (
+        <button 
+          className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+          onClick={() => setShowArchived(!showArchived)}
+        >
+          <Archive size={18} />
+          <span className={styles.hideOnMobile}>
+            {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+          </span>
+        </button>
+        )}"""
+
+content = re.sub(old_chunk, new_chunk, content)
+with open('src/components/KanbanBoard/KanbanBoard.jsx', 'w') as f:
     f.write(content)
