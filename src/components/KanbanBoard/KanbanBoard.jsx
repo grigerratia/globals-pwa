@@ -133,7 +133,7 @@ export default function KanbanBoard({ session }) {
       .order('orden', { ascending: true });
       
     if (!colsError && colsData && colsData.length > 0) {
-      estadosActuales = colsData.map(c => c.nombre);
+      estadosActuales = colsData.map(c => c.nombre).filter(n => n !== 'Cancelado');
     } else {
       estadosActuales = defaultEstados;
     }

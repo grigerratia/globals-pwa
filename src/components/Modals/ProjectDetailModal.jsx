@@ -83,6 +83,10 @@ const handleCancelProject = async () => {
       setTimeout(() => setMsg({ text: '', type: '' }), 3000);
       return;
     }
+    
+    // Asegurarse de que el estado 'Cancelado' exista en la tabla columnas para evitar el error de Foreign Key
+    await supabase.from('columnas').upsert([{ nombre: 'Cancelado', orden: 999 }], { onConflict: 'nombre' });
+
     const { error } = await supabase.from('proyectos').update({ estado: 'Cancelado', motivo_cancelacion: cancelMotive }).eq('id', proyectoId);
     if (!error) {
       logAudit(session, 'Canceló proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: cancelMotive });
@@ -695,7 +699,7 @@ const handleCancelProject = async () => {
       </div>
 
       {confirmDelete && (
-        <div onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+        <div onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <XCircle size={20} color="#ef4444" /> Cancelar Proyecto
