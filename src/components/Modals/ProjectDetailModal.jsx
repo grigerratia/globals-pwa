@@ -85,7 +85,15 @@ const handleCancelProject = async () => {
     }
     
     // Asegurarse de que el estado 'Cancelado' exista en la tabla columnas para evitar el error de Foreign Key
-    await supabase.from('columnas').upsert([{ nombre: 'Cancelado', orden: 999 }], { onConflict: 'nombre' });
+    const { data: colData } = await supabase.from('columnas').select('nombre').eq('nombre', 'Cancelado').single();
+    if (!colData) {
+      const { error: insErr } = await supabase.from('columnas').insert([{ nombre: 'Cancelado', orden: 999 }]);
+      if (insErr) {
+        setMsg({ text: 'Error creando estado: ' + insErr.message, type: 'error' });
+        setConfirmDelete(false);
+        return;
+      }
+    }
 
     const { error } = await supabase.from('proyectos').update({ estado: 'Cancelado', motivo_cancelacion: cancelMotive }).eq('id', proyectoId);
     if (!error) {
@@ -94,6 +102,7 @@ const handleCancelProject = async () => {
       onClose();
     } else {
       console.error("Error al cancelar:", error);
+      setConfirmDelete(false);
       setMsg({ text: 'Error al cancelar: ' + error.message, type: 'error' });
       setTimeout(() => setMsg({ text: '', type: '' }), 5000);
     }
@@ -365,8 +374,8 @@ const handleCancelProject = async () => {
             </div>
 
             {/* CHECKLIST DE MATERIALES */}
-            <div className={styles.section}>
-              <div className={styles.sectionContent}>
+            <div className={styles.section} style={{ flexGrow: 1 }}>
+              <div className={styles.sectionContent} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <h3><CheckSquare className={styles.icon} size={20} /> Lista de Materiales y Tareas</h3>
                 
                 <div className={styles.progressBar}>
@@ -436,7 +445,7 @@ const handleCancelProject = async () => {
                   }}>Agregar</button>
                 </div>
 
-                <div className={styles.checklist} style={{ marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                <div className={styles.checklist} style={{ marginTop: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
                   <label className={styles.checkItem}>
                     <input 
                       type="checkbox" 

@@ -703,6 +703,13 @@ export default function KanbanBoard({ session }) {
         />
       )}
 
+      {showCancelados && (
+        <CanceladosModal 
+          session={session}
+          onClose={() => setShowCancelados(false)}
+        />
+      )}
+
       {proyectoDetalleId && (
         <ProjectDetailModal
           proyectoId={proyectoDetalleId}
