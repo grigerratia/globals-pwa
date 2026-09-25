@@ -14,6 +14,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const textareaRef = useRef(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
 
@@ -97,6 +98,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     let isEdited = false;
     let currentText = rawText || '';
     let originalText = '';
+    let replyToId = null;
+
+    const replyMatch = currentText.match(/\[REPLY_TO:(.*?)\] /);
+    if (replyMatch) {
+      replyToId = replyMatch[1];
+      currentText = currentText.replace(/\[REPLY_TO:.*?\] /, '');
+    }
 
     if (currentText.includes('[DELETED] ')) {
       isDeleted = true;
@@ -109,22 +117,28 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       originalText = originalMatch[1].trim();
       currentText = currentText.replace(/\[ORIGINAL:[\s\S]*?\]/g, '').trim();
     }
-    return { currentText, originalText, isEdited, isDeleted };
+    return { currentText, originalText, isEdited, isDeleted, replyToId };
   };
 
   const handleAddComentario = async (e) => {
     e.preventDefault();
     if (!nuevoComentario.trim()) return;
 
+    const finalString = replyingTo ? `[REPLY_TO:${replyingTo.id}] ${nuevoComentario}` : nuevoComentario;
     const { data, error } = await supabase.from('comentarios').insert([{
       proyecto_id: proyectoId,
-      texto: nuevoComentario,
+      texto: finalString,
       autor_email: autorEmail
     }]).select();
 
     if (!error && data) {
-      setComentarios([data[0], ...comentarios]);
+      // Realtime listener will handle adding to list, but we can do it optimistically too.
+      // Actually, if we do it optimistically, we might get duplicates if realtime fires too fast.
+      // For now, let's keep it optimistic but check for duplicates, or just rely on realtime? 
+      // The user said realtime didn't work, so keep optimistic.
+      setComentarios(prev => prev.some(c => c.id === data[0].id) ? prev : [data[0], ...prev]);
       setNuevoComentario('');
+      setReplyingTo(null);
     } else {
       console.error(error);
       setMsg({ text: 'Aún no existe la tabla comentarios o hubo un error.', type: 'error' });
