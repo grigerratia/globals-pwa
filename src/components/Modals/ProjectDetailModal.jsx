@@ -79,7 +79,21 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
   };
 
-const handleCancelProject = async () => {
+  const handleArchiveProject = async () => {
+    if (!archiveMotive.trim()) return;
+    const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', motivo_cancelacion: archiveMotive }).eq('id', proyectoId);
+    if (!error) {
+      logAudit(session, 'Archivó proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: archiveMotive });
+      onProjectUpdated({ ...proyecto, estado: 'Archivado', motivo_cancelacion: archiveMotive });
+      onClose();
+    } else {
+      setConfirmArchive(false);
+      setMsg({ text: 'Error al archivar: ' + error.message, type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 5000);
+    }
+  };
+
+  const handleCancelProject = async () => {
     if (!cancelMotive.trim()) {
       setMsg({ text: 'Debes ingresar un motivo de cancelación', type: 'error' });
       setTimeout(() => setMsg({ text: '', type: '' }), 3000);
