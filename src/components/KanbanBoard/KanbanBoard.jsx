@@ -79,6 +79,7 @@ export default function KanbanBoard({ session }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showCancelados, setShowCancelados] = useState(false);
+  const [motivePrompt, setMotivePrompt] = useState(null);
   const [boardError, setBoardError] = useState(null);
   const [columnColors, setColumnColors] = useState(() => {
     try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch(e) { return {}; }
@@ -492,7 +493,7 @@ export default function KanbanBoard({ session }) {
         for (const p of proyectosFinales) {
           const updateData = { orden: p.orden, estado: p.estado };
           if (p.id === active.id && cambioDeFase) {
-            updateData.fecha_ultima_actualizacion = p.fecha_ultima_actualizacion;
+            updateData.fecha_ultima_actualizacion = new Date().toISOString();
             updateData.dias_estancado = 0;
             logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
           }
@@ -706,7 +707,35 @@ export default function KanbanBoard({ session }) {
         />
       )}
 
+
+      {motivePrompt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem' }}>{motivePrompt.title}</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>Por favor, indica el motivo detallado de esta acción.</p>
+            <textarea 
+              id="motiveInput"
+              autoFocus
+              placeholder="Ej. Falta de material, decisión del cliente..."
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={motivePrompt.onCancel} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+              <button 
+                onClick={() => {
+                  const val = document.getElementById('motiveInput').value;
+                  if (!val.trim()) { return; }
+                  motivePrompt.onConfirm(val);
+                }} 
+                style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCancelados && (
+
         <CanceladosModal 
           session={session}
           onClose={() => setShowCancelados(false)}

@@ -3,38 +3,38 @@ import re
 with open('src/components/Dashboard/Dashboard.jsx', 'r') as f:
     content = f.read()
 
-# Add logic for cancelled projects
-old_ai_logic = """    let pipelineStr = Object.entries(pipeline).map(([k, v]) => `${k}: ${v.count} ($${v.value})`).join(', ');
-
-    const promptText = `Actúa como un Director de Operaciones (COO) y Analista Financiero. A continuación te presento los datos actuales extraídos de mi CRM (incluyendo finanzas, embudo de proyectos y atención al cliente)."""
-
-new_ai_logic = """    let pipelineStr = Object.entries(pipeline).map(([k, v]) => `${k}: ${v.count} ($${v.value})`).join(', ');
-    
-    // Proyectos Cancelados este mes
+# 1. Update the filter
+old_filter = """    // Proyectos Cancelados este mes
     const canceladosEsteMes = proyectos.filter(p => {
       const isThisMonth = new Date(p.updated_at).getMonth() === currentMonth && new Date(p.updated_at).getFullYear() === currentYear;
-      return p.estado === 'Cancelado' && isThisMonth;
+      return ['Cancelado', 'Cancelado_Oculto'].includes(p.estado) && isThisMonth;
     });
-    const motivosCancelacion = canceladosEsteMes.map(p => `- ${p.titulo}: ${p.motivo_cancelacion || 'Sin motivo'}`).join('\\n');
+    const motivosCancelacion = canceladosEsteMes.map(p => `- ${p.titulo}: ${p.motivo_cancelacion || 'Sin motivo'}`).join('\\n');"""
 
-    const promptText = `Actúa como un Director de Operaciones (COO) y Analista Financiero. A continuación te presento los datos actuales extraídos de mi CRM (incluyendo finanzas, embudo de proyectos y atención al cliente)."""
+new_filter = """    // Proyectos Detenidos este mes (Cancelados, Archivados, Pausados)
+    const detenidosEsteMes = proyectos.filter(p => {
+      // Usar fecha_ultima_actualizacion en su lugar (updated_at no existe en la BD de supabase, antes usabamos updated_at por error)
+      const d = new Date(p.fecha_ultima_actualizacion || p.fecha_creacion);
+      const isThisMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      const isDetenido = ['Cancelado', 'Cancelado_Oculto', 'Archivado'].includes(p.estado) || (p.estado && (p.estado.toLowerCase().includes('espera') || p.estado.toLowerCase().includes('pausa')));
+      return isDetenido && isThisMonth;
+    });
+    const motivosDetencion = detenidosEsteMes.map(p => `- [${p.estado}] ${p.titulo}: ${p.motivo_cancelacion || 'Sin motivo'}`).join('\\n');"""
 
-content = content.replace(old_ai_logic, new_ai_logic)
+content = content.replace(old_filter, new_filter)
 
-old_prompt_end = """Cuellos de Botella: Revisa mis 'Proyectos por Fase'. Identifica dónde se está acumulando el trabajo (el cuello de botella) y cuánto dinero estimado tengo atrapado en fases intermedias.
-Plan de Acción de Ventas: Mi Tasa de Éxito y Churn actual. Dame 3 estrategias concretas e inmediatas que mi equipo de ventas y atención por WS debe aplicar esta semana para subir esa métrica.
-Pronóstico: Basado en la velocidad actual y los proyectos activos, ¿cuál es mi escenario realista de cierre para este mes considerando la proyección de $${projection.toFixed(2)}?
+# 2. Update prompt
+old_prompt = """Motivos de proyectos cancelados este mes:
+${motivosCancelacion || 'Ningún proyecto cancelado este mes.'}
 
-Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni definiciones. Ve directamente a los hallazgos y a las acciones que debo tomar hoy.`;"""
+Por favor, en tu respuesta enfócate en dar recomendaciones prácticas basadas en estos datos para el próximo mes. Especialmente analiza los motivos de cancelación si los hay, para prevenir futuras fugas."""
 
-new_prompt_end = """Cuellos de Botella: Revisa mis 'Proyectos por Fase'. Identifica dónde se está acumulando el trabajo (el cuello de botella) y cuánto dinero estimado tengo atrapado en fases intermedias.
-Plan de Acción de Ventas: Mi Tasa de Éxito y Churn actual. Dame 3 estrategias concretas e inmediatas que mi equipo de ventas y atención por WS debe aplicar esta semana para subir esa métrica.
-Análisis de Cancelaciones: Este mes se han cancelado ${canceladosEsteMes.length} proyectos. Motivos reportados:\\n${motivosCancelacion || 'Ninguno.'}\\nAnaliza los motivos y recomienda 2 acciones preventivas para evitar que se repitan.
-Pronóstico: Basado en la velocidad actual y los proyectos activos, ¿cuál es mi escenario realista de cierre para este mes considerando la proyección de $${projection.toFixed(2)}?
+new_prompt = """Motivos de proyectos detenidos (Cancelados, Archivados o Pausados) este mes:
+${motivosDetencion || 'Ningún proyecto detenido este mes.'}
 
-Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni definiciones. Ve directamente a los hallazgos y a las acciones que debo tomar hoy.`;"""
+Por favor, en tu respuesta enfócate en dar recomendaciones prácticas basadas en estos datos para el próximo mes. Analiza detalladamente los motivos de los proyectos pausados, archivados o cancelados (si los hay) para dar sugerencias estratégicas y prevenir futuras fugas o retrasos."""
 
-content = content.replace(old_prompt_end, new_prompt_end)
+content = content.replace(old_prompt, new_prompt)
 
 with open('src/components/Dashboard/Dashboard.jsx', 'w') as f:
     f.write(content)

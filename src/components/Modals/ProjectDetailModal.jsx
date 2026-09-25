@@ -21,6 +21,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
   const [msg, setMsg] = useState({ text: '', type: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [archiveMotive, setArchiveMotive] = useState('');
   const [cancelMotive, setCancelMotive] = useState('');
 
   useEffect(() => {
@@ -686,11 +688,7 @@ const handleCancelProject = async () => {
             {proyecto.estado !== 'Archivado' && userRole === 'Líder Comercial' && (
               <button 
                 className={`${styles.actionButton} ${styles.warning}`} 
-                onClick={async () => {
-                  await handleChange('estado', 'Archivado');
-                  onProjectUpdated({ ...proyecto, estado: 'Archivado' });
-                  onClose();
-                }}
+                onClick={() => setConfirmArchive(true)}
                 style={{ background: '#fef3c7', color: '#d97706', borderColor: '#fde68a', marginBottom: '0' }}
               >
                 <Archive size={16} /> Archivar Proyecto
@@ -706,6 +704,31 @@ const handleCancelProject = async () => {
         </div>
 
       </div>
+
+
+      {confirmArchive && (
+        <div onClick={(e) => { e.stopPropagation(); setConfirmArchive(false); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Archive size={20} color="#d97706" /> Motivo de Archivo
+            </h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>
+              Por favor, indica el motivo por el cual se archiva este proyecto.
+            </p>
+            <textarea 
+              autoFocus
+              value={archiveMotive}
+              onChange={(e) => setArchiveMotive(e.target.value)}
+              placeholder="Ej: Cliente pospuso para el próximo año..."
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmArchive(false)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Volver</button>
+              <button onClick={handleArchiveProject} disabled={!archiveMotive.trim()} style={{ padding: '0.5rem 1rem', background: archiveMotive.trim() ? '#d97706' : '#92400e', color: 'white', border: 'none', borderRadius: '6px', cursor: archiveMotive.trim() ? 'pointer' : 'not-allowed', fontWeight: 500, transition: 'background 0.2s' }}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <div onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>

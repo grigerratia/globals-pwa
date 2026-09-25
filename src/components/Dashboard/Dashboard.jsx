@@ -152,12 +152,15 @@ export default function Dashboard({ session }) {
     setIsLoadingAi(true);
     let pipelineStr = Object.entries(pipeline).map(([k, v]) => `${k}: ${v.count} ($${v.value})`).join(', ');
     
-    // Proyectos Cancelados este mes
-    const canceladosEsteMes = proyectos.filter(p => {
-      const isThisMonth = new Date(p.updated_at).getMonth() === currentMonth && new Date(p.updated_at).getFullYear() === currentYear;
-      return ['Cancelado', 'Cancelado_Oculto'].includes(p.estado) && isThisMonth;
+    // Proyectos Detenidos este mes (Cancelados, Archivados, Pausados)
+    const detenidosEsteMes = proyectos.filter(p => {
+      // Usar fecha_ultima_actualizacion en su lugar (updated_at no existe en la BD de supabase, antes usabamos updated_at por error)
+      const d = new Date(p.fecha_ultima_actualizacion || p.fecha_creacion);
+      const isThisMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      const isDetenido = ['Cancelado', 'Cancelado_Oculto', 'Archivado'].includes(p.estado) || (p.estado && (p.estado.toLowerCase().includes('espera') || p.estado.toLowerCase().includes('pausa')));
+      return isDetenido && isThisMonth;
     });
-    const motivosCancelacion = canceladosEsteMes.map(p => `- ${p.titulo}: ${p.motivo_cancelacion || 'Sin motivo'}`).join('\n');
+    const motivosDetencion = detenidosEsteMes.map(p => `- [${p.estado}] ${p.titulo}: ${p.motivo_cancelacion || 'Sin motivo'}`).join('\n');
 
     const promptText = `Actúa como un Director de Operaciones (COO) y Analista Financiero. A continuación te presento los datos actuales extraídos de mi CRM (incluyendo finanzas, embudo de proyectos y atención al cliente).
 
