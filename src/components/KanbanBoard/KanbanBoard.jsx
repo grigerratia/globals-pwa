@@ -196,14 +196,28 @@ export default function KanbanBoard({ session }) {
     return null;
   };
 
-    const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
-    const tituloLower = nuevoProyectoData.titulo.toLowerCase().trim();
-    const existe = columnas.some(col => col.proyectos.some(p => p.titulo.toLowerCase().trim() === tituloLower));
-    if (existe) {
-      showError(`Ya existe un proyecto con el título "${nuevoProyectoData.titulo}".`);
-      return;
-    }
+    const generateTitleWithAI = async (projectData) => {
+      try {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+        const prompt = `Actúa como un gestor de proyectos. Genera un título corto, directo y descriptivo (máximo 5-7 palabras) para un nuevo proyecto de rotulación/publicidad, usando estos datos iniciales:
+Cliente/Empresa: ${projectData.cliente_empresa || 'Desconocido'}
+Contacto: ${projectData.cliente_nombre || 'Desconocido'}
+Notas/Descripción: ${projectData.notas || 'Sin descripción'}
 
+Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni puntos finales. Ejemplos de formato esperado: "Letrero Luminoso Hato Grill" o "Pendones 2x2 para María"`;
+        const result = await model.generateContent(prompt);
+        let text = result.response.text().trim();
+        if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+        return text;
+      } catch (err) {
+        console.error("Error generando título con IA:", err);
+        return "Proyecto " + (projectData.cliente_empresa || "Nuevo");
+      }
+    };
+
+    const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
     let encargados = nuevoProyectoData.encargados;
     if (!encargados || encargados.length === 0) {
       // Si el usuario que crea el proyecto es el líder comercial, nos asignamos a nosotros mismos
@@ -478,7 +492,7 @@ export default function KanbanBoard({ session }) {
         }
       }
 
-      const executeMove = (motive = null) => {
+      const executeMove = (motive = null, nuevasNotas = null) => {
         const nuevasColumnas = columnasRef.current.map(c => ({ ...c, proyectos: [...c.proyectos] }));
         const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
         const proyectosColumna = nuevasColumnas[colIndex].proyectos;
@@ -501,8 +515,10 @@ export default function KanbanBoard({ session }) {
               if (motive) {
                 updateData.motivo_cancelacion = motive;
               } else if (!isSpecial) {
-                // Si lo movemos a una columna normal, limpiamos el motivo
                 updateData.motivo_cancelacion = null;
+              }
+              if (nuevasNotas) {
+                updateData.notas = nuevasNotas;
               }
               logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
             }
@@ -511,12 +527,29 @@ export default function KanbanBoard({ session }) {
         })();
       };
 
-      console.log("Checking if modal should open:", { cambioDeFase, activeColumn, estadoOrigenReal });
+      const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
       if (cambioDeFase && (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado') && estadoOrigenReal !== 'Entregado y cerrado') {
         setMotivePrompt({
            title: `Motivo de ${activeColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
            onConfirm: (motive) => {
              executeMove(motive);
+             setMotivePrompt(null);
+           },
+           onCancel: () => {
+             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+             setMotivePrompt(null);
+           }
+        });
+      } else if (isRetroceso) {
+        setMotivePrompt({
+           title: 'Motivo de Retroceso',
+           onConfirm: (motive) => {
+             // Append to notas
+             const notaAnadida = `[RETROCESO] De "${estadoOrigenReal}" a "${activeColumn}": ${motive}`;
+             const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
+             // We pass motive to executeMove but it expects motivo_cancelacion. 
+             // We can just update notas directly in executeMove.
+             executeMove(null, nuevasNotas);
              setMotivePrompt(null);
            },
            onCancel: () => {

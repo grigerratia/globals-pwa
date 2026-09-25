@@ -25,14 +25,13 @@ export default function AddProjectModal({ columnaEstado, onClose, onAdd }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (formData.titulo.trim()) {
-      onAdd({
-        ...formData,
-        estado: columnaEstado,
-        fecha_ultima_actualizacion: new Date().toISOString(),
-        dias_estancado: 0
-      });
-    }
+    onAdd({
+      ...formData,
+      titulo: 'Generando título con IA...',
+      estado: columnaEstado,
+      fecha_ultima_actualizacion: new Date().toISOString(),
+      dias_estancado: 0
+    });
   };
 
   return (
@@ -40,18 +39,7 @@ export default function AddProjectModal({ columnaEstado, onClose, onAdd }) {
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <h3 className={styles.title}>Añadir proyecto a '{columnaEstado}'</h3>
         <form onSubmit={handleSubmit} className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label>Título del Proyecto *</label>
-            <input 
-              type="text" 
-              name="titulo" 
-              value={formData.titulo} 
-              onChange={handleChange} 
-              placeholder="Ej. Casa Familia Pérez"
-              required 
-              autoFocus 
-            />
-          </div>
+
           <div className={styles.formGroup}>
             <label>Teléfono del Cliente</label>
             <input 
