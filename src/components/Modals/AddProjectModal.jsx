@@ -10,6 +10,7 @@ export default function AddProjectModal({ columnaEstado, onClose, onAdd }) {
     cliente_nombre: '',
     cliente_empresa: '',
     notas: '',
+    diasEstimados: 3,
     presupuesto_aprobado: false,
     materiales_comprados: false,
     encargados: []

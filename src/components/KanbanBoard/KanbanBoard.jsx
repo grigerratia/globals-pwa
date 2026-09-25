@@ -236,6 +236,12 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       }
     }
 
+    // Días estimados por defecto o manual
+    const dias = nuevoProyectoData.diasEstimados || 3;
+    let cleanNotas = (nuevoProyectoData.notas || '').replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+    nuevoProyectoData.notas = cleanNotas ? cleanNotas + '\n\n[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']' : '[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']';
+    delete nuevoProyectoData.diasEstimados;
+
     const targetIdx = estados.indexOf(nuevoProyectoData.estado);
     const levantamientoIdx = estados.indexOf('Levantamiento');
     const presupIdx = estados.indexOf('Presupuesto enviado');
