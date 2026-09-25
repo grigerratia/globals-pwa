@@ -425,6 +425,10 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
 
       if (!activeColumn || !overColumn) return;
 
+      const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
+      const destinoGlobalIdx = estados.indexOf(activeColumn);
+      const isSpecialDest = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
+
       const cambioDeFase = estadoOrigenReal !== activeColumn;
       
       // Compute from current state `columnas`
@@ -471,10 +475,6 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         }
 
         // OTHER GATES
-        const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
-        const destinoGlobalIdx = estados.indexOf(activeColumn);
-        const isSpecialDest = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
-
         if (destinoGlobalIdx > origenGlobalIdx && !isSpecialDest) {
           const presupIdx = estados.indexOf('Presupuesto enviado');
           if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !pry.presupuesto_aprobado) {
@@ -497,10 +497,14 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
         const proyectosColumna = nuevasColumnas[colIndex].proyectos;
   
-        const activeIndex = proyectosColumna.findIndex(p => p.id === active.id);
-        const overIndex = proyectosColumna.findIndex(p => p.id === over.id);
-  
-        const proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
+        let proyectosReordenados = proyectosColumna;
+        if (!cambioDeFase) {
+          const activeIndex = proyectosColumna.findIndex(p => p.id === active.id);
+          let overIndex = proyectosColumna.findIndex(p => p.id === over.id);
+          if (overIndex === -1) overIndex = proyectosColumna.length - 1;
+          proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
+        }
+        
         nuevasColumnas[colIndex].proyectos = proyectosReordenados.map((p, i) => ({ ...p, orden: i, estado: activeColumn }));
         setColumnas(nuevasColumnas);
         originalColumnasRef.current = null;
