@@ -435,18 +435,19 @@ export default function KanbanBoard({ session }) {
       const proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
 
       
-      // REGLA: COLUMNA "En espera"
-      if (activeColumn === 'En espera' && estadoOrigenReal !== 'En espera') {
+      // REGLA: COLUMNA "En pausa/espera"
+      const pry = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
+      
+      if (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa')) {
         const isLider = session?.user?.user_metadata?.rol === 'Líder Comercial';
         if (!isLider) {
-          showError("Acceso denegado: Solo el Líder Comercial puede mover proyectos a 'En espera'.");
+          showError("Acceso denegado: Solo el Líder Comercial puede mover proyectos a Pausa/Espera.");
           if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
           return;
         }
       } else {
         // VALIDADOR DE LEVANTAMIENTO
         if (estadoOrigenReal === 'Levantamiento' && activeColumn !== 'Levantamiento') {
-          const pry = proyectosColumna.find(p => p.id === active.id);
           if (!pry.levantamiento_fecha) {
             showError('No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.');
             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
@@ -459,7 +460,6 @@ export default function KanbanBoard({ session }) {
         const destinoGlobalIdx = estados.indexOf(activeColumn);
 
         if (destinoGlobalIdx > origenGlobalIdx) {
-          const pry = proyectosColumna.find(p => p.id === active.id);
           const presupIdx = estados.indexOf('Presupuesto enviado');
           if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !pry.presupuesto_aprobado) {
             showError("No puede ser movido: Falta aprobar el presupuesto.");
@@ -476,30 +476,50 @@ export default function KanbanBoard({ session }) {
         }
       }
 
-      const proyectosFinales = proyectosReordenados.map((p, i) => {
-        if (p.id === active.id && cambioDeFase) {
-          return { ...p, orden: i, dias: 0, fecha_ultima_actualizacion: new Date().toISOString() };
-        }
-        return { ...p, orden: i };
-      });
-
-      nuevasColumnas[colIndex].proyectos = proyectosFinales;
-      
-      // Update local state immediately
-      setColumnas(nuevasColumnas);
-
-      // Fire async database update EXACTLY once
-      (async () => {
-        for (const p of proyectosFinales) {
-          const updateData = { orden: p.orden, estado: p.estado };
-          if (p.id === active.id && cambioDeFase) {
-            updateData.fecha_ultima_actualizacion = new Date().toISOString();
-            updateData.dias_estancado = 0;
-            logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
+      const executeMove = (motive = null) => {
+        const nuevasColumnas = columnasRef.current.map(c => ({ ...c, proyectos: [...c.proyectos] }));
+        const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
+        const proyectosColumna = nuevasColumnas[colIndex].proyectos;
+  
+        const activeIndex = proyectosColumna.findIndex(p => p.id === active.id);
+        const overIndex = proyectosColumna.findIndex(p => p.id === over.id);
+  
+        const proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
+        nuevasColumnas[colIndex].proyectos = proyectosReordenados.map((p, i) => ({ ...p, orden: i, estado: activeColumn }));
+        setColumnas(nuevasColumnas);
+        originalColumnasRef.current = null;
+  
+        (async () => {
+          for (let p of nuevasColumnas[colIndex].proyectos) {
+            const updateData = { orden: p.orden, estado: p.estado };
+            if (p.id === active.id && cambioDeFase) {
+              updateData.fecha_ultima_actualizacion = new Date().toISOString();
+              updateData.dias_estancado = 0;
+              if (motive) {
+                updateData.motivo_cancelacion = motive;
+              }
+              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
+            }
+            await supabase.from('proyectos').update(updateData).eq('id', p.id);
           }
-          await supabase.from('proyectos').update(updateData).eq('id', p.id);
-        }
-      })();
+        })();
+      };
+
+      if (cambioDeFase && (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado') && estadoOrigenReal !== 'Entregado y cerrado') {
+        setMotivePrompt({
+           title: `Motivo de ${activeColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
+           onConfirm: (motive) => {
+             executeMove(motive);
+             setMotivePrompt(null);
+           },
+           onCancel: () => {
+             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+             setMotivePrompt(null);
+           }
+        });
+      } else {
+        executeMove();
+      }
     }
   };
 

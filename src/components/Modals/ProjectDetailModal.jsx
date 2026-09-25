@@ -13,6 +13,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [cargando, setCargando] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
   const [showLevantamiento, setShowLevantamiento] = useState(false);
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [isEditingClient, setIsEditingClient] = useState(false);
@@ -81,6 +88,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
   const handleArchiveProject = async () => {
     if (!archiveMotive.trim()) return;
+    
+    // Check if column exists, create if not
+    const { data: colData } = await supabase.from('columnas').select('nombre').eq('nombre', 'Archivado').single();
+    if (!colData) {
+      await supabase.from('columnas').insert([{ nombre: 'Archivado', orden: 98 }]);
+    }
+    
     const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', motivo_cancelacion: archiveMotive }).eq('id', proyectoId);
     if (!error) {
       logAudit(session, 'Archivó proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: archiveMotive });
