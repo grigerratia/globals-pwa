@@ -87,7 +87,7 @@ export default function Dashboard({ session }) {
   // Nuevas Métricas
   const proyectosConPresupuesto = proyectos.filter(p => p.presupuesto_vendido > 0).length;
   const ticketPromedio = proyectosConPresupuesto > 0 ? total.p / proyectosConPresupuesto : 0;
-  const tasaAbandono = proyectos.length > 0 ? (proyectos.filter(p => p.estado === 'Cancelado').length / proyectos.length) * 100 : 0;
+  const tasaAbandono = proyectos.length > 0 ? (proyectos.filter(p => ['Cancelado', 'Cancelado_Oculto'].includes(p.estado)).length / proyectos.length) * 100 : 0;
   
   // Proyección Fin de Mes
   const daysPassed = now.getDate();
@@ -102,7 +102,7 @@ export default function Dashboard({ session }) {
     return acc;
   }, {});
   const estancados = proyectos.filter(p => {
-    if (['Entregado y cerrado', 'Cancelado'].includes(p.estado)) return false;
+    if (['Entregado y cerrado', 'Cancelado', 'Cancelado_Oculto'].includes(p.estado)) return false;
     const diffDays = Math.ceil(Math.abs(now - new Date(p.fecha_ultima_actualizacion)) / (1000 * 60 * 60 * 24));
     return diffDays > 3;
   });
@@ -155,7 +155,7 @@ export default function Dashboard({ session }) {
     // Proyectos Cancelados este mes
     const canceladosEsteMes = proyectos.filter(p => {
       const isThisMonth = new Date(p.updated_at).getMonth() === currentMonth && new Date(p.updated_at).getFullYear() === currentYear;
-      return p.estado === 'Cancelado' && isThisMonth;
+      return ['Cancelado', 'Cancelado_Oculto'].includes(p.estado) && isThisMonth;
     });
     const motivosCancelacion = canceladosEsteMes.map(p => `- ${p.titulo}: ${p.motivo_cancelacion || 'Sin motivo'}`).join('\n');
 

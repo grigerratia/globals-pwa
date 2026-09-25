@@ -48,7 +48,8 @@ export default function CanceladosModal({ onClose, session }) {
   };
 
   const executeDeleteBulk = async (idsToDelete) => {
-    const { error } = await supabase.from('proyectos').delete().in('id', idsToDelete);
+    await supabase.from('columnas').upsert([{ nombre: 'Cancelado_Oculto', orden: 1000 }], { onConflict: 'nombre' });
+    const { error } = await supabase.from('proyectos').update({ estado: 'Cancelado_Oculto' }).in('id', idsToDelete);
     if (!error) {
       logAudit(session, 'Eliminó proyectos cancelados permanentemente', { ids: idsToDelete });
       setMsg({ text: 'Proyectos eliminados correctamente', type: 'success' });
@@ -70,7 +71,8 @@ export default function CanceladosModal({ onClose, session }) {
   };
 
   const executeDeleteSingle = async (id, titulo) => {
-    const { error } = await supabase.from('proyectos').delete().eq('id', id);
+    await supabase.from('columnas').upsert([{ nombre: 'Cancelado_Oculto', orden: 1000 }], { onConflict: 'nombre' });
+    const { error } = await supabase.from('proyectos').update({ estado: 'Cancelado_Oculto' }).eq('id', id);
     if (!error) {
       logAudit(session, 'Eliminó proyecto cancelado permanentemente', { id, titulo });
       fetchCancelados();
@@ -89,7 +91,9 @@ export default function CanceladosModal({ onClose, session }) {
   };
   
   const handleRestore = async (id, titulo) => {
-    const { error } = await supabase.from('proyectos').update({ estado: 'Pendiente' }).eq('id', id);
+    const { data: cols } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true }).limit(1);
+    const firstCol = cols && cols.length > 0 ? cols[0].nombre : 'Pendiente';
+    const { error } = await supabase.from('proyectos').update({ estado: firstCol, motivo_cancelacion: null }).eq('id', id);
     if (!error) {
       logAudit(session, 'Restauró proyecto cancelado', { id, titulo });
       setMsg({ text: 'Proyecto restaurado a "Pendiente"', type: 'success' });

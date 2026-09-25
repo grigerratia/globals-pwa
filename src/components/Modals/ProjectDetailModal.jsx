@@ -683,7 +683,7 @@ const handleCancelProject = async () => {
             </button>
 
             <h4 style={{ marginTop: '1rem' }}>Acciones</h4>
-            {proyecto.estado !== 'Archivado' && (
+            {proyecto.estado !== 'Archivado' && userRole === 'Líder Comercial' && (
               <button 
                 className={`${styles.actionButton} ${styles.warning}`} 
                 onClick={async () => {
@@ -697,7 +697,7 @@ const handleCancelProject = async () => {
               </button>
             )}
 
-            {['Líder Comercial', 'Administrador', 'Administración', 'CEO'].includes(userRole) && (
+            {userRole === 'Líder Comercial' && (
               <button className={`${styles.actionButton} ${styles.danger}`} onClick={() => setConfirmDelete(true)}>
                 <Trash2 size={16} /> Cancelar Proyecto
               </button>

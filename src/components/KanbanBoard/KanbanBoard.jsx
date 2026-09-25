@@ -133,7 +133,7 @@ export default function KanbanBoard({ session }) {
       .order('orden', { ascending: true });
       
     if (!colsError && colsData && colsData.length > 0) {
-      estadosActuales = colsData.map(c => c.nombre).filter(n => n !== 'Cancelado');
+      estadosActuales = colsData.map(c => c.nombre).filter(n => n !== 'Cancelado' && n !== 'Cancelado_Oculto');
     } else {
       estadosActuales = defaultEstados;
     }
@@ -580,6 +580,8 @@ export default function KanbanBoard({ session }) {
             {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
           </span>
         </button>
+        )}
+        {session?.user?.user_metadata?.rol === 'Líder Comercial' && (
         <button 
           className={styles.btnArchive}
           style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
@@ -590,6 +592,7 @@ export default function KanbanBoard({ session }) {
             Cancelados
           </span>
         </button>
+        )}
       </div>
 
       </div>
