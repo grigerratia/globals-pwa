@@ -840,11 +840,19 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                                 </div>
                               </div>
                             ) : (
-                              <p className={styles.commentText}>
-                                {parsed.isDeleted ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>(ELIMINADO) </span> : null}
-                                {parsed.currentText}
-                                {parsed.isEdited && !parsed.isDeleted && <span style={{ fontStyle: 'italic', fontSize: '0.8rem', color: '#94a3b8', marginLeft: '8px' }}>(Mensaje editado)</span>}
-                              </p>
+                              <>
+                                <p className={styles.commentText}>
+                                  {parsed.isDeleted ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>(ELIMINADO) </span> : null}
+                                  {parsed.currentText}
+                                  {parsed.isEdited && !parsed.isDeleted && <span style={{ fontStyle: 'italic', fontSize: '0.8rem', color: '#94a3b8', marginLeft: '8px' }}>(Mensaje editado)</span>}
+                                </p>
+                                {isSuperUser && (parsed.isEdited || parsed.isDeleted) && parsed.originalText && (
+                                  <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', fontSize: '0.85rem', color: '#64748b' }}>
+                                    <strong>Texto original antes de su modificación/eliminación:</strong><br/>
+                                    {parsed.originalText}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                           {replies.map(r => renderNode(r, depth + 1))}
