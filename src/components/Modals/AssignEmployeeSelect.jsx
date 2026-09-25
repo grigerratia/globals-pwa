@@ -10,7 +10,7 @@ export default function AssignEmployeeSelect({ onSelect, defaultRole = 'Líder C
   const [manualName, setManualName] = useState('');
 
   const ROLES = [
-    "Líder Comercial", "Ventas", "Diseño", "Producción", "Logística", "Instalación", "Administración", "Externo"
+    "Líder Comercial", "Líder de Operaciones", "Ventas", "Diseño", "Producción", "Logística", "Instalación", "Administración", "Externo"
   ];
 
   useEffect(() => {

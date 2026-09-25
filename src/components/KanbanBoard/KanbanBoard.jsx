@@ -222,7 +222,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     let encargados = nuevoProyectoData.encargados;
     if (!encargados || encargados.length === 0) {
       // Si el usuario que crea el proyecto es el líder comercial, nos asignamos a nosotros mismos
-      if (session?.user?.user_metadata?.rol === 'Líder Comercial') {
+      if ((session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones')) {
         encargados = [{ id: session.user.id, nombre: session.user.user_metadata.nombre || session.user.email, rol: 'Líder Comercial' }];
       } else {
         // Sino, buscamos al primer líder comercial de la base de datos para asignarlo por defecto
@@ -303,7 +303,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
   };
 
   const agregarColumnaSubmit = async (nombre, dias_defecto = 7) => {
-    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
       showError('Acceso denegado: Solo el Líder Comercial puede agregar columnas.');
       return;
     }
@@ -327,7 +327,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
   };
 
   const handleUpdateColumna = async (oldName, newName, color) => {
-    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
       showError('Acceso denegado: Solo el Líder Comercial puede editar columnas.');
       return;
     }
@@ -347,7 +347,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
   };
 
   const handleDeleteColumna = async (nombre) => {
-    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
       showError('Acceso denegado: Solo el Líder Comercial puede eliminar columnas.');
       return;
     }
@@ -435,7 +435,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const type = active.data.current?.type;
 
     if (type === 'Column') {
-      if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+      if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
         showError("Acceso denegado: Solo el Líder Comercial puede mover columnas.");
         return;
       }
@@ -472,7 +472,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       // Compute from current state `columnas`
       const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
       if (pryHover) {
-        const isLider = session?.user?.user_metadata?.rol === 'Líder Comercial';
+        const isLider = (session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones');
         const isEncargado = (pryHover.encargados || []).some(enc => enc.user_id === session?.user?.id || enc.id === session?.user?.id);
         if (!isLider && !isEncargado) {
           showError("Acceso denegado: Solo el Líder Comercial o un encargado pueden reordenar este proyecto.");
@@ -495,7 +495,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       const pry = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
       
       if (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa')) {
-        const isLider = session?.user?.user_metadata?.rol === 'Líder Comercial';
+        const isLider = (session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones');
         if (!isLider) {
           showError("Acceso denegado: Solo el Líder Comercial puede mover proyectos a Pausa/Espera.");
           if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
@@ -706,7 +706,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             className={styles.searchInput}
           />
         </div>
-        {session?.user?.user_metadata?.rol === 'Líder Comercial' && (
+        {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
         <button 
           className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
           onClick={() => setShowArchived(!showArchived)}
@@ -717,7 +717,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           </span>
         </button>
         )}
-        {session?.user?.user_metadata?.rol === 'Líder Comercial' && (
+        {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
         <button 
           className={styles.btnArchive}
           style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}

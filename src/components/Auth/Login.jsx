@@ -84,6 +84,7 @@ export default function Login({ onLogin }) {
                 <label>Rol (Departamento)</label>
                 <select value={rol} onChange={(e) => setRol(e.target.value)} required className={styles.selectRol}>
                   <option value="Líder Comercial">Líder Comercial</option>
+                  <option value="Líder de Operaciones">Líder de Operaciones</option>
                   <option value="Ventas">Ventas y Atención</option>
                   <option value="Diseño">Diseño Gráfico</option>
                   <option value="Produccion">Producción / Fabricación</option>
