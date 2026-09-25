@@ -23,8 +23,6 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
 
   const [empleados, setEmpleados] = useState([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [showDateWarning, setShowDateWarning] = useState(false);
-  const [proceedAnyway, setProceedAnyway] = useState(false);
 
   const getDaysDiff = (dateString) => {
     if (!dateString) return null;
@@ -68,24 +66,18 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
   };
 
   const handleSave = async (conFechaLevantamiento = true) => {
-    const daysDiff = getDaysDiff(formData.fechaEntrega);
-    if (daysDiff !== null && daysDiff < 5 && !proceedAnyway) {
-      setShowDateWarning(true);
-      setTimeout(() => {
-        document.getElementById('date-warning-box')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+    if (!formData.responsableGlobals || !formData.responsableMedidas || !formData.fechaEntrega) {
+      showError('Por favor completa Responsables y Fecha de Entrega.');
       return;
     }
-    setShowDateWarning(false);
+
+    const daysDiff = getDaysDiff(formData.fechaEntrega);
+    if (daysDiff !== null && daysDiff < 6) {
+      showError('No se permiten proyectos con un plazo menor a 6 días. Por favor, selecciona una fecha más lejana.');
+      return;
+    }
     
     let finalNotas = formData.descripcion;
-    if (daysDiff !== null && daysDiff < 5 && proceedAnyway) {
-       const hasUrgencia = finalNotas.includes('[URGENCIA APROBADA POR:');
-       if (!hasUrgencia) {
-           const userName = session?.user?.user_metadata?.nombre || session?.user?.user_metadata?.full_name || session?.user?.email || 'Usuario';
-           finalNotas = `[URGENCIA APROBADA POR: ${userName}]\n\n` + finalNotas;
-       }
-    }
 
     const updateData = {
       cliente_empresa: formData.cliente,
@@ -273,20 +265,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
           </div>
           <div className={styles.formGroup}>
             <label>Fecha de Entrega (Aprox)</label>
-            <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={(e) => {
-               handleChange(e);
-               setShowDateWarning(false);
-               setProceedAnyway(false);
-            }} />
-            {showDateWarning && (
-              <div id="date-warning-box" style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontSize: '0.85rem' }}>
-                ⚠️ <strong>Aviso:</strong> El tiempo de entrega es menor a 5 días. Este plazo es muy corto.
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                  <input type="checkbox" checked={proceedAnyway} onChange={e => setProceedAnyway(e.target.checked)} />
-                  Entiendo el riesgo, guardar fecha
-                </label>
-              </div>
-            )}
+            <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} min={new Date(new Date().setDate(new Date().getDate() + 6)).toISOString().split('T')[0]} />
           </div>
 
           <div className={`${styles.formGroup} ${styles.fullWidth}`}>
@@ -387,7 +366,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
 
         <div className={styles.actions}>
           <button className={styles.btnCancel} onClick={onClose}>Cancelar</button>
-          <button className={styles.btnSubmit} onClick={() => handleSave(true)} style={{ background: '#10b981' }}>
+          <button className={styles.btnSubmit} onClick={() => handleSave()} style={{ background: '#10b981' }}>
             <Save size={18} /> Guardar Hoja
           </button>
           <button className={styles.btnSubmit} onClick={handleExportPDF} style={{ background: '#64748b' }}>
