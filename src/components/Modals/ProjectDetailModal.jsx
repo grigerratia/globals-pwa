@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabase';
 import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
@@ -11,6 +11,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [proyecto, setProyecto] = useState(null);
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
+  const textareaRef = useRef(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -23,7 +24,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     };
   }, []);
   const [showLevantamiento, setShowLevantamiento] = useState(false);
-  const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [isEditingClient, setIsEditingClient] = useState(false);
 
   const autorEmail = session?.user?.email || 'Usuario';
@@ -49,6 +49,22 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       setCargando(false);
     };
     fetchDatos();
+
+    const channel = supabase.channel(`comentarios_${proyectoId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comentarios', filter: `proyecto_id=eq.${proyectoId}` }, (payload) => {
+         if (payload.eventType === 'INSERT') {
+           setComentarios(prev => [payload.new, ...prev]);
+         } else if (payload.eventType === 'UPDATE') {
+           setComentarios(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
+         } else if (payload.eventType === 'DELETE') {
+           setComentarios(prev => prev.filter(c => c.id !== payload.old.id));
+         }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [proyectoId]);
 
   
@@ -578,15 +594,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             </div>
 
             
-            <button 
-              className={styles.toggleMoreBtn} 
-              onClick={() => setShowMoreInfo(!showMoreInfo)}
-            >
-              {showMoreInfo ? 'Ocultar información adicional' : 'Ver más información (Archivos, Finanzas, etc.)'}
-            </button>
 
-            {showMoreInfo && (
-              <>
                         {!['Nuevo', 'Contactado', 'Cotizando', 'En Conversación'].includes(proyecto.estado) && (
               <div className={styles.section} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
                 <div className={styles.sectionContent}>
@@ -712,6 +720,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 <form onSubmit={handleAddComentario} className={styles.commentForm}>
                   <div className={styles.commentBox}>
                     <textarea 
+                      ref={textareaRef}
                       placeholder="Escribe un comentario..." 
                       rows="2"
                       value={nuevoComentario}
@@ -733,7 +742,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   {comentarios.map(c => {
                     const parsed = parseComment(c.texto);
                     const isSuperUser = (userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones');
-                    const canEdit = isSuperUser || c.autor_email === autorEmail;
+                    const canEdit = c.autor_email === autorEmail;
+                    const canDelete = isSuperUser || c.autor_email === autorEmail;
                     
                     if (parsed.isDeleted && !isSuperUser) {
                       return (
@@ -755,10 +765,11 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         <strong>{c.autor_email || 'Usuario'}</strong>
                         <span>
                           {new Date(c.fecha_creacion).toLocaleString()}
-                          {canEdit && !parsed.isDeleted && (
+                          {!parsed.isDeleted && (
                             <span style={{ marginLeft: '10px' }}>
-                              <button onClick={() => { setEditingCommentId(c.id); setEditingCommentText(parsed.currentText); }} style={{ background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:'0.8rem' }}>Editar</button>
-                              <button onClick={() => handleDeleteComment(c.id, c.texto)} style={{ background:'transparent', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Eliminar</button>
+                              <button onClick={() => { setNuevoComentario(prev => prev + `@${c.autor_email.split('@')[0]}: `); setTimeout(() => textareaRef.current?.focus(), 100); }} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'0.8rem' }}>Responder</button>
+                              {canEdit && <button onClick={() => { setEditingCommentId(c.id); setEditingCommentText(parsed.currentText); }} style={{ background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Editar</button>}
+                              {canDelete && <button onClick={() => handleDeleteComment(c.id, c.texto)} style={{ background:'transparent', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Eliminar</button>}
                             </span>
                           )}
                         </span>
@@ -783,12 +794,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         </p>
                       )}
                       
-                      {isSuperUser && (parsed.isEdited || parsed.isDeleted) && parsed.originalText && (
-                        <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', fontSize: '0.85rem', color: '#64748b' }}>
-                          <strong>Texto Original (Visible solo para Líderes):</strong><br/>
-                          {parsed.originalText}
-                        </div>
-                      )}
+
                     </div>
                   )})}
                   {comentarios.length === 0 && (
@@ -797,8 +803,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 </div>
               </div>
             </div>
-            </>
-            )}
           </div>
 
           {/* SIDEBAR (Acciones) */}
