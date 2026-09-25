@@ -236,6 +236,21 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       }
     }
 
+    const targetIdx = estados.indexOf(nuevoProyectoData.estado);
+    const levantamientoIdx = estados.indexOf('Levantamiento');
+    const presupIdx = estados.indexOf('Presupuesto enviado');
+    const logisIdx = estados.indexOf('Logística y compras');
+
+    if (targetIdx > levantamientoIdx && levantamientoIdx !== -1) {
+      nuevoProyectoData.levantamiento_fecha = new Date().toISOString();
+    }
+    if (targetIdx > presupIdx && presupIdx !== -1) {
+      nuevoProyectoData.presupuesto_aprobado = true;
+    }
+    if (targetIdx > logisIdx && logisIdx !== -1) {
+      nuevoProyectoData.materiales_comprados = true;
+    }
+
     const nuevoProyecto = {
       ...nuevoProyectoData,
       encargados: encargados,
