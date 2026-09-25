@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { Bot, BellRing, LogOut, Search, Archive } from 'lucide-react';
+import { Bot, BellRing, LogOut, Search, Archive, Trash2 } from 'lucide-react';
 import { requestFirebaseToken } from '../../firebase';
 import { 
   DndContext, 
@@ -19,6 +19,7 @@ import KanbanCard from '../KanbanCard/KanbanCard';
 import AddColumnModal from '../Modals/AddColumnModal';
 import AddProjectModal from '../Modals/AddProjectModal';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
+import CanceladosModal from '../Modals/CanceladosModal';
 import ColumnSettingsModal from '../Modals/ColumnSettingsModal';
 import AIAgentModal from '../Modals/AIAgentModal';
 import { logAudit } from '../../utils/audit';
@@ -77,6 +78,7 @@ export default function KanbanBoard({ session }) {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [showCancelados, setShowCancelados] = useState(false);
   const [boardError, setBoardError] = useState(null);
   const [columnColors, setColumnColors] = useState(() => {
     try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch(e) { return {}; }
@@ -576,6 +578,16 @@ export default function KanbanBoard({ session }) {
           <Archive size={18} />
           <span className={styles.hideOnMobile}>
             {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+          </span>
+        </button>
+        <button 
+          className={styles.btnArchive}
+          style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+          onClick={() => setShowCancelados(true)}
+        >
+          <Trash2 size={18} />
+          <span className={styles.hideOnMobile}>
+            Cancelados
           </span>
         </button>
       </div>
