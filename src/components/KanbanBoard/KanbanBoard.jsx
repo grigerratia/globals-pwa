@@ -200,7 +200,7 @@ export default function KanbanBoard({ session }) {
       try {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
         const prompt = `Actúa como un gestor de proyectos. Genera un título corto, directo y descriptivo (máximo 5-7 palabras) para un nuevo proyecto de rotulación/publicidad, usando estos datos iniciales:
 Cliente/Empresa: ${projectData.cliente_empresa || 'Desconocido'}
 Contacto: ${projectData.cliente_nombre || 'Desconocido'}
@@ -262,6 +262,22 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }));
     
     setAddProjectColumnId(null); // Cerrar modal
+
+    // Disparar generación de título en background
+    generateTitleWithAI(nuevoProyectoData).then(async (aiTitle) => {
+       const { error: updErr } = await supabase.from('proyectos').update({ titulo: aiTitle }).eq('id', proyectoInsertado.id);
+       if (!updErr) {
+         setColumnas(prevCols => prevCols.map(col => {
+           if (col.estadoOriginal === proyectoInsertado.estado) {
+             return {
+               ...col,
+               proyectos: col.proyectos.map(p => p.id === proyectoInsertado.id ? { ...p, titulo: aiTitle } : p)
+             };
+           }
+           return col;
+         }));
+       }
+    });
   };
 
   const agregarColumnaSubmit = async (nombre, dias_defecto = 7) => {
