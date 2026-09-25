@@ -54,7 +54,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     const channel = supabase.channel(`comentarios_${proyectoId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comentarios', filter: `proyecto_id=eq.${proyectoId}` }, (payload) => {
          if (payload.eventType === 'INSERT') {
-           setComentarios(prev => [payload.new, ...prev]);
+           setComentarios(prev => prev.some(c => c.id === payload.new.id) ? prev : [payload.new, ...prev]);
          } else if (payload.eventType === 'UPDATE') {
            setComentarios(prev => prev.map(c => c.id === payload.new.id ? payload.new : c));
          } else if (payload.eventType === 'DELETE') {
