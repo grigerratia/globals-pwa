@@ -16,7 +16,7 @@ export default function CanceladosModal({ onClose, session }) {
       .from('proyectos')
       .select('*')
       .eq('estado', 'Cancelado')
-      .order('updated_at', { ascending: false });
+      .order('fecha_ultima_actualizacion', { ascending: false });
 
     if (!error && data) {
       setCancelados(data);
