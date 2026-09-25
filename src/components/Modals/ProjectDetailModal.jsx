@@ -64,7 +64,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
     const { error } = await supabase.from('comentarios').update({ texto: finalTexto }).eq('id', cId);
     if (!error) {
-      fetchComentarios();
+      setComentarios(prev => prev.map(c => c.id === cId ? { ...c, texto: finalTexto } : c));
       setEditingCommentId(null);
     }
   };
@@ -73,7 +73,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     if (!confirm('¿Seguro que deseas eliminar este comentario?')) return;
     const finalTexto = `[DELETED] ${oldRawText}`;
     const { error } = await supabase.from('comentarios').update({ texto: finalTexto }).eq('id', cId);
-    if (!error) fetchComentarios();
+    if (!error) setComentarios(prev => prev.map(c => c.id === cId ? { ...c, texto: finalTexto } : c));
   };
 
   const parseComment = (rawText) => {
