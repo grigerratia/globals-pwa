@@ -17,7 +17,7 @@ export default function AIAgentModal({ estadoPredefinido, onClose, onProjectCrea
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Tu navegador no soporta reconocimiento de voz por micrófono.');
+      console.warn('Navegador no soporta voz');
       return;
     }
 
