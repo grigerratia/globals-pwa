@@ -458,8 +458,9 @@ export default function KanbanBoard({ session }) {
         // OTHER GATES
         const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
         const destinoGlobalIdx = estados.indexOf(activeColumn);
+        const isSpecialDest = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
 
-        if (destinoGlobalIdx > origenGlobalIdx) {
+        if (destinoGlobalIdx > origenGlobalIdx && !isSpecialDest) {
           const presupIdx = estados.indexOf('Presupuesto enviado');
           if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !pry.presupuesto_aprobado) {
             showError("No puede ser movido: Falta aprobar el presupuesto.");
@@ -495,8 +496,12 @@ export default function KanbanBoard({ session }) {
             if (p.id === active.id && cambioDeFase) {
               updateData.fecha_ultima_actualizacion = new Date().toISOString();
               updateData.dias_estancado = 0;
+              const isSpecial = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
               if (motive) {
                 updateData.motivo_cancelacion = motive;
+              } else if (!isSpecial) {
+                // Si lo movemos a una columna normal, limpiamos el motivo
+                updateData.motivo_cancelacion = null;
               }
               logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
             }
@@ -505,6 +510,7 @@ export default function KanbanBoard({ session }) {
         })();
       };
 
+      console.log("Checking if modal should open:", { cambioDeFase, activeColumn, estadoOrigenReal });
       if (cambioDeFase && (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado') && estadoOrigenReal !== 'Entregado y cerrado') {
         setMotivePrompt({
            title: `Motivo de ${activeColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,

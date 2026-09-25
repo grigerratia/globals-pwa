@@ -29,6 +29,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [msg, setMsg] = useState({ text: '', type: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [motivePrompt, setMotivePrompt] = useState(null);
   const [archiveMotive, setArchiveMotive] = useState('');
   const [cancelMotive, setCancelMotive] = useState('');
 
@@ -69,10 +70,15 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   };
 
   const handleChange = async (field, value) => {
-    setProyecto(prev => ({ ...prev, [field]: value }));
-    const { error } = await supabase.from('proyectos').update({ [field]: value }).eq('id', proyectoId);
+    let updates = { [field]: value };
+    if (field === 'estado') {
+       const isSpecial = value.toLowerCase().includes('espera') || value.toLowerCase().includes('pausa') || value === 'Archivado' || value === 'Cancelado';
+       if (!isSpecial) updates.motivo_cancelacion = null;
+    }
+    setProyecto(prev => ({ ...prev, ...updates }));
+    const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
     if (!error) {
-      onProjectUpdated({ ...proyecto, [field]: value });
+      onProjectUpdated({ ...proyecto, ...updates });
       logAudit(session, 'Editó campo de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, campo: field, valor: value });
     }
   };
@@ -733,6 +739,33 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
       </div>
 
+
+
+      {motivePrompt && (
+        <div onClick={(e) => { e.stopPropagation(); setMotivePrompt(null); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem' }}>{motivePrompt.title}</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>Por favor, indica el motivo detallado de esta acción.</p>
+            <textarea 
+              id="dropdownMotiveInput"
+              autoFocus
+              placeholder="Ej. Falta de material..."
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={motivePrompt.onCancel} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+              <button 
+                onClick={() => {
+                  const val = document.getElementById('dropdownMotiveInput').value;
+                  if (!val.trim()) return;
+                  motivePrompt.onConfirm(val);
+                }} 
+                style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmArchive && (
         <div onClick={(e) => { e.stopPropagation(); setConfirmArchive(false); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
