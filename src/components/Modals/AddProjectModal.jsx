@@ -72,6 +72,18 @@ export default function AddProjectModal({ columnaEstado, onClose, onAdd }) {
             />
           </div>
           <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+            <label>Días Estimados en esta Columna</label>
+            <input 
+              type="number"
+              name="diasEstimados"
+              min="1"
+              value={formData.diasEstimados}
+              onChange={handleChange}
+              placeholder="Ej. 3"
+              required
+            />
+          </div>
+          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
             <label>Notas / Descripción</label>
             <textarea 
               name="notas" 
