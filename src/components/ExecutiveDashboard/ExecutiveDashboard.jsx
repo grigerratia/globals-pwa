@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { Mic, Kanban, TrendingUp, AlertCircle, CheckCircle, Briefcase, Activity, Wrench } from 'lucide-react';
+import { Mic, Kanban, TrendingUp, AlertCircle, CheckCircle, Briefcase, Activity, Wrench, BarChart2 } from 'lucide-react';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
@@ -81,6 +81,16 @@ export default function ExecutiveDashboard({ session }) {
             <p>Resumen Ejecutivo</p>
           </div>
           <div className={styles.actions}>
+            {isLiderComercial && (
+              <button 
+                className={styles.btnFinance} 
+                onClick={() => window.location.href = '/dashboard'} 
+                title="Ver Dashboard Financiero"
+              >
+                <BarChart2 size={20} />
+                <span className={styles.hideMobile}>Finanzas</span>
+              </button>
+            )}
             <button className={styles.btnKanban} onClick={goToKanban} title="Ver Tablero Completo">
               <Kanban size={20} />
               <span className={styles.hideMobile}>Tablero</span>

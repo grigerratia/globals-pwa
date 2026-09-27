@@ -289,3 +289,25 @@
     grid-row: span 1;
   }
 }
+
+.btnFinance {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #3b82f6;
+  border: 1px solid #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #2563eb;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
+}
