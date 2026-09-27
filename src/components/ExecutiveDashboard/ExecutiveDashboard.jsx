@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { Mic, Kanban, TrendingUp, AlertCircle, CheckCircle, Briefcase, Activity } from 'lucide-react';
+import { Mic, Kanban, TrendingUp, AlertCircle, CheckCircle, Briefcase, Activity, Wrench } from 'lucide-react';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
@@ -48,11 +48,19 @@ export default function ExecutiveDashboard({ session }) {
   }
 
   // Cálculos de KPIs
+  const userRole = session?.user?.user_metadata?.rol;
+  const isLiderComercial = userRole === 'Líder Comercial';
+
   const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Archivado' && !p.estado.includes('Cancelado'));
   const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado');
   
+  // Financieros (Líder Comercial)
   const ingresosProyectados = activos.reduce((sum, p) => sum + (Number(p.precio_venta) || 0), 0);
   const ingresosCompletados = completados.reduce((sum, p) => sum + (Number(p.precio_venta) || 0), 0);
+  
+  // Operativos (Líder de Operaciones)
+  const produccionFases = ['Logística y compras', 'En fabricación', 'Listo para instalación', 'En instalación'];
+  const enProduccion = activos.filter(p => produccionFases.includes(p.estado));
   
   const estancados = activos.filter(p => p.dias_estancado > 5); // Ejemplo: > 5 días sin mover
   
@@ -67,7 +75,7 @@ export default function ExecutiveDashboard({ session }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <h1>Hola, {session?.user?.user_metadata?.nombre?.split(' ')[0] || 'Líder'}</h1>
               <span className={styles.badge} style={{ marginLeft: 0, marginTop: '4px' }}>
-                {session?.user?.user_metadata?.rol || 'Usuario'}
+                {userRole || 'Usuario'}
               </span>
             </div>
             <p>Resumen Ejecutivo</p>
@@ -87,31 +95,64 @@ export default function ExecutiveDashboard({ session }) {
 
       <main className={styles.mainContent}>
         <section className={styles.kpiGrid}>
-          <div className={`${styles.kpiCard} ${styles.cardProyectados}`}>
-            <div className={styles.kpiHeader}>
-              <TrendingUp size={20} />
-              <h3>Ingresos Proyectados</h3>
-            </div>
-            <div className={styles.kpiValue}>
-              ${ingresosProyectados.toLocaleString('en-US')}
-            </div>
-            <div className={styles.kpiSub}>
-              En {activos.length} proyectos activos
-            </div>
-          </div>
+          
+          {isLiderComercial ? (
+            <>
+              <div className={`${styles.kpiCard} ${styles.cardProyectados}`}>
+                <div className={styles.kpiHeader}>
+                  <TrendingUp size={20} />
+                  <h3>Ingresos Proyectados</h3>
+                </div>
+                <div className={styles.kpiValue}>
+                  ${ingresosProyectados.toLocaleString('en-US')}
+                </div>
+                <div className={styles.kpiSub}>
+                  En {activos.length} proyectos activos
+                </div>
+              </div>
 
-          <div className={`${styles.kpiCard} ${styles.cardCerrados}`}>
-            <div className={styles.kpiHeader}>
-              <CheckCircle size={20} />
-              <h3>Ingresos Cerrados</h3>
-            </div>
-            <div className={styles.kpiValue}>
-              ${ingresosCompletados.toLocaleString('en-US')}
-            </div>
-            <div className={styles.kpiSub}>
-              Histórico completado
-            </div>
-          </div>
+              <div className={`${styles.kpiCard} ${styles.cardCerrados}`}>
+                <div className={styles.kpiHeader}>
+                  <CheckCircle size={20} />
+                  <h3>Ingresos Cerrados</h3>
+                </div>
+                <div className={styles.kpiValue}>
+                  ${ingresosCompletados.toLocaleString('en-US')}
+                </div>
+                <div className={styles.kpiSub}>
+                  Histórico completado
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={`${styles.kpiCard} ${styles.cardProyectados}`}>
+                <div className={styles.kpiHeader}>
+                  <Wrench size={20} />
+                  <h3>En Producción</h3>
+                </div>
+                <div className={styles.kpiValue}>
+                  {enProduccion.length}
+                </div>
+                <div className={styles.kpiSub}>
+                  Proyectos en logística, fab. o inst.
+                </div>
+              </div>
+
+              <div className={`${styles.kpiCard} ${styles.cardCerrados}`}>
+                <div className={styles.kpiHeader}>
+                  <CheckCircle size={20} />
+                  <h3>Proyectos Completados</h3>
+                </div>
+                <div className={styles.kpiValue}>
+                  {completados.length}
+                </div>
+                <div className={styles.kpiSub}>
+                  Histórico cerrado
+                </div>
+              </div>
+            </>
+          )}
 
           <div className={`${styles.kpiCard} ${styles.cardActivos}`}>
             <div className={styles.kpiHeader}>
