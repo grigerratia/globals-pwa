@@ -631,21 +631,22 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     <>
       <div className={styles.stickyHeader}>
       <header className={styles.topHeader}>
-        <div className={styles.logo}>
-          <img src={logo} alt="Globals Logo" style={{ height: "40px" }} />
-          
-        </div>
-        <div className={styles.userInfo}>
-          <BellNotifications session={session} />
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <span className={styles.userEmail} style={{ lineHeight: '1.2' }}>
+        <div className={styles.logoAndProfile}>
+          <div className={styles.logo}>
+            <img src={logo} alt="Globals Logo" style={{ height: "40px" }} />
+          </div>
+          <div className={styles.profileInfo}>
+            <span className={styles.userName} title={session?.user?.user_metadata?.nombre || session?.user?.email}>
               {session?.user?.user_metadata?.nombre || session?.user?.email}
             </span>
-            <span style={{ fontSize: '0.65rem', background: '#e2e8f0', color: '#475569', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600, marginTop: '2px' }}>
+            <span className={styles.userRole}>
               {session?.user?.user_metadata?.rol || 'Usuario'}
             </span>
           </div>
+        </div>
+
+        <div className={styles.userInfo}>
+          <BellNotifications session={session} />
 
           <div className={styles.desktopOnlyActions}>
             {canViewFinances && (
@@ -694,9 +695,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           <div className={styles.mobileDropdown}>
             {canViewFinances && (
               <button 
-                className={styles.btnActionMobile} 
+                className={`${styles.mobileMenuItem} ${styles.primary}`}
                 onClick={() => window.location.href = '/dashboard'}
-                style={{ background: '#3b82f6', color: 'white' }}
               >
                 <BarChart2 size={18} />
                 <span>Dashboard Financiero</span>
@@ -704,7 +704,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             )}
             {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
               <button 
-                className={styles.btnActionMobile} 
+                className={styles.mobileMenuItem}
                 onClick={() => window.location.href = '/'}
               >
                 <Activity size={18} />
@@ -712,24 +712,25 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               </button>
             )}
             <button 
-              className={styles.btnActionMobile} 
+              className={styles.mobileMenuItem}
               onClick={() => window.location.href = '/admin/whatsapp'}
             >
               <QrCode size={18} />
               <span>WhatsApp Admin</span>
             </button>
+            
             {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
               <>
+                <div className={styles.divider}></div>
                 <button 
-                  className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+                  className={styles.mobileMenuItem}
                   onClick={() => { setShowArchived(!showArchived); setIsMobileMenuOpen(false); }}
                 >
                   <Archive size={18} />
                   <span>{showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}</span>
                 </button>
                 <button 
-                  className={styles.btnArchive}
-                  style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+                  className={`${styles.mobileMenuItem} ${styles.danger}`}
                   onClick={() => { setShowCancelados(true); setIsMobileMenuOpen(false); }}
                 >
                   <Trash2 size={18} />
@@ -737,7 +738,9 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
                 </button>
               </>
             )}
-            <button className={styles.btnLogout} style={{ width: '100%', justifyContent: 'flex-start' }} onClick={() => supabase.auth.signOut()}>
+            
+            <div className={styles.divider}></div>
+            <button className={styles.mobileMenuItem} onClick={() => supabase.auth.signOut()}>
               <LogOut size={18} /> <span>Cerrar Sesión</span>
             </button>
           </div>
