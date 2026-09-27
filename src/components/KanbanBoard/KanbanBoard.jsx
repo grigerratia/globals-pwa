@@ -38,6 +38,7 @@ const defaultEstados = [
 ];
 
 import BellNotifications from './BellNotifications';
+import GlobalSearch from '../GlobalSearch/GlobalSearch';
 
 
 const getTextForBg = (bg) => {
@@ -75,8 +76,6 @@ export default function KanbanBoard({ session }) {
   const [proyectoDetalleId, setProyectoDetalleId] = useState(null);
   const [columnSettingsId, setColumnSettingsId] = useState(null);
   const [isAgentOpen, setIsAgentOpen] = useState(false);
-  
-  const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showCancelados, setShowCancelados] = useState(false);
   const [motivePrompt, setMotivePrompt] = useState(null);
@@ -464,10 +463,11 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       if (!activeColumn || !overColumn) return;
 
       const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
-      const destinoGlobalIdx = estados.indexOf(activeColumn);
-      const isSpecialDest = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
-
-      const cambioDeFase = estadoOrigenReal !== activeColumn;
+      // Use overColumn as the authoritative drop destination (activeColumn may be stale after DragOver)
+      const destColumn = overColumn;
+      const destinoGlobalIdx = estados.indexOf(destColumn);
+      const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
+      const cambioDeFase = estadoOrigenReal !== destColumn;
       
       // Compute from current state `columnas`
       const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
@@ -494,7 +494,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       // REGLA: COLUMNA "En pausa/espera"
       const pry = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
       
-      if (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa')) {
+      if (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa')) {
         const isLider = (session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones');
         if (!isLider) {
           showError("Acceso denegado: Solo el Líder Comercial puede mover proyectos a Pausa/Espera.");
@@ -503,8 +503,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         }
       } else {
         // VALIDADOR DE LEVANTAMIENTO
-        const isSpecialDestForLev = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
-        if (estadoOrigenReal === 'Levantamiento' && activeColumn !== 'Levantamiento' && !isSpecialDestForLev) {
+        if (estadoOrigenReal === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
           if (!pry.levantamiento_fecha) {
             showError('No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.');
             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
@@ -532,7 +531,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
 
       const executeMove = (motive = null, nuevasNotas = null) => {
         const nuevasColumnas = columnasRef.current.map(c => ({ ...c, proyectos: [...c.proyectos] }));
-        const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
+        const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === destColumn);
         const proyectosColumna = nuevasColumnas[colIndex].proyectos;
   
         let proyectosReordenados = proyectosColumna;
@@ -543,7 +542,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
         }
         
-        nuevasColumnas[colIndex].proyectos = proyectosReordenados.map((p, i) => ({ ...p, orden: i, estado: activeColumn }));
+        nuevasColumnas[colIndex].proyectos = proyectosReordenados.map((p, i) => ({ ...p, orden: i, estado: destColumn }));
         setColumnas(nuevasColumnas);
         originalColumnasRef.current = null;
   
@@ -553,10 +552,9 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             if (p.id === active.id && cambioDeFase) {
               updateData.fecha_ultima_actualizacion = new Date().toISOString();
               updateData.dias_estancado = 0;
-              const isSpecial = activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado' || activeColumn === 'Cancelado';
               if (motive) {
                 updateData.motivo_cancelacion = motive;
-              } else if (!isSpecial) {
+              } else if (!isSpecialDest) {
                 updateData.motivo_cancelacion = null;
               }
               if (nuevasNotas) {
@@ -570,9 +568,9 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       };
 
       const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
-      if (cambioDeFase && (activeColumn.toLowerCase().includes('espera') || activeColumn.toLowerCase().includes('pausa') || activeColumn === 'Archivado') && estadoOrigenReal !== 'Entregado y cerrado') {
+      if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado') && estadoOrigenReal !== 'Entregado y cerrado') {
         setMotivePrompt({
-           title: `Motivo de ${activeColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
+           title: `Motivo de ${destColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
            onConfirm: (motive) => {
              executeMove(motive);
              setMotivePrompt(null);
@@ -586,11 +584,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         setMotivePrompt({
            title: 'Motivo de Retroceso',
            onConfirm: (motive) => {
-             // Append to notas
-             const notaAnadida = `[RETROCESO] De "${estadoOrigenReal}" a "${activeColumn}": ${motive}`;
+             const notaAnadida = `[RETROCESO] De "${estadoOrigenReal}" a "${destColumn}": ${motive}`;
              const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
-             // We pass motive to executeMove but it expects motivo_cancelacion. 
-             // We can just update notas directly in executeMove.
              executeMove(null, nuevasNotas);
              setMotivePrompt(null);
            },
@@ -601,7 +596,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         });
       } else if (cambioDeFase && !isSpecialDest && destinoGlobalIdx > origenGlobalIdx) {
         setDiasEstimadosPrompt({
-           columna: activeColumn,
+           columna: destColumn,
            error: null,
            onConfirm: (dias) => {
              // Validate against fecha_entrega if exists
@@ -696,16 +691,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       </header>
 
       <div className={styles.toolbar}>
-        <div className={styles.searchWrapper}>
-          <Search size={18} className={styles.searchIcon} />
-          <input 
-            type="text" 
-            placeholder="Buscar..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
-        </div>
+        <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
         {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
         <button 
           className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
@@ -766,25 +752,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               // Normalmente 'Archivado' es una columna más, o ocultamos las demás.
               // Mejor mostramos la columna 'Archivado' si showArchived es true.
 
-              // Filtrar proyectos según la búsqueda
-              const normalizeStr = (str) => {
-                if (!str) return '';
-                return str
-                  .normalize("NFD")
-                  .replace(/[\u0300-\u036f]/g, "") // quita acentos
-                  .replace(/[.,/#!$%^&*;:{}=_`~()-]/g,"") // quita signos de puntuación
-                  .toLowerCase();
-              };
-
-              const proyectosFiltrados = col.proyectos.filter(p => {
-                const s = normalizeStr(searchTerm);
-                if (!s) return true;
-                return (
-                  normalizeStr(p.titulo).includes(s) ||
-                  normalizeStr(p.cliente_telefono).includes(s) ||
-                  normalizeStr(p.notas).includes(s)
-                );
-              });
+              const proyectosFiltrados = col.proyectos;
 
               // Si hay término de búsqueda, tal vez queramos ocultar columnas vacías, pero lo dejaremos así.
               return (

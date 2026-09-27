@@ -147,10 +147,32 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   };
 
   const handleChange = async (field, value) => {
-    let updates = { [field]: value };
     if (field === 'estado') {
        const isSpecial = value.toLowerCase().includes('espera') || value.toLowerCase().includes('pausa') || value === 'Archivado' || value === 'Cancelado';
-       if (!isSpecial) updates.motivo_cancelacion = null;
+       if (isSpecial) {
+         setMotivePrompt({
+           title: `Motivo de ${value === 'Archivado' ? 'Archivo' : (value === 'Cancelado' ? 'Cancelación' : 'Pausa')}`,
+           onConfirm: async (motive) => {
+             const updates = { estado: value, motivo_cancelacion: motive };
+             setProyecto(prev => ({ ...prev, ...updates }));
+             const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
+             if (!error) {
+               onProjectUpdated({ ...proyecto, ...updates });
+               logAudit(session, 'Editó estado de proyecto con motivo', { proyecto_id: proyectoId, titulo: proyecto.titulo, estado: value });
+             }
+             setMotivePrompt(null);
+           },
+           onCancel: () => {
+             setMotivePrompt(null);
+           }
+         });
+         return; // Wait for user confirmation
+       }
+    }
+
+    let updates = { [field]: value };
+    if (field === 'estado') {
+       updates.motivo_cancelacion = null;
     }
     setProyecto(prev => ({ ...prev, ...updates }));
     const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
