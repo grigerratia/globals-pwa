@@ -1,0 +1,266 @@
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f8fafc;
+  color: #475569;
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.executiveContainer {
+  min-height: 100vh;
+  background: #f1f5f9;
+  padding-bottom: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.header {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.greeting {
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+  p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+    margin-top: 0.2rem;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btnKanban {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+.btnMic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border: none;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.searchSection {
+  max-width: 600px;
+}
+
+.mainContent {
+  padding: 0 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.kpiCard {
+  border-radius: 12px;
+  padding: 1.25rem;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+}
+
+.gradientBlue {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.gradientGreen {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.gradientPurple {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.gradientOrange {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+}
+
+.kpiHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.9;
+  
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+}
+
+.kpiValue {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.75rem 0;
+  letter-spacing: -0.5px;
+}
+
+.kpiSub {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.activitySection {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0f172a;
+  margin-bottom: 1.25rem;
+  
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activityItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+}
+
+.activityMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+.badge {
+  font-size: 0.7rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.activityMeta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .hideMobile {
+    display: none;
+  }
+  
+  .header {
+    padding: 1rem;
+  }
+  
+  .mainContent {
+    padding: 0 1rem;
+  }
+  
+  .kpiValue {
+    font-size: 1.75rem;
+  }
+}

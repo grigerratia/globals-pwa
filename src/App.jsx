@@ -10,6 +10,8 @@ import { logAudit } from './utils/audit';
 import { requestFirebaseToken, setupOnMessageListener } from './firebase';
 
 
+import ExecutiveDashboard from './components/ExecutiveDashboard/ExecutiveDashboard';
+
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
   @keyframes slideIn {
@@ -62,9 +64,8 @@ function App() {
           user_id: currentSession.user.id 
         });
       }
-            setupOnMessageListener((payload) => {
+      setupOnMessageListener((payload) => {
         console.log('Mensaje FCM recibido en primer plano:', payload);
-        // Show in-app toast
         setToastMessage({
           title: payload.notification?.title || payload.data?.title || "Notificación",
           body: payload.notification?.body || payload.data?.body || "Tienes un nuevo mensaje"
@@ -100,6 +101,9 @@ function App() {
     return <Login onLogin={setSession} />;
   }
 
+  const userRole = session?.user?.user_metadata?.rol;
+  const isSuperuser = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {
     return <WhatsAppAdmin />;
@@ -118,9 +122,21 @@ function App() {
     return <Dashboard session={session} />;
   }
 
+  let ActiveComponent = null;
+
+  if (window.location.pathname === '/' && isSuperuser) {
+    ActiveComponent = <ExecutiveDashboard session={session} />;
+  } else if (window.location.pathname === '/' || window.location.pathname === '/kanban') {
+    ActiveComponent = <KanbanBoard session={session} />;
+  }
+
+  if (!ActiveComponent) {
+    ActiveComponent = <div style={{ padding: '2rem' }}>Página no encontrada o sin acceso</div>;
+  }
+
   return (
     <>
-      <KanbanBoard session={session} />
+      {ActiveComponent}
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
