@@ -649,7 +649,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             <button 
               className={styles.btnActionMobile} 
               title="Dashboard Financiero"
-              style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
               onClick={() => window.location.href = '/dashboard'}
             >
               <BarChart2 size={20} />
@@ -660,18 +660,18 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             <button 
               className={styles.btnActionMobile} 
               title="Vista Ejecutiva"
-              style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
               onClick={() => window.location.href = '/'}
             >
               <Activity size={20} />
-              <span className={styles.hideMobile}>Ejecutivo</span>
+              <span className={styles.hideOnMobile}>Ejecutivo</span>
             </button>
           )}
 
           <button 
             className={styles.btnActionMobile} 
             title="WhatsApp Admin"
-            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+            style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
             onClick={() => window.location.href = '/admin/whatsapp'}
           >
             <QrCode size={20} />
