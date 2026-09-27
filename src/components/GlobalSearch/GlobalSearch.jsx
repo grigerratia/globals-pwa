@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Folder, Calendar, User, DollarSign, FileText } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, X, Folder, User, DollarSign, FileText } from 'lucide-react';
 import { supabase } from '../../supabase';
 import styles from './GlobalSearch.module.scss';
 
@@ -59,6 +59,7 @@ const GlobalSearch = ({ onResultClick }) => {
 
   useEffect(() => {
     if (!searchTerm.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       return;
     }

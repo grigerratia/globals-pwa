@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { Bot, BellRing, LogOut, Search, Archive, Trash2 } from 'lucide-react';
-import { requestFirebaseToken } from '../../firebase';
+import { LogOut, Archive, Trash2 } from 'lucide-react';
+// removed firebase import
 import { 
   DndContext, 
   DragOverlay, 
@@ -82,7 +82,7 @@ export default function KanbanBoard({ session }) {
   const [diasEstimadosPrompt, setDiasEstimadosPrompt] = useState(null);
   const [boardError, setBoardError] = useState(null);
   const [columnColors, setColumnColors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch(e) { return {}; }
+    try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch { return {}; }
   });
 
   // Drag to scroll logic
@@ -417,13 +417,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
   };
 
-  const encontrarEstadoPorIdEnRef = (id) => {
-    if (estados.includes(id)) return id; 
-    for (let col of columnasRef.current) {
-      if (col.proyectos.find(p => p.id === id)) return col.estadoOriginal; 
-    }
-    return null;
-  };
+
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     setProyectoActivo(null);
@@ -457,14 +451,12 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
 
     if (type === 'Card') {
-      const activeColumn = encontrarEstadoPorIdEnRef(active.id);
-      const overColumn = encontrarEstadoPorIdEnRef(over.id);
-
-      if (!activeColumn || !overColumn) return;
-
+      // Where did the card visually land after handleDragOver?
+      const columnWhereLanded = columnasRef.current.find(c => c.proyectos.some(p => p.id === active.id));
+      if (!columnWhereLanded) return;
+      
+      const destColumn = columnWhereLanded.estadoOriginal;
       const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
-      // Use overColumn as the authoritative drop destination (activeColumn may be stale after DragOver)
-      const destColumn = overColumn;
       const destinoGlobalIdx = estados.indexOf(destColumn);
       const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
       const cambioDeFase = estadoOrigenReal !== destColumn;
@@ -481,14 +473,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         }
       }
 
-      const nuevasColumnas = columnasRef.current.map(c => ({ ...c, proyectos: [...c.proyectos] }));
-      const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
-      const proyectosColumna = nuevasColumnas[colIndex].proyectos;
-
-      const activeIndex = proyectosColumna.findIndex(p => p.id === active.id);
-      const overIndex = proyectosColumna.findIndex(p => p.id === over.id);
-
-      const proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
+      // Variables re-defined in executeMove
 
       
       // REGLA: COLUMNA "En pausa/espera"
