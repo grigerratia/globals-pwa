@@ -137,6 +137,34 @@ function App() {
   return (
     <>
       {ActiveComponent}
+      {/* Global Floating Mic Button for Monster AI */}
+      <button 
+        onClick={() => alert("Activando Monster AI... (Próximamente)")}
+        title="Hablar con Monster AI"
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '24px',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '56px',
+          height: '56px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
+          cursor: 'pointer',
+          zIndex: 9999,
+          transition: 'transform 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </button>
+
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{

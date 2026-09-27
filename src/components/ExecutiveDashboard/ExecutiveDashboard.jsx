@@ -64,16 +64,18 @@ export default function ExecutiveDashboard({ session }) {
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <div className={styles.greeting}>
-            <h1>Hola, {session?.user?.user_metadata?.nombre?.split(' ')[0] || 'Líder'}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <h1>Hola, {session?.user?.user_metadata?.nombre?.split(' ')[0] || 'Líder'}</h1>
+              <span className={styles.badge} style={{ marginLeft: 0, marginTop: '4px' }}>
+                {session?.user?.user_metadata?.rol || 'Usuario'}
+              </span>
+            </div>
             <p>Resumen Ejecutivo</p>
           </div>
           <div className={styles.actions}>
             <button className={styles.btnKanban} onClick={goToKanban} title="Ver Tablero Completo">
               <Kanban size={20} />
               <span className={styles.hideMobile}>Tablero</span>
-            </button>
-            <button className={styles.btnMic} onClick={handleMicClick} title="Hablar con Monster AI">
-              <Mic size={24} />
             </button>
           </div>
         </div>
@@ -85,7 +87,7 @@ export default function ExecutiveDashboard({ session }) {
 
       <main className={styles.mainContent}>
         <section className={styles.kpiGrid}>
-          <div className={`${styles.kpiCard} ${styles.gradientBlue}`}>
+          <div className={`${styles.kpiCard} ${styles.cardProyectados}`}>
             <div className={styles.kpiHeader}>
               <TrendingUp size={20} />
               <h3>Ingresos Proyectados</h3>
@@ -98,7 +100,7 @@ export default function ExecutiveDashboard({ session }) {
             </div>
           </div>
 
-          <div className={`${styles.kpiCard} ${styles.gradientGreen}`}>
+          <div className={`${styles.kpiCard} ${styles.cardCerrados}`}>
             <div className={styles.kpiHeader}>
               <CheckCircle size={20} />
               <h3>Ingresos Cerrados</h3>
@@ -111,7 +113,7 @@ export default function ExecutiveDashboard({ session }) {
             </div>
           </div>
 
-          <div className={`${styles.kpiCard} ${styles.gradientPurple}`}>
+          <div className={`${styles.kpiCard} ${styles.cardActivos}`}>
             <div className={styles.kpiHeader}>
               <Briefcase size={20} />
               <h3>Proyectos Activos</h3>
@@ -124,7 +126,7 @@ export default function ExecutiveDashboard({ session }) {
             </div>
           </div>
 
-          <div className={`${styles.kpiCard} ${styles.gradientOrange}`}>
+          <div className={`${styles.kpiCard} ${styles.cardAtencion}`}>
             <div className={styles.kpiHeader}>
               <AlertCircle size={20} />
               <h3>Atención Requerida</h3>

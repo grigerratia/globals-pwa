@@ -677,10 +677,14 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             <QrCode size={20} />
           </button>
 
-          <span className={styles.userEmail}>
-
-            {session?.user?.user_metadata?.nombre || session?.user?.email}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <span className={styles.userEmail} style={{ lineHeight: '1.2' }}>
+              {session?.user?.user_metadata?.nombre || session?.user?.email}
+            </span>
+            <span style={{ fontSize: '0.65rem', background: '#e2e8f0', color: '#475569', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 600, marginTop: '2px' }}>
+              {session?.user?.user_metadata?.rol || 'Usuario'}
+            </span>
+          </div>
           <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
             <LogOut size={18} /> <span className={styles.hideOnMobile}>Cerrar Sesión</span>
           </button>
