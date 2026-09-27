@@ -62,9 +62,14 @@
       color: #475569;
       font-weight: 500;
       font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
 
       @media (max-width: 768px) {
-        display: none; // Hide email on small screens to save space
+        max-width: 80px;
+        font-size: 0.85rem;
       }
     }
 
@@ -400,4 +405,64 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
+}
+
+.desktopOnlyActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+.mobileMenuBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: #334155;
+  cursor: pointer;
+  padding: 0.25rem;
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.mobileDropdown {
+  display: none;
+  @media (max-width: 768px) {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 65px;
+    right: 1rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem;
+    gap: 0.5rem;
+    z-index: 1000;
+    min-width: 200px;
+
+    button {
+      width: 100%;
+      justify-content: flex-start;
+      padding: 0.75rem 1rem !important;
+      span {
+        display: inline !important;
+      }
+    }
+  }
+}
+
+.desktopToolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  @media (max-width: 768px) {
+    display: none !important;
+  }
 }

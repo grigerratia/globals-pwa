@@ -12,7 +12,7 @@ import {
   closestCorners 
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { BarChart2, Plus, X, QrCode } from 'lucide-react';
+import { BarChart2, Plus, X, QrCode, Menu } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
 import KanbanColumn from '../KanbanColumn/KanbanColumn';
 import KanbanCard from '../KanbanCard/KanbanCard';
@@ -61,6 +61,7 @@ export default function KanbanBoard({ session }) {
   const [estados, setEstados] = useState([]);
   const [columnas, setColumnas] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [proyectoActivo, setProyectoActivo] = useState(null);
   const [columnaActiva, setColumnaActiva] = useState(null);
@@ -635,47 +636,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           
         </div>
         <div className={styles.userInfo}>
-          
-
-
-
           <BellNotifications session={session} />
-
-          {/* <button className={styles.btnActionMobile} style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a' }} onClick={() => window.location.href = '/cotizador'}>
-            <span style={{fontWeight: 'bold'}}>Cotizador</span>
-          </button> */}
-          
-          {canViewFinances && (
-            <button 
-              className={styles.btnActionMobile} 
-              title="Dashboard Financiero"
-              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-              onClick={() => window.location.href = '/dashboard'}
-            >
-              <BarChart2 size={20} />
-            </button>
-          )}
-
-          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-            <button 
-              className={styles.btnActionMobile} 
-              title="Vista Ejecutiva"
-              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
-              onClick={() => window.location.href = '/'}
-            >
-              <Activity size={20} />
-              <span className={styles.hideOnMobile}>Ejecutivo</span>
-            </button>
-          )}
-
-          <button 
-            className={styles.btnActionMobile} 
-            title="WhatsApp Admin"
-            style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-            onClick={() => window.location.href = '/admin/whatsapp'}
-          >
-            <QrCode size={20} />
-          </button>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
             <span className={styles.userEmail} style={{ lineHeight: '1.2' }}>
@@ -685,37 +646,131 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               {session?.user?.user_metadata?.rol || 'Usuario'}
             </span>
           </div>
-          <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
-            <LogOut size={18} /> <span className={styles.hideOnMobile}>Cerrar Sesión</span>
+
+          <div className={styles.desktopOnlyActions}>
+            {canViewFinances && (
+              <button 
+                className={styles.btnActionMobile} 
+                title="Dashboard Financiero"
+                style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                onClick={() => window.location.href = '/dashboard'}
+              >
+                <BarChart2 size={20} />
+              </button>
+            )}
+
+            {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+              <button 
+                className={styles.btnActionMobile} 
+                title="Vista Ejecutiva"
+                style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+                onClick={() => window.location.href = '/'}
+              >
+                <Activity size={20} />
+                <span className={styles.hideOnMobile}>Ejecutivo</span>
+              </button>
+            )}
+
+            <button 
+              className={styles.btnActionMobile} 
+              title="WhatsApp Admin"
+              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              onClick={() => window.location.href = '/admin/whatsapp'}
+            >
+              <QrCode size={20} />
+            </button>
+
+            <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
+              <LogOut size={18} /> <span className={styles.hideOnMobile}>Cerrar Sesión</span>
+            </button>
+          </div>
+
+          <button className={styles.mobileMenuBtn} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
+        
+        {isMobileMenuOpen && (
+          <div className={styles.mobileDropdown}>
+            {canViewFinances && (
+              <button 
+                className={styles.btnActionMobile} 
+                onClick={() => window.location.href = '/dashboard'}
+                style={{ background: '#3b82f6', color: 'white' }}
+              >
+                <BarChart2 size={18} />
+                <span>Dashboard Financiero</span>
+              </button>
+            )}
+            {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+              <button 
+                className={styles.btnActionMobile} 
+                onClick={() => window.location.href = '/'}
+              >
+                <Activity size={18} />
+                <span>Vista Ejecutiva</span>
+              </button>
+            )}
+            <button 
+              className={styles.btnActionMobile} 
+              onClick={() => window.location.href = '/admin/whatsapp'}
+            >
+              <QrCode size={18} />
+              <span>WhatsApp Admin</span>
+            </button>
+            {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+              <>
+                <button 
+                  className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+                  onClick={() => { setShowArchived(!showArchived); setIsMobileMenuOpen(false); }}
+                >
+                  <Archive size={18} />
+                  <span>{showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}</span>
+                </button>
+                <button 
+                  className={styles.btnArchive}
+                  style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+                  onClick={() => { setShowCancelados(true); setIsMobileMenuOpen(false); }}
+                >
+                  <Trash2 size={18} />
+                  <span>Cancelados</span>
+                </button>
+              </>
+            )}
+            <button className={styles.btnLogout} style={{ width: '100%', justifyContent: 'flex-start' }} onClick={() => supabase.auth.signOut()}>
+              <LogOut size={18} /> <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        )}
       </header>
 
       <div className={styles.toolbar}>
         <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
-        {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-        <button 
-          className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
-          onClick={() => setShowArchived(!showArchived)}
-        >
-          <Archive size={18} />
-          <span className={styles.hideOnMobile}>
-            {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
-          </span>
-        </button>
-        )}
-        {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-        <button 
-          className={styles.btnArchive}
-          style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
-          onClick={() => setShowCancelados(true)}
-        >
-          <Trash2 size={18} />
-          <span className={styles.hideOnMobile}>
-            Cancelados
-          </span>
-        </button>
-        )}
+        <div className={styles.desktopToolbarActions}>
+          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+          <button 
+            className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Archive size={18} />
+            <span className={styles.hideOnMobile}>
+              {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+            </span>
+          </button>
+          )}
+          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+          <button 
+            className={styles.btnArchive}
+            style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+            onClick={() => setShowCancelados(true)}
+          >
+            <Trash2 size={18} />
+            <span className={styles.hideOnMobile}>
+              Cancelados
+            </span>
+          </button>
+          )}
+        </div>
       </div>
 
       </div>
