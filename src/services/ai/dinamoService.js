@@ -88,7 +88,7 @@ const tools = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            id_proyecto: { type: SchemaType.NUMBER },
+            id_proyecto: { type: SchemaType.STRING, description: 'ID UUID del proyecto' },
             nombre_usuario: { type: SchemaType.STRING, description: 'Nombre del usuario a asignar (ej. Idalys, Griger, etc.)' }
           },
           required: ['id_proyecto', 'nombre_usuario'],
@@ -100,7 +100,7 @@ const tools = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            id_proyecto: { type: SchemaType.NUMBER },
+            id_proyecto: { type: SchemaType.STRING, description: 'ID UUID del proyecto' },
             texto_comentario: { type: SchemaType.STRING, description: 'El mensaje que Dinamo dejará en el chat del proyecto' }
           },
           required: ['id_proyecto', 'texto_comentario'],
