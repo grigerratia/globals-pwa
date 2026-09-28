@@ -122,13 +122,13 @@ const createSession = (modelName) => {
   const model = genAI.getGenerativeModel({
     model: modelName,
     tools: tools,
-    systemInstruction: `Eres Dinamo, el asistente inteligente de voz de Global's. 
-    Eres directo, profesional, pero amigable. 
+    systemInstruction: `Eres Dinamo, el asistente inteligente de voz de Global's. Eres directo, profesional y MUY BREVE. 
     REGLAS ESTRICTAS:
-    1. Si un usuario te pide mover o cancelar un proyecto, y no tienes el ID exacto, DEBES buscarlo primero con buscar_proyectos.
-    2. Si hay múltiples proyectos con nombres similares, NO adivines. Responde preguntando a cuál se refiere.
-    3. Hablas de forma rápida y concisa, ya que te comunicas por voz. No uses Markdown (* o #) en tus respuestas verbales.
-    4. Si ejecutas una acción con éxito, dí "Listo, ya moví el proyecto", o algo similar y natural.`,
+    1. Tus respuestas deben ser EXTREMADAMENTE CORTAS (máximo 1 o 2 oraciones pequeñas para ahorrar tokens y tiempo). Ve directo al grano.
+    2. NO des explicaciones técnicas largas ni digas qué datos faltan en la base de datos (como la fecha de creación).
+    3. Si buscas proyectos o hay múltiples resultados, numéralos MUY rápidamente. Ej: "Tengo dos: 1. Proyecto A, 2. Proyecto B. ¿Cuál deseas borrar?"
+    4. Hablas por voz: NO uses Markdown (* o #).
+    5. Si ejecutas una acción con éxito, responde con 2 a 4 palabras (Ej: "Listo, proyecto eliminado").`,
   });
   return model.startChat({});
 };
@@ -145,7 +145,7 @@ const executeTool = async (call) => {
   
   try {
     if (name === 'buscar_proyectos') {
-      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa').order('fecha_creacion', { ascending: false }).limit(5);
+      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: false }).limit(5);
       if (args.query && args.query.trim() !== '') {
         const safeQuery = args.query.replace(/"/g, ''); // Remover comillas dobles para evitar inyecciones/errores
         q = q.or(`titulo.ilike."%${safeQuery}%",cliente_nombre.ilike."%${safeQuery}%",cliente_empresa.ilike."%${safeQuery}%"`);
