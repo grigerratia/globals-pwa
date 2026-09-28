@@ -88,11 +88,24 @@ export default function DinamoAgent({ onClose }) {
             <input 
               type="text" 
               value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
+              onChange={(e) => {
+                if (isListening) stopListening(); // Si escribe, apagar micrófono
+                setTranscript(e.target.value);
+              }}
               onKeyDown={handleManualSubmit}
               placeholder="Habla o escribe tu orden..."
-              disabled={processing || isListening}
+              disabled={processing}
             />
+            <button 
+              className={styles.btnSendText}
+              disabled={processing || !transcript.trim()}
+              onClick={() => {
+                stopListening();
+                handleProcessCommand(transcript);
+              }}
+            >
+              <Sparkles size={18} />
+            </button>
           </div>
 
           {processing && (

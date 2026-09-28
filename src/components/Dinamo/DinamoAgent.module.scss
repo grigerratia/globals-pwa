@@ -83,23 +83,55 @@
     font-size: 0.9rem;
   }
 
-  .inputBox input {
-    width: 100%;
-    background: #0f172a;
-    border: 1px solid #334155;
-    color: #f8fafc;
-    padding: 1rem;
-    border-radius: 12px;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
+  .inputBox {
+    position: relative;
+    display: flex;
+    align-items: center;
 
-    &:focus {
-      border-color: #8b5cf6;
+    input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 1rem;
+      padding-right: 3rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: #8b5cf6;
+      }
+      
+      &:disabled {
+        opacity: 0.7;
+      }
     }
-    
-    &:disabled {
-      opacity: 0.7;
+
+    .btnSendText {
+      position: absolute;
+      right: 0.5rem;
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      &:hover:not(:disabled) {
+        background: #7c3aed;
+      }
     }
   }
 
