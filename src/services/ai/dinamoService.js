@@ -34,8 +34,8 @@ const tools = [
           type: SchemaType.OBJECT,
           properties: {
             id_proyecto: {
-              type: SchemaType.NUMBER,
-              description: 'El ID numérico del proyecto en la base de datos.',
+              type: SchemaType.STRING,
+              description: 'El ID UUID del proyecto en la base de datos.',
             },
             nuevo_estado: {
               type: SchemaType.STRING,
@@ -55,7 +55,7 @@ const tools = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            id_proyecto: { type: SchemaType.NUMBER },
+            id_proyecto: { type: SchemaType.STRING, description: 'ID UUID del proyecto' },
             titulo: { type: SchemaType.STRING },
             cliente_nombre: { type: SchemaType.STRING },
             cliente_empresa: { type: SchemaType.STRING },
@@ -72,7 +72,7 @@ const tools = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            id_proyecto: { type: SchemaType.NUMBER, description: 'ID del proyecto a eliminar' }
+            id_proyecto: { type: SchemaType.STRING, description: 'ID UUID del proyecto a eliminar' }
           },
           required: ['id_proyecto'],
         },
