@@ -452,26 +452,17 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
 
     if (type === 'Card') {
-      const originalStateFromEvent = active.data.current?.proyecto?.estado;
-      
+      // Where did the card visually land after handleDragOver?
       const columnWhereLanded = columnasRef.current.find(c => c.proyectos.some(p => p.id === active.id));
       if (!columnWhereLanded) return;
       
-      // Determine real destination using over object to avoid React batching lag
-      const overType = over.data.current?.type;
-      const destColumn = overType === 'Column' 
-        ? over.id 
-        : (over.data.current?.proyecto?.estado || columnWhereLanded.estadoOriginal);
-        
-      const estadoOrigenRealSafe = originalStateFromEvent || estadoOrigenReal;
-      
-      const origenGlobalIdx = estados.indexOf(estadoOrigenRealSafe);
+      const destColumn = columnWhereLanded.estadoOriginal;
+      const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
       const destinoGlobalIdx = estados.indexOf(destColumn);
       const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
-      const cambioDeFase = estadoOrigenRealSafe !== destColumn;
-
-      console.log("[DRAG END] activeId:", active.id, "overType:", overType, "destColumn:", destColumn, "estadoOrigenRealSafe:", estadoOrigenRealSafe, "cambioDeFase:", cambioDeFase);
-
+      const cambioDeFase = estadoOrigenReal !== destColumn;
+      
+      const isRoutineArchive = destColumn === 'Archivado' && estadoOrigenReal === 'Entregado y cerrado';
       
       // Compute from current state `columnas`
       const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
@@ -500,7 +491,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         }
       } else {
         // VALIDADOR DE LEVANTAMIENTO
-        if (estadoOrigenRealSafe === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
+        if (estadoOrigenReal === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
           if (!pry.levantamiento_fecha) {
             showError('No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.');
             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
@@ -557,7 +548,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               if (nuevasNotas) {
                 updateData.notas = nuevasNotas;
               }
-              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenRealSafe });
+              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
             }
             await supabase.from('proyectos').update(updateData).eq('id', p.id);
           }
@@ -565,8 +556,6 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       };
 
       const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
-      const isRoutineArchive = destColumn === 'Archivado' && estadoOrigenRealSafe === 'Entregado y cerrado';
-      
       if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || (destColumn === 'Archivado' && !isRoutineArchive))) {
         setMotivePrompt({
            title: `Motivo de ${destColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
@@ -583,7 +572,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         setMotivePrompt({
            title: 'Motivo de Retroceso',
            onConfirm: (motive) => {
-             const notaAnadida = `[RETROCESO] De "${estadoOrigenRealSafe}" a "${destColumn}": ${motive}`;
+             const notaAnadida = `[RETROCESO] De "${estadoOrigenReal}" a "${destColumn}": ${motive}`;
              const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
              executeMove(null, nuevasNotas);
              setMotivePrompt(null);
