@@ -58,7 +58,7 @@ const tools = [
             id_proyecto: { type: SchemaType.NUMBER },
             titulo: { type: SchemaType.STRING },
             cliente_nombre: { type: SchemaType.STRING },
-            empresa: { type: SchemaType.STRING },
+            cliente_empresa: { type: SchemaType.STRING },
             presupuesto_vendido: { type: SchemaType.NUMBER },
             fecha_entrega: { type: SchemaType.STRING },
             notas: { type: SchemaType.STRING }
@@ -145,9 +145,10 @@ const executeTool = async (call) => {
   
   try {
     if (name === 'buscar_proyectos') {
-      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, empresa').order('fecha_creacion', { ascending: false }).limit(5);
+      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa').order('fecha_creacion', { ascending: false }).limit(5);
       if (args.query && args.query.trim() !== '') {
-        q = q.or(`titulo.ilike.%${args.query}%,cliente_nombre.ilike.%${args.query}%,empresa.ilike.%${args.query}%`);
+        const safeQuery = args.query.replace(/"/g, ''); // Remover comillas dobles para evitar inyecciones/errores
+        q = q.or(`titulo.ilike."%${safeQuery}%",cliente_nombre.ilike."%${safeQuery}%",cliente_empresa.ilike."%${safeQuery}%"`);
       }
       if (args.estado) {
         q = q.eq('estado', args.estado);
