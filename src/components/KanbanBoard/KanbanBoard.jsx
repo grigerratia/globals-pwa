@@ -12,7 +12,7 @@ import {
   closestCorners 
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { BarChart2, Plus, X, QrCode, Menu } from 'lucide-react';
+import { BarChart2, Plus, X, QrCode, Menu, Calculator } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
 import KanbanColumn from '../KanbanColumn/KanbanColumn';
 import KanbanCard from '../KanbanCard/KanbanCard';
@@ -452,15 +452,23 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
 
     if (type === 'Card') {
-      // Where did the card visually land after handleDragOver?
+      const originalStateFromEvent = active.data.current?.proyecto?.estado;
+      
       const columnWhereLanded = columnasRef.current.find(c => c.proyectos.some(p => p.id === active.id));
       if (!columnWhereLanded) return;
       
-      const destColumn = columnWhereLanded.estadoOriginal;
-      const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
+      // Determine real destination using over object to avoid React batching lag
+      const overType = over.data.current?.type;
+      const destColumn = overType === 'Column' 
+        ? over.id 
+        : (over.data.current?.proyecto?.estado || columnWhereLanded.estadoOriginal);
+        
+      const estadoOrigenRealSafe = originalStateFromEvent || estadoOrigenReal;
+      
+      const origenGlobalIdx = estados.indexOf(estadoOrigenRealSafe);
       const destinoGlobalIdx = estados.indexOf(destColumn);
       const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
-      const cambioDeFase = estadoOrigenReal !== destColumn;
+      const cambioDeFase = estadoOrigenRealSafe !== destColumn;
       
       // Compute from current state `columnas`
       const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
@@ -489,7 +497,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         }
       } else {
         // VALIDADOR DE LEVANTAMIENTO
-        if (estadoOrigenReal === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
+        if (estadoOrigenRealSafe === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
           if (!pry.levantamiento_fecha) {
             showError('No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.');
             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
@@ -546,7 +554,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               if (nuevasNotas) {
                 updateData.notas = nuevasNotas;
               }
-              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
+              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenRealSafe });
             }
             await supabase.from('proyectos').update(updateData).eq('id', p.id);
           }
@@ -554,7 +562,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       };
 
       const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
-      if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado') && estadoOrigenReal !== 'Entregado y cerrado') {
+      if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado') && estadoOrigenRealSafe !== 'Entregado y cerrado') {
         setMotivePrompt({
            title: `Motivo de ${destColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
            onConfirm: (motive) => {
@@ -570,7 +578,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         setMotivePrompt({
            title: 'Motivo de Retroceso',
            onConfirm: (motive) => {
-             const notaAnadida = `[RETROCESO] De "${estadoOrigenReal}" a "${destColumn}": ${motive}`;
+             const notaAnadida = `[RETROCESO] De "${estadoOrigenRealSafe}" a "${destColumn}": ${motive}`;
              const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
              executeMove(null, nuevasNotas);
              setMotivePrompt(null);
@@ -661,15 +669,26 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             )}
 
             {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-              <button 
-                className={styles.btnActionMobile} 
-                title="Vista Ejecutiva"
-                style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
-                onClick={() => window.location.href = '/'}
-              >
-                <Activity size={20} />
-                <span className={styles.hideOnMobile}>Ejecutivo</span>
-              </button>
+              <>
+                <button 
+                  className={styles.btnActionMobile} 
+                  title="Vista Ejecutiva"
+                  style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+                  onClick={() => window.location.href = '/'}
+                >
+                  <Activity size={20} />
+                  <span className={styles.hideOnMobile}>Ejecutivo</span>
+                </button>
+                <button 
+                  className={styles.btnActionMobile} 
+                  title="Cotizador"
+                  style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+                  onClick={() => window.location.href = '/cotizador'}
+                >
+                  <Calculator size={20} />
+                  <span className={styles.hideOnMobile}>Cotizador</span>
+                </button>
+              </>
             )}
 
             <button 
@@ -680,7 +699,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             >
               <QrCode size={20} />
             </button>
-
+            
             <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
               <LogOut size={18} /> <span className={styles.hideOnMobile}>Cerrar Sesión</span>
             </button>
@@ -703,13 +722,22 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               </button>
             )}
             {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-              <button 
-                className={styles.mobileMenuItem}
-                onClick={() => window.location.href = '/'}
-              >
-                <Activity size={18} />
-                <span>Vista Ejecutiva</span>
-              </button>
+              <>
+                <button 
+                  className={styles.mobileMenuItem}
+                  onClick={() => window.location.href = '/'}
+                >
+                  <Activity size={18} />
+                  <span>Vista Ejecutiva</span>
+                </button>
+                <button 
+                  className={styles.mobileMenuItem}
+                  onClick={() => window.location.href = '/cotizador'}
+                >
+                  <Calculator size={18} />
+                  <span>Cotizador</span>
+                </button>
+              </>
             )}
             <button 
               className={styles.mobileMenuItem}

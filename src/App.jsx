@@ -38,6 +38,16 @@ function App() {
       }
     });
 
+    // Keep-Alive Ping to prevent backend from sleeping while the app is open
+    const pingBackend = async () => {
+      try {
+        const url = import.meta.env.VITE_API_URL || 'https://globals-backend.onrender.com';
+        await fetch(`${url}/api/ping`);
+      } catch (err) {}
+    };
+    pingBackend(); // Ping on load
+    const pingInterval = setInterval(pingBackend, 10 * 60 * 1000); // Ping every 10 mins
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -52,7 +62,10 @@ function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(pingInterval);
+    };
   }, []);
 
   const setupFirebasePush = async (currentSession) => {
