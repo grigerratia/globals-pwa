@@ -109,12 +109,11 @@ const tools = [
   },
 ];
 
-// Modelos disponibles (Reordenados por estabilidad para Function Calling)
+// Modelos disponibles (Diferentes modelos tienen diferentes "baldes" de cuota gratuita)
 const modelosDisponibles = [
-  'gemini-3.5-flash',       // El más estable para herramientas
-  'gemini-1.5-flash',       // Respaldo robusto de la gen anterior
-  'gemini-3.8-flash',       // Tiende a fallar con roles
-  'gemini-3.5-flash-lite'
+  'gemini-3.5-flash',       // Principal
+  'gemini-1.5-flash',       // Respaldo 1 (Tiene su propia cuota independiente)
+  'gemini-1.5-pro'          // Respaldo 2 (Modelo más pesado, pero con cuota limpia)
 ];
 let currentModelIndex = 0;
 let chatSession = null;
@@ -274,17 +273,17 @@ export const sendDinamoMessage = async (textMessage) => {
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
       
-      // Si el error es 429, significa que se acabó la cuota gratuita de peticiones por minuto.
-      // No vale la pena probar los demás modelos porque comparten la misma cuota.
-      if (error.message.includes('429')) {
-        return "Has superado el límite de la capa gratuita de Google AI (20 acciones rápidas). Por favor, espera 1 minuto para que la cuota se recargue.";
-      }
-      
-      // Si es el último modelo, lanzar el error
+      // Si es el último modelo de nuestra lista de respaldos, lanzamos el error al usuario
       if (i === modelosDisponibles.length - 1) {
+        if (error.message.includes('429')) {
+          return "Has vaciado la cuota gratuita de TODOS mis motores de IA. Por favor, descansa 1 minuto sin hacer peticiones para que Google me recargue la energía.";
+        }
         console.error("Todos los modelos de Dinamo fallaron.");
         return "Lo siento, mis sistemas están muy saturados. La tarea que me pediste era muy pesada. Inténtalo en un momento.";
       }
+      
+      // Si no es el último modelo y falló (ej. por 429 cuota excedida), 
+      // el bucle 'for' continuará automáticamente y probará el siguiente modelo de la lista.
     }
   }
 };
