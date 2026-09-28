@@ -145,7 +145,7 @@ const executeTool = async (call) => {
   
   try {
     if (name === 'buscar_proyectos') {
-      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: false }).limit(5);
+      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: false }).limit(20);
       if (args.query && args.query.trim() !== '') {
         const safeQuery = args.query.replace(/"/g, ''); // Remover comillas dobles para evitar inyecciones/errores
         q = q.or(`titulo.ilike."%${safeQuery}%",cliente_nombre.ilike."%${safeQuery}%",cliente_empresa.ilike."%${safeQuery}%"`);
@@ -227,8 +227,17 @@ export const sendDinamoMessage = async (textMessage) => {
       
       let result = await chatSession.sendMessage(textMessage);
       
+      let loopCount = 0;
+      const MAX_LOOPS = 4; // Cortafuegos: máximo 4 iteraciones de herramientas para evitar loops infinitos
+      
       // Bucle para manejar múltiples llamadas a herramientas (en paralelo o secuenciales)
       while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
+        loopCount++;
+        if (loopCount > MAX_LOOPS) {
+          console.warn("[Dinamo] Cortafuegos activado: demasiadas llamadas recursivas.");
+          return "Me detuve por seguridad porque la tarea requería demasiados pasos automáticos. Por favor, verifica qué cambios se hicieron e indícame si sigo.";
+        }
+        
         const calls = result.response.functionCalls();
         const functionResponses = [];
         
@@ -252,6 +261,9 @@ export const sendDinamoMessage = async (textMessage) => {
           }
         }
         
+        // Pausa breve para evitar error 503 o 429 por límite de tasa de la API de Gemini
+        await new Promise(r => setTimeout(r, 600));
+        
         // Enviar todas las respuestas de las herramientas de vuelta al LLM
         result = await chatSession.sendMessage(functionResponses);
       }
@@ -263,7 +275,7 @@ export const sendDinamoMessage = async (textMessage) => {
       // Si es el último modelo, lanzar el error
       if (i === modelosDisponibles.length - 1) {
         console.error("Todos los modelos de Dinamo fallaron.");
-        return "Lo siento, todos mis sistemas de inteligencia están saturados en este momento. Intenta en un minuto.";
+        return "Lo siento, mis sistemas están muy saturados. La tarea que me pediste era muy pesada. Inténtalo en un momento.";
       }
     }
   }
