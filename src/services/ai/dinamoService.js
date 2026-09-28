@@ -257,20 +257,17 @@ export const sendDinamoMessage = async (textMessage) => {
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
       
-      // Si el error es 429, significa que superaste la cuota límite.
-      // Retornamos inmediatamente para que el usuario sepa que debe esperar, 
-      // en lugar de intentar modelos de respaldo que no soportan herramientas.
-      if (error.message.includes('429')) {
-        return "Atención: Has agotado tu cuota de peticiones gratuitas (20 por día) para este modelo específico de Google AI. Se reiniciará mañana.";
-      }
-      
-      // Si es el último modelo de nuestra lista de respaldos, lanzamos el error general
+      // Si es el último modelo de la lista y falló
       if (i === modelosDisponibles.length - 1) {
+        if (error.message.includes('429')) {
+          return "Atención: Has agotado tu cuota de peticiones gratuitas en TODOS mis motores (3.8, 3.5 y Lite). Debemos esperar a que Google recargue los servidores.";
+        }
         console.error("Todos los modelos de Dinamo fallaron.");
         return "Lo siento, mis sistemas están muy saturados. La tarea que me pediste era muy pesada. Inténtalo en un momento.";
       }
       
-      // Si no es 429 y no es el último modelo, continúa al siguiente.
+      // Si falla (por 429 o cualquier otra cosa) y no es el último, 
+      // el bucle pasa silenciosamente al siguiente modelo.
     }
   }
 };
