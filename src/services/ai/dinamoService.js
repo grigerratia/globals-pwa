@@ -73,8 +73,9 @@ const tools = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            titulo: { type: SchemaType.STRING },
-            cliente_nombre: { type: SchemaType.STRING },
+            titulo: { type: SchemaType.STRING, description: 'El nombre o título corto del proyecto' },
+            cliente_nombre: { type: SchemaType.STRING, description: 'El nombre de la persona de contacto (ej. Osbaldo, Juan Pérez)' },
+            cliente_empresa: { type: SchemaType.STRING, description: 'El nombre de la empresa o marca del cliente (ej. Coca Cola, Polar)' },
             cliente_telefono: { type: SchemaType.STRING },
             estado: { type: SchemaType.STRING, description: 'Por defecto usa "En Conversación" si no se especifica' }
           },
@@ -114,10 +115,10 @@ const createSession = (modelName) => {
     tools: tools,
     systemInstruction: `Eres Dinamo, el asistente inteligente de voz de Global's. Eres directo, profesional y MUY BREVE. 
     REGLAS ESTRICTAS:
-    1. Tus respuestas deben ser EXTREMADAMENTE CORTAS (máximo 1 o 2 oraciones pequeñas para ahorrar tokens y tiempo). Ve directo al grano.
-    2. NO des explicaciones técnicas largas ni digas qué datos faltan en la base de datos.
-    3. Si buscas proyectos o hay múltiples resultados, numéralos MUY rápidamente. Ej: "Tengo dos: 1. Proyecto A, 2. Proyecto B. ¿Cuál deseas borrar?"
-    4. Hablas por voz: NO uses Markdown (* o #).
+    1. Tus respuestas deben ser CORTAS y DIRECTAS, pero AMIGABLES. Ve directo al grano sin perder la cordialidad.
+    2. NO des explicaciones técnicas largas ni detalles de bases de datos.
+    3. Si buscas proyectos o hay múltiples resultados, organízalos visualmente con viñetas.
+    4. Usa FORMATO MARKDOWN (negritas, listas, saltos de línea) y uno o dos EMOJIS (✨, 🚀, ✅, 📌) para que la respuesta en pantalla se vea muy organizada y bonita.
     5. REGLA CRÍTICA: NUNCA ELIMINES NADA. Si el usuario te pide eliminar, destruir o borrar un proyecto, DEBES usar la herramienta 'actualizar_estado_proyecto' para pasarlo al estado "Cancelado" con el motivo "Eliminado por el usuario". NUNCA uses la herramienta de eliminar.
     6. Si ejecutas una acción con éxito, responde con 2 a 4 palabras (Ej: "Listo, proyecto cancelado").`,
   });
@@ -184,6 +185,7 @@ const executeTool = async (call) => {
       const nuevoProy = {
         titulo: args.titulo,
         cliente_nombre: args.cliente_nombre || '',
+        cliente_empresa: args.cliente_empresa || '',
         cliente_telefono: args.cliente_telefono || '',
         estado: args.estado || 'En Conversación',
         encargados: encargadosPorDefecto,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, X, Loader2, Sparkles, Volume2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import styles from './DinamoAgent.module.scss';
 import { useVoiceRecognition } from '../../hooks/useVoiceRecognition';
 import { sendDinamoMessage } from '../../services/ai/dinamoService';
@@ -40,25 +41,42 @@ export default function DinamoAgent({ onClose }) {
 
   const speak = (text) => {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Limpiar Markdown y Emojis para que la voz no los lea ("asterisco asterisco")
+    const cleanText = text
+      .replace(/[*_#]/g, '')
+      .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'es-ES';
     
     // Intentar buscar una voz masculina
     const voices = window.speechSynthesis.getVoices();
+    
+    // Buscar primero una voz de alta calidad (Google WaveNet) que suele venir en Chrome
+    const premiumVoice = voices.find(v => v.lang.startsWith('es') && v.name.includes('Google español'));
+    
+    // Si no, buscar una voz masculina
     const maleVoice = voices.find(v => 
       v.lang.startsWith('es') && 
       (v.name.includes('Pablo') || v.name.includes('Jorge') || v.name.includes('Diego') || v.name.toLowerCase().includes('masculine') || v.name.toLowerCase().includes('male'))
     );
     
-    if (maleVoice) {
+    if (premiumVoice) {
+      utterance.voice = premiumVoice;
+    } else if (maleVoice) {
       utterance.voice = maleVoice;
     } else {
       // Fallback a cualquier voz en español si no hay masculinas específicas
       const esVoice = voices.find(v => v.lang.startsWith('es'));
       if (esVoice) utterance.voice = esVoice;
     }
+
+    // Ajustes para que suene menos robótico
+    utterance.pitch = 1.05; 
+    utterance.rate = 1.05;
     
-    utterance.rate = 1.1; // Un poco más rápido
     window.speechSynthesis.speak(utterance);
   };
 
@@ -136,7 +154,10 @@ export default function DinamoAgent({ onClose }) {
 
           {aiResponse && (
             <div className={styles.response}>
-              <Volume2 size={16} /> <span>{aiResponse}</span>
+              <Volume2 size={16} style={{flexShrink: 0, marginTop: '4px'}} /> 
+              <div className={styles.markdownResponse}>
+                <ReactMarkdown>{aiResponse}</ReactMarkdown>
+              </div>
             </div>
           )}
         </div>
