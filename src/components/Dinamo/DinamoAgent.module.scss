@@ -234,3 +234,48 @@
   li { margin-bottom: 0.25rem; }
   strong { color: #fff; font-weight: 600; }
 }
+
+.muteButton {
+  flex-shrink: 0;
+  margin-top: 4px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.soundWaves {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+  margin-top: 4px;
+  flex-shrink: 0;
+  
+  span {
+    display: block;
+    width: 3px;
+    background-color: #a78bfa;
+    border-radius: 2px;
+    animation: bounce 1.2s ease-in-out infinite;
+    
+    &:nth-child(1) { animation-delay: 0s; height: 60%; }
+    &:nth-child(2) { animation-delay: 0.15s; height: 100%; }
+    &:nth-child(3) { animation-delay: 0.3s; height: 80%; }
+  }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}

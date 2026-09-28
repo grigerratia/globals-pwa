@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, X, Loader2, Sparkles, Volume2 } from 'lucide-react';
+import { Mic, X, Loader2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import styles from './DinamoAgent.module.scss';
 import { useVoiceRecognition } from '../../hooks/useVoiceRecognition';
@@ -8,6 +8,8 @@ import { sendDinamoMessage } from '../../services/ai/dinamoService';
 export default function DinamoAgent({ onClose }) {
   const [processing, setProcessing] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleProcessCommand = async (text) => {
     setProcessing(true);
@@ -41,6 +43,7 @@ export default function DinamoAgent({ onClose }) {
 
   const speak = (text) => {
     window.speechSynthesis.cancel();
+    if (isMuted) return;
     
     // Limpiar Markdown y Emojis para que la voz no los lea ("asterisco asterisco")
     const cleanText = text
@@ -77,6 +80,10 @@ export default function DinamoAgent({ onClose }) {
     utterance.pitch = 1.05; 
     utterance.rate = 1.05;
     
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
     window.speechSynthesis.speak(utterance);
   };
 
@@ -94,6 +101,14 @@ export default function DinamoAgent({ onClose }) {
       setTranscript('');
       handleProcessCommand(textToSend);
     }
+  };
+
+  const toggleMute = () => {
+    if (!isMuted) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+    setIsMuted(!isMuted);
   };
 
   const resetAndListenAgain = () => {
@@ -154,10 +169,23 @@ export default function DinamoAgent({ onClose }) {
 
           {aiResponse && (
             <div className={styles.response}>
-              <Volume2 size={16} style={{flexShrink: 0, marginTop: '4px'}} /> 
+              <button 
+                onClick={toggleMute} 
+                className={styles.muteButton} 
+                title={isMuted ? "Activar voz" : "Silenciar voz"}
+              >
+                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </button>
+              
               <div className={styles.markdownResponse}>
                 <ReactMarkdown>{aiResponse}</ReactMarkdown>
               </div>
+              
+              {!isMuted && isSpeaking && (
+                <div className={styles.soundWaves}>
+                  <span></span><span></span><span></span>
+                </div>
+              )}
             </div>
           )}
         </div>
