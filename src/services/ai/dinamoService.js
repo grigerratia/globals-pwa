@@ -109,10 +109,11 @@ const tools = [
   },
 ];
 
-// Modelos disponibles
+// Modelos disponibles (Reordenados por estabilidad para Function Calling)
 const modelosDisponibles = [
-  'gemini-3.8-flash',
-  'gemini-3.5-flash',
+  'gemini-3.5-flash',       // El más estable para herramientas
+  'gemini-1.5-flash',       // Respaldo robusto de la gen anterior
+  'gemini-3.8-flash',       // Tiende a fallar con roles
   'gemini-3.5-flash-lite'
 ];
 let currentModelIndex = 0;
@@ -272,6 +273,13 @@ export const sendDinamoMessage = async (textMessage) => {
       return result.response.text();
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
+      
+      // Si el error es 429, significa que se acabó la cuota gratuita de peticiones por minuto.
+      // No vale la pena probar los demás modelos porque comparten la misma cuota.
+      if (error.message.includes('429')) {
+        return "Has superado el límite de la capa gratuita de Google AI (20 acciones rápidas). Por favor, espera 1 minuto para que la cuota se recargue.";
+      }
+      
       // Si es el último modelo, lanzar el error
       if (i === modelosDisponibles.length - 1) {
         console.error("Todos los modelos de Dinamo fallaron.");
