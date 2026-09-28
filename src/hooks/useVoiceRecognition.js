@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export function useVoiceRecognition() {
+export function useVoiceRecognition(onVoiceEnd) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
   
   const recognitionRef = useRef(null);
+  const manualStopRef = useRef(false);
+  const transcriptRef = useRef(''); // Mantiene el valor actualizado para el onend
+
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -26,6 +32,7 @@ export function useVoiceRecognition() {
     setError(null);
     setTranscript('');
     setIsListening(true);
+    manualStopRef.current = false;
     
     recognitionRef.current.start();
     
@@ -42,11 +49,16 @@ export function useVoiceRecognition() {
 
     recognitionRef.current.onend = () => {
       setIsListening(false);
+      // Si el micro se apagó solo (no manualmente) y hay texto, enviar
+      if (!manualStopRef.current && transcriptRef.current.trim() && onVoiceEnd) {
+        onVoiceEnd(transcriptRef.current);
+      }
     };
-  }, []);
+  }, [onVoiceEnd]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
+      manualStopRef.current = true;
       recognitionRef.current.stop();
       setIsListening(false);
     }

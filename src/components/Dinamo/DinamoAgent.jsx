@@ -5,37 +5,10 @@ import { useVoiceRecognition } from '../../hooks/useVoiceRecognition';
 import { sendDinamoMessage } from '../../services/ai/dinamoService';
 
 export default function DinamoAgent({ onClose }) {
-  const { isListening, transcript, error, startListening, stopListening, setTranscript } = useVoiceRecognition();
   const [processing, setProcessing] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
-  const autoProcessed = useRef(false);
-
-  // Escuchar tan pronto como se abre el modal
-  useEffect(() => {
-    startListening();
-    return () => {
-      stopListening();
-      window.speechSynthesis.cancel(); // Parar de hablar al cerrar
-    };
-  }, [startListening, stopListening]);
-
-  // Procesar cuando el microfono se apaga y hay transcript
-  useEffect(() => {
-    if (!isListening && transcript && !autoProcessed.current) {
-      handleProcessCommand(transcript);
-    }
-  }, [isListening, transcript]);
-
-  const speak = (text) => {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    utterance.rate = 1.1; // Un poco más rápido
-    window.speechSynthesis.speak(utterance);
-  };
 
   const handleProcessCommand = async (text) => {
-    autoProcessed.current = true;
     setProcessing(true);
     setAiResponse('');
     
@@ -52,6 +25,27 @@ export default function DinamoAgent({ onClose }) {
     setProcessing(false);
   };
 
+  const { isListening, transcript, error, startListening, stopListening, setTranscript } = useVoiceRecognition((finalText) => {
+    handleProcessCommand(finalText);
+  });
+
+  // Escuchar tan pronto como se abre el modal
+  useEffect(() => {
+    startListening();
+    return () => {
+      stopListening();
+      window.speechSynthesis.cancel(); // Parar de hablar al cerrar
+    };
+  }, [startListening, stopListening]);
+
+  const speak = (text) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+    utterance.rate = 1.1; // Un poco más rápido
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleManualSubmit = (e) => {
     if (e.key === 'Enter' && transcript.trim()) {
       stopListening();
@@ -62,7 +56,6 @@ export default function DinamoAgent({ onClose }) {
   const resetAndListenAgain = () => {
     setAiResponse('');
     setTranscript('');
-    autoProcessed.current = false;
     startListening();
   };
 

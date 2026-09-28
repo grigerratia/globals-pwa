@@ -109,23 +109,32 @@ const tools = [
   },
 ];
 
-// Instanciar el modelo con instrucciones de sistema
-const model = genAI.getGenerativeModel({
-  model: 'gemini-3.8-flash',
-  tools: tools,
-  systemInstruction: `Eres Dinamo, el asistente inteligente de voz de Global's. 
-  Eres directo, profesional, pero amigable. 
-  REGLAS ESTRICTAS:
-  1. Si un usuario te pide mover o cancelar un proyecto, y no tienes el ID exacto, DEBES buscarlo primero con buscar_proyectos.
-  2. Si hay múltiples proyectos con nombres similares, NO adivines. Responde preguntando a cuál se refiere.
-  3. Hablas de forma rápida y concisa, ya que te comunicas por voz. No uses Markdown (* o #) en tus respuestas verbales.
-  4. Si ejecutas una acción con éxito, dí "Listo, ya moví el proyecto", o algo similar y natural.`,
-});
-
+// Modelos disponibles
+const modelosDisponibles = [
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite'
+];
+let currentModelIndex = 0;
 let chatSession = null;
 
+const createSession = (modelName) => {
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    tools: tools,
+    systemInstruction: `Eres Dinamo, el asistente inteligente de voz de Global's. 
+    Eres directo, profesional, pero amigable. 
+    REGLAS ESTRICTAS:
+    1. Si un usuario te pide mover o cancelar un proyecto, y no tienes el ID exacto, DEBES buscarlo primero con buscar_proyectos.
+    2. Si hay múltiples proyectos con nombres similares, NO adivines. Responde preguntando a cuál se refiere.
+    3. Hablas de forma rápida y concisa, ya que te comunicas por voz. No uses Markdown (* o #) en tus respuestas verbales.
+    4. Si ejecutas una acción con éxito, dí "Listo, ya moví el proyecto", o algo similar y natural.`,
+  });
+  return model.startChat({});
+};
+
 export const startDinamoSession = () => {
-  chatSession = model.startChat({});
+  chatSession = createSession(modelosDisponibles[currentModelIndex]);
   return chatSession;
 };
 
@@ -208,31 +217,40 @@ const executeTool = async (call) => {
 };
 
 export const sendDinamoMessage = async (textMessage) => {
-  if (!chatSession) startDinamoSession();
-  
-  try {
-    const result = await chatSession.sendMessage(textMessage);
-    const call = result.response.functionCalls()?.[0];
-    
-    if (call) {
-      // 1. El LLM quiere ejecutar una función
-      const apiResponse = await executeTool(call);
+  for (let i = currentModelIndex; i < modelosDisponibles.length; i++) {
+    try {
+      if (!chatSession || currentModelIndex !== i) {
+        currentModelIndex = i;
+        chatSession = createSession(modelosDisponibles[i]);
+      }
       
-      // 2. Le devolvemos el resultado de la función al LLM
-      const followUpResult = await chatSession.sendMessage([{
-        functionResponse: {
-          name: call.name,
-          response: apiResponse
-        }
-      }]);
+      const result = await chatSession.sendMessage(textMessage);
+      const call = result.response.functionCalls()?.[0];
       
-      return followUpResult.response.text();
+      if (call) {
+        // 1. El LLM quiere ejecutar una función
+        const apiResponse = await executeTool(call);
+        
+        // 2. Le devolvemos el resultado de la función al LLM
+        const followUpResult = await chatSession.sendMessage([{
+          functionResponse: {
+            name: call.name,
+            response: apiResponse
+          }
+        }]);
+        
+        return followUpResult.response.text();
+      }
+      
+      // Si no hubo llamada a función, es una respuesta normal
+      return result.response.text();
+    } catch (error) {
+      console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
+      // Si es el último modelo, lanzar el error
+      if (i === modelosDisponibles.length - 1) {
+        console.error("Todos los modelos de Dinamo fallaron.");
+        return "Lo siento, todos mis sistemas de inteligencia están saturados en este momento. Intenta en un minuto.";
+      }
     }
-    
-    // Si no hubo llamada a función, es una respuesta normal
-    return result.response.text();
-  } catch (error) {
-    console.error("Error en sendDinamoMessage:", error);
-    return "Lo siento, tuve un problema interno de conexión.";
   }
 };
