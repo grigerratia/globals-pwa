@@ -227,7 +227,7 @@ const executeTool = async (call) => {
       const { data: pData, error: pError } = await supabase.from('proyectos').select('encargados').eq('id', args.id_proyecto).single();
       if (pError) throw pError;
       
-      const { data: uData, error: uError } = await supabase.from('usuarios').select('id, nombre, rol, email').ilike('nombre', `%${args.nombre_usuario}%`).limit(1);
+      const { data: uData, error: uError } = await supabase.from('usuarios').select('id, nombre, rol').ilike('nombre', `%${args.nombre_usuario}%`).limit(1);
       if (uError) throw uError;
       if (!uData || uData.length === 0) {
         return { success: false, error: `No se encontró un usuario con el nombre ${args.nombre_usuario}.` };
