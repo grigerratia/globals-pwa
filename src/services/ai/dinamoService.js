@@ -111,9 +111,9 @@ const tools = [
 
 // Modelos disponibles (Listado actualizado para 2026 según tu entorno)
 const modelosDisponibles = [
-  'gemini-3.5-flash',       // El único estable comprobado para herramientas
-  'gemini-3.5-flash-lite',  // Respaldo
-  'gemini-3.8-flash'        // Respaldo
+  'gemini-3.8-flash',       // Principal (Cuota nueva)
+  'gemini-3.5-flash-lite',  // Respaldo 1
+  'gemini-3.5-flash'        // Respaldo 2 (Agotado por hoy en pruebas intensivas)
 ];
 let currentModelIndex = 0;
 let chatSession = null;
@@ -239,33 +239,24 @@ export const sendDinamoMessage = async (textMessage) => {
         }
         
         const calls = result.response.functionCalls();
-        const functionResponses = [];
+        let toolResponsesText = "Resultados del sistema (Herramientas ejecutadas):\n";
         
         for (const call of calls) {
           try {
             const apiResponse = await executeTool(call);
-            functionResponses.push({
-              functionResponse: {
-                name: call.name,
-                response: apiResponse
-              }
-            });
+            toolResponsesText += `- Herramienta '${call.name}': ${JSON.stringify(apiResponse)}\n`;
           } catch (toolErr) {
             console.error(`Error ejecutando herramienta ${call.name}:`, toolErr);
-            functionResponses.push({
-              functionResponse: {
-                name: call.name,
-                response: { success: false, error: toolErr.message || 'Error desconocido' }
-              }
-            });
+            toolResponsesText += `- Herramienta '${call.name}': ERROR: ${toolErr.message || 'Desconocido'}\n`;
           }
         }
         
-        // Pausa breve para evitar error 503 o 429 por límite de tasa de la API de Gemini
+        // Pausa breve para evitar error 429 por límite de tasa de la API de Gemini
         await new Promise(r => setTimeout(r, 600));
         
-        // Enviar todas las respuestas de las herramientas de vuelta al LLM
-        result = await chatSession.sendMessage(functionResponses);
+        // Enviar todas las respuestas como texto del USUARIO.
+        // Esto evita el error "400 Role 'function' is not supported" en los modelos 3.8 y lite.
+        result = await chatSession.sendMessage(toolResponsesText);
       }
       
       // Una vez resueltas todas las funciones, devolver el texto
@@ -273,11 +264,11 @@ export const sendDinamoMessage = async (textMessage) => {
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
       
-      // Si el error es 429, significa que superaste las 20 peticiones por minuto.
+      // Si el error es 429, significa que superaste la cuota límite.
       // Retornamos inmediatamente para que el usuario sepa que debe esperar, 
-      // en lugar de intentar modelos de respaldo que no soportan herramientas (ej. 3.8 o lite).
+      // en lugar de intentar modelos de respaldo que no soportan herramientas.
       if (error.message.includes('429')) {
-        return "Has superado el límite de 20 peticiones por minuto de Google AI. Por favor, espera 60 segundos antes de darme otra orden.";
+        return "Atención: Has agotado tu cuota de peticiones gratuitas (20 por día) para este modelo específico de Google AI. Se reiniciará mañana.";
       }
       
       // Si es el último modelo de nuestra lista de respaldos, lanzamos el error general
