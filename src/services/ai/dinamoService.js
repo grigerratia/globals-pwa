@@ -83,6 +83,30 @@ const tools = [
         },
       },
       {
+        name: 'asignar_encargado',
+        description: 'Asigna o agrega un usuario específico como encargado de un proyecto. Úsalo cuando el usuario te pide "asigna a [Nombre] al proyecto [X]".',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.NUMBER },
+            nombre_usuario: { type: SchemaType.STRING, description: 'Nombre del usuario a asignar (ej. Idalys, Griger, etc.)' }
+          },
+          required: ['id_proyecto', 'nombre_usuario'],
+        },
+      },
+      {
+        name: 'agregar_comentario_proyecto',
+        description: 'Agrega un comentario al chat o muro del proyecto. Úsalo cuando el usuario te pida explícitamente "comenta en el proyecto", "déjale un mensaje", o "escribe en el chat". NO lo uses para actualizar notas.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.NUMBER },
+            texto_comentario: { type: SchemaType.STRING, description: 'El mensaje que Dinamo dejará en el chat del proyecto' }
+          },
+          required: ['id_proyecto', 'texto_comentario'],
+        },
+      },
+      {
         name: 'obtener_kpis',
         description: 'Devuelve métricas financieras o estadísticas globales. Úsalo si el usuario pregunta "cuánto hemos vendido", "cuántos proyectos activos hay", etc.',
         parameters: {
@@ -197,6 +221,38 @@ const executeTool = async (call) => {
       const { data, error } = await supabase.from('proyectos').insert(nuevoProy).select('id');
       if (error) throw error;
       return { success: true, message: `Proyecto creado exitosamente con ID ${data[0].id}.` };
+    }
+
+    if (name === 'asignar_encargado') {
+      const { data: pData, error: pError } = await supabase.from('proyectos').select('encargados').eq('id', args.id_proyecto).single();
+      if (pError) throw pError;
+      
+      const { data: uData, error: uError } = await supabase.from('usuarios').select('id, nombre, rol, email').ilike('nombre', `%${args.nombre_usuario}%`).limit(1);
+      if (uError) throw uError;
+      if (!uData || uData.length === 0) {
+        return { success: false, error: `No se encontró un usuario con el nombre ${args.nombre_usuario}.` };
+      }
+      
+      const newEncargado = { id: uData[0].id, nombre: uData[0].nombre, rol: uData[0].rol };
+      let encargados = pData.encargados || [];
+      if (!encargados.find(e => e.id === newEncargado.id || e.user_id === newEncargado.id)) {
+        encargados.push(newEncargado);
+        const { error: updError } = await supabase.from('proyectos').update({ encargados }).eq('id', args.id_proyecto);
+        if (updError) throw updError;
+        return { success: true, message: `Usuario ${uData[0].nombre} asignado correctamente al proyecto.` };
+      } else {
+        return { success: true, message: `El usuario ${uData[0].nombre} ya estaba asignado a este proyecto.` };
+      }
+    }
+
+    if (name === 'agregar_comentario_proyecto') {
+      const { error } = await supabase.from('comentarios').insert([{
+        proyecto_id: args.id_proyecto,
+        texto: args.texto_comentario,
+        autor_email: 'Dinamo AI ✨'
+      }]);
+      if (error) throw error;
+      return { success: true, message: 'Comentario agregado exitosamente en el chat del proyecto.' };
     }
 
     if (name === 'obtener_kpis') {
