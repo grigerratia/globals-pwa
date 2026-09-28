@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, FunctionDeclaration, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { supabase } from '../../supabase';
 
 // Inicializar SDK
