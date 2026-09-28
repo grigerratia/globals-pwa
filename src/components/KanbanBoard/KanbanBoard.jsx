@@ -469,6 +469,9 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       const destinoGlobalIdx = estados.indexOf(destColumn);
       const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
       const cambioDeFase = estadoOrigenRealSafe !== destColumn;
+
+      console.log("[DRAG END] activeId:", active.id, "overType:", overType, "destColumn:", destColumn, "estadoOrigenRealSafe:", estadoOrigenRealSafe, "cambioDeFase:", cambioDeFase);
+
       
       // Compute from current state `columnas`
       const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
@@ -562,7 +565,9 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       };
 
       const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
-      if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado') && estadoOrigenRealSafe !== 'Entregado y cerrado') {
+      const isRoutineArchive = destColumn === 'Archivado' && estadoOrigenRealSafe === 'Entregado y cerrado';
+      
+      if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || (destColumn === 'Archivado' && !isRoutineArchive))) {
         setMotivePrompt({
            title: `Motivo de ${destColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
            onConfirm: (motive) => {
