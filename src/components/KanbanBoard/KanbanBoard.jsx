@@ -221,18 +221,13 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
     let encargados = nuevoProyectoData.encargados;
     if (!encargados || encargados.length === 0) {
-      // Si el usuario que crea el proyecto es el líder comercial, nos asignamos a nosotros mismos
-      if ((session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones')) {
-        encargados = [{ id: session.user.id, nombre: session.user.user_metadata.nombre || session.user.email, rol: 'Líder Comercial' }];
+      // Buscar todos los superusuarios para asignarlos por defecto a los nuevos proyectos
+      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').eq('rol', 'Superusuario');
+      if (superusers && superusers.length > 0) {
+        encargados = superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }));
       } else {
-        // Sino, buscamos al primer líder comercial de la base de datos para asignarlo por defecto
-        const { data: liderData } = await supabase.from('usuarios').select('id, nombre, rol').eq('rol', 'Líder Comercial').limit(1);
-        if (liderData && liderData.length > 0) {
-          encargados = [{ id: liderData[0].id, nombre: liderData[0].nombre, rol: 'Líder Comercial' }];
-        } else {
-          // Si no existe, dejamos solo el rol
-          encargados = [{ nombre: 'Asignar', rol: 'Líder Comercial' }];
-        }
+        // Fallback si no hay superusuarios
+        encargados = [{ nombre: 'Asignar', rol: 'Superusuario' }];
       }
     }
 

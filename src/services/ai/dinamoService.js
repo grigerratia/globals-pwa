@@ -39,7 +39,7 @@ const tools = [
             },
             nuevo_estado: {
               type: SchemaType.STRING,
-              description: 'El nuevo estado. Valores válidos: "En Conversación", "Levantamiento", "Presupuesto Enviado", "Aprobado", "Logística y compras", "Listo para instalación", "En instalación", "Entregado y cerrado", "En pausa/espera", "Cancelado", "Archivado".',
+              description: 'El nuevo estado. Valores exactos: "En Conversación", "Levantamiento", "En Diseño", "Presupuesto enviado", "Aprobado", "Logística y compras", "En fabricación", "Listo para instalación", "En instalación", "Entregado y cerrado", "En pausa/espera", "Cancelado", "Archivado". RESPETA LAS MAYÚSCULAS.',
             },
             motivo: {
               type: SchemaType.STRING,
@@ -76,7 +76,7 @@ const tools = [
             titulo: { type: SchemaType.STRING },
             cliente_nombre: { type: SchemaType.STRING },
             cliente_telefono: { type: SchemaType.STRING },
-            estado: { type: SchemaType.STRING, description: 'Por defecto usa Levantamiento si no se especifica' }
+            estado: { type: SchemaType.STRING, description: 'Por defecto usa "En Conversación" si no se especifica' }
           },
           required: ['titulo'],
         },
@@ -176,11 +176,17 @@ const executeTool = async (call) => {
 
 
     if (name === 'crear_proyecto') {
+      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').eq('rol', 'Superusuario');
+      const encargadosPorDefecto = superusers && superusers.length > 0 
+        ? superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }))
+        : [];
+        
       const nuevoProy = {
         titulo: args.titulo,
         cliente_nombre: args.cliente_nombre || '',
         cliente_telefono: args.cliente_telefono || '',
-        estado: args.estado || 'Levantamiento',
+        estado: args.estado || 'En Conversación',
+        encargados: encargadosPorDefecto,
         fecha_creacion: new Date().toISOString()
       };
       const { data, error } = await supabase.from('proyectos').insert(nuevoProy).select('id');
