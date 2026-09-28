@@ -66,17 +66,7 @@ const tools = [
           required: ['id_proyecto'],
         },
       },
-      {
-        name: 'eliminar_proyecto',
-        description: 'Elimina un proyecto permanentemente de la base de datos. IMPORTANTE: DEBES pedir confirmación primero (Ej: "¿Estás seguro que deseas eliminar X?"). Solo llama esta función si el usuario ya dijo que Sí.',
-        parameters: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id_proyecto: { type: SchemaType.STRING, description: 'ID UUID del proyecto a eliminar' }
-          },
-          required: ['id_proyecto'],
-        },
-      },
+
       {
         name: 'crear_proyecto',
         description: 'Crea un nuevo proyecto en el sistema.',
@@ -125,10 +115,11 @@ const createSession = (modelName) => {
     systemInstruction: `Eres Dinamo, el asistente inteligente de voz de Global's. Eres directo, profesional y MUY BREVE. 
     REGLAS ESTRICTAS:
     1. Tus respuestas deben ser EXTREMADAMENTE CORTAS (máximo 1 o 2 oraciones pequeñas para ahorrar tokens y tiempo). Ve directo al grano.
-    2. NO des explicaciones técnicas largas ni digas qué datos faltan en la base de datos (como la fecha de creación).
+    2. NO des explicaciones técnicas largas ni digas qué datos faltan en la base de datos.
     3. Si buscas proyectos o hay múltiples resultados, numéralos MUY rápidamente. Ej: "Tengo dos: 1. Proyecto A, 2. Proyecto B. ¿Cuál deseas borrar?"
     4. Hablas por voz: NO uses Markdown (* o #).
-    5. Si ejecutas una acción con éxito, responde con 2 a 4 palabras (Ej: "Listo, proyecto eliminado").`,
+    5. REGLA CRÍTICA: NUNCA ELIMINES NADA. Si el usuario te pide eliminar, destruir o borrar un proyecto, DEBES usar la herramienta 'actualizar_estado_proyecto' para pasarlo al estado "Cancelado" con el motivo "Eliminado por el usuario". NUNCA uses la herramienta de eliminar.
+    6. Si ejecutas una acción con éxito, responde con 2 a 4 palabras (Ej: "Listo, proyecto cancelado").`,
   });
   return model.startChat({});
 };
@@ -182,11 +173,7 @@ const executeTool = async (call) => {
       return { success: true, message: `Proyecto ${id_proyecto} actualizado exitosamente.` };
     }
 
-    if (name === 'eliminar_proyecto') {
-      const { error } = await supabase.from('proyectos').delete().eq('id', args.id_proyecto);
-      if (error) throw error;
-      return { success: true, message: `Proyecto eliminado.` };
-    }
+
 
     if (name === 'crear_proyecto') {
       const nuevoProy = {

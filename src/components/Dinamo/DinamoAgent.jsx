@@ -42,9 +42,32 @@ export default function DinamoAgent({ onClose }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'es-ES';
+    
+    // Intentar buscar una voz masculina
+    const voices = window.speechSynthesis.getVoices();
+    const maleVoice = voices.find(v => 
+      v.lang.startsWith('es') && 
+      (v.name.includes('Pablo') || v.name.includes('Jorge') || v.name.includes('Diego') || v.name.toLowerCase().includes('masculine') || v.name.toLowerCase().includes('male'))
+    );
+    
+    if (maleVoice) {
+      utterance.voice = maleVoice;
+    } else {
+      // Fallback a cualquier voz en español si no hay masculinas específicas
+      const esVoice = voices.find(v => v.lang.startsWith('es'));
+      if (esVoice) utterance.voice = esVoice;
+    }
+    
     utterance.rate = 1.1; // Un poco más rápido
     window.speechSynthesis.speak(utterance);
   };
+
+  // Asegurar que las voces carguen (en algunos navegadores es asíncrono)
+  useEffect(() => {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+  }, []);
 
   const handleManualSubmit = (e) => {
     if (e.key === 'Enter' && transcript.trim()) {
