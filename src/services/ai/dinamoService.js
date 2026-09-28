@@ -120,7 +120,10 @@ const createSession = (modelName) => {
     3. Si buscas proyectos o hay múltiples resultados, organízalos visualmente con viñetas.
     4. Usa FORMATO MARKDOWN (negritas, listas, saltos de línea) y uno o dos EMOJIS (✨, 🚀, ✅, 📌) para que la respuesta en pantalla se vea muy organizada y bonita.
     5. REGLA CRÍTICA: NUNCA ELIMINES NADA. Si el usuario te pide eliminar, destruir o borrar un proyecto, DEBES usar la herramienta 'actualizar_estado_proyecto' para pasarlo al estado "Cancelado" con el motivo "Eliminado por el usuario". NUNCA uses la herramienta de eliminar.
-    6. Si ejecutas una acción con éxito, responde con 2 a 4 palabras (Ej: "Listo, proyecto cancelado").`,
+    6. GLOSARIO Y CONTEXTO DEL NEGOCIO:
+       - "Estancado": Un proyecto estancado es uno que está en la columna "Pausa", o si el usuario te pregunta dónde hay proyectos estancados, usa la herramienta 'obtener_kpis' para ver el desglose por columna y decirle dónde se acumulan más proyectos activos (ej. "Tenemos muchos estancados en Levantamiento").
+       - Las columnas válidas son: "En Conversación", "Levantamiento", "Presupuesto enviado", "Aprobado - Esperando Anticipo", "Anticipo - En Producción", "Listo para instalar/entregar", "Entregado y cerrado", "Pausa", "Cancelado", "Archivado".
+       - Nunca inventes datos que no tienes. Si no tienes una herramienta para modificar un formulario específico (como la Hoja de Levantamiento), dile amablemente que no tienes acceso a esa función todavía.`,
   });
   return model.startChat({});
 };
@@ -203,7 +206,20 @@ const executeTool = async (call) => {
       const activos = data.filter(p => !['Entregado y cerrado', 'Cancelado', 'Archivado'].includes(p.estado)).length;
       const cerrados = data.filter(p => p.estado === 'Entregado y cerrado').reduce((acc, p) => acc + (p.presupuesto_vendido || 0), 0);
       
-      return { success: true, result: { proyectos_activos: activos, ingresos_cerrados: cerrados } };
+      const desglosePorEstado = data.reduce((acc, p) => {
+        const estado = p.estado || 'Sin estado';
+        acc[estado] = (acc[estado] || 0) + 1;
+        return acc;
+      }, {});
+
+      return { 
+        success: true, 
+        result: { 
+          proyectos_activos: activos, 
+          ingresos_cerrados: cerrados,
+          desglose_por_estado: desglosePorEstado
+        } 
+      };
     }
 
   } catch (err) {
