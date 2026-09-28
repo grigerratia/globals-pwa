@@ -147,7 +147,8 @@ const createSession = (modelName) => {
     6. GLOSARIO Y CONTEXTO DEL NEGOCIO:
        - "Estancado": Un proyecto estancado es uno que está en la columna "Pausa", o si el usuario te pregunta dónde hay proyectos estancados, usa la herramienta 'obtener_kpis' para ver el desglose por columna y decirle dónde se acumulan más proyectos activos (ej. "Tenemos muchos estancados en Levantamiento").
        - Las columnas válidas son: "En Conversación", "Levantamiento", "Presupuesto enviado", "Aprobado - Esperando Anticipo", "Anticipo - En Producción", "Listo para instalar/entregar", "Entregado y cerrado", "Pausa", "Cancelado", "Archivado".
-       - Nunca inventes datos que no tienes. Si no tienes una herramienta para modificar un formulario específico (como la Hoja de Levantamiento), dile amablemente que no tienes acceso a esa función todavía.`,
+       - Nunca inventes datos que no tienes. Si no tienes una herramienta para modificar un formulario específico (como la Hoja de Levantamiento), dile amablemente que no tienes acceso a esa función todavía.
+    7. PARA ASIGNAR USUARIOS: Si te piden que alguien (ej. Idalys, Griger) sea encargado de un proyecto, USA ÚNICAMENTE la herramienta 'asignar_encargado'. NUNCA lo escribas en el campo notas de 'modificar_proyecto'.`,
   });
   return model.startChat({});
 };
@@ -227,13 +228,24 @@ const executeTool = async (call) => {
       const { data: pData, error: pError } = await supabase.from('proyectos').select('encargados').eq('id', args.id_proyecto).single();
       if (pError) throw pError;
       
-      const { data: uData, error: uError } = await supabase.from('usuarios').select('id, nombre, rol').ilike('nombre', `%${args.nombre_usuario}%`).limit(1);
-      if (uError) throw uError;
-      if (!uData || uData.length === 0) {
-        return { success: false, error: `No se encontró un usuario con el nombre ${args.nombre_usuario}.` };
+      // Intentar buscar el usuario usando la función RPC (empleados) primero, luego tabla usuarios
+      let targetUser = null;
+      
+      const { data: empleadosData, error: empError } = await supabase.rpc('get_empleados');
+      if (!empError && empleadosData) {
+        targetUser = empleadosData.find(e => e.nombre && e.nombre.toLowerCase().includes(args.nombre_usuario.toLowerCase()));
+      }
+
+      if (!targetUser) {
+        const { data: uData } = await supabase.from('usuarios').select('id, nombre, rol').ilike('nombre', `%${args.nombre_usuario}%`).limit(1);
+        if (uData && uData.length > 0) targetUser = uData[0];
+      }
+
+      if (!targetUser) {
+        return { success: false, error: `No se encontró un usuario/empleado con el nombre ${args.nombre_usuario}.` };
       }
       
-      const newEncargado = { id: uData[0].id, nombre: uData[0].nombre, rol: uData[0].rol };
+      const newEncargado = { id: targetUser.id, nombre: targetUser.nombre, rol: targetUser.rol || 'Asignado' };
       let encargados = pData.encargados || [];
       if (!encargados.find(e => e.id === newEncargado.id || e.user_id === newEncargado.id)) {
         encargados.push(newEncargado);
