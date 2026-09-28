@@ -177,7 +177,7 @@ const executeTool = async (call) => {
 
 
     if (name === 'crear_proyecto') {
-      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').eq('rol', 'Superusuario');
+      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').in('rol', ['Líder Comercial', 'Líder de Operaciones']);
       const encargadosPorDefecto = superusers && superusers.length > 0 
         ? superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }))
         : [];

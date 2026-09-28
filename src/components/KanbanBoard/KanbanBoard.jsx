@@ -221,13 +221,13 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
     let encargados = nuevoProyectoData.encargados;
     if (!encargados || encargados.length === 0) {
-      // Buscar todos los superusuarios para asignarlos por defecto a los nuevos proyectos
-      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').eq('rol', 'Superusuario');
+      // Buscar a los líderes (comercial y operaciones) para asignarlos por defecto
+      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').in('rol', ['Líder Comercial', 'Líder de Operaciones']);
       if (superusers && superusers.length > 0) {
         encargados = superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }));
       } else {
-        // Fallback si no hay superusuarios
-        encargados = [{ nombre: 'Asignar', rol: 'Superusuario' }];
+        // Fallback si no hay líderes
+        encargados = [];
       }
     }
 
