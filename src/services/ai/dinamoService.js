@@ -109,11 +109,11 @@ const tools = [
   },
 ];
 
-// Modelos disponibles (Diferentes modelos tienen diferentes "baldes" de cuota gratuita)
+// Modelos disponibles (Listado actualizado para 2026 según tu entorno)
 const modelosDisponibles = [
-  'gemini-3.5-flash',       // Principal
-  'gemini-1.5-flash',       // Respaldo 1 (Tiene su propia cuota independiente)
-  'gemini-1.5-pro'          // Respaldo 2 (Modelo más pesado, pero con cuota limpia)
+  'gemini-3.5-flash',       // El único estable comprobado para herramientas
+  'gemini-3.5-flash-lite',  // Respaldo
+  'gemini-3.8-flash'        // Respaldo
 ];
 let currentModelIndex = 0;
 let chatSession = null;
@@ -273,17 +273,20 @@ export const sendDinamoMessage = async (textMessage) => {
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
       
-      // Si es el último modelo de nuestra lista de respaldos, lanzamos el error al usuario
+      // Si el error es 429, significa que superaste las 20 peticiones por minuto.
+      // Retornamos inmediatamente para que el usuario sepa que debe esperar, 
+      // en lugar de intentar modelos de respaldo que no soportan herramientas (ej. 3.8 o lite).
+      if (error.message.includes('429')) {
+        return "Has superado el límite de 20 peticiones por minuto de Google AI. Por favor, espera 60 segundos antes de darme otra orden.";
+      }
+      
+      // Si es el último modelo de nuestra lista de respaldos, lanzamos el error general
       if (i === modelosDisponibles.length - 1) {
-        if (error.message.includes('429')) {
-          return "Has vaciado la cuota gratuita de TODOS mis motores de IA. Por favor, descansa 1 minuto sin hacer peticiones para que Google me recargue la energía.";
-        }
         console.error("Todos los modelos de Dinamo fallaron.");
         return "Lo siento, mis sistemas están muy saturados. La tarea que me pediste era muy pesada. Inténtalo en un momento.";
       }
       
-      // Si no es el último modelo y falló (ej. por 429 cuota excedida), 
-      // el bucle 'for' continuará automáticamente y probará el siguiente modelo de la lista.
+      // Si no es 429 y no es el último modelo, continúa al siguiente.
     }
   }
 };
