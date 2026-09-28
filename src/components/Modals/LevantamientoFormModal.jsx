@@ -23,6 +23,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
 
   const [empleados, setEmpleados] = useState([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const getDaysDiff = (dateString) => {
     if (!dateString) return null;
@@ -67,13 +68,15 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
 
   const handleSave = async (conFechaLevantamiento = true) => {
     if (!formData.responsableGlobals || !formData.responsableMedidas || !formData.fechaEntrega) {
-      showError('Por favor completa Responsables y Fecha de Entrega.');
+      setErrorMsg('Por favor completa Responsables y Fecha de Entrega.');
+      setTimeout(() => setErrorMsg(''), 4000);
       return;
     }
 
     const daysDiff = getDaysDiff(formData.fechaEntrega);
     if (daysDiff !== null && daysDiff < 6) {
-      showError('No se permiten proyectos con un plazo menor a 6 días. Por favor, selecciona una fecha más lejana.');
+      setErrorMsg('No se permiten proyectos con un plazo menor a 6 días. Por favor, selecciona una fecha más lejana.');
+      setTimeout(() => setErrorMsg(''), 4000);
       return;
     }
     
@@ -201,6 +204,13 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
           <X size={24} />
         </button>
         
+        {errorMsg && (
+          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <AlertTriangle size={18} />
+            {errorMsg}
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', paddingRight: '2rem', marginBottom: '2rem' }}>
           <FileText size={32} style={{ color: '#3b82f6', marginTop: '0.2rem' }} />
           <div>
