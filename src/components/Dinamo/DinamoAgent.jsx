@@ -49,7 +49,9 @@ export default function DinamoAgent({ onClose }) {
   const handleManualSubmit = (e) => {
     if (e.key === 'Enter' && transcript.trim()) {
       stopListening();
-      handleProcessCommand(transcript);
+      const textToSend = transcript;
+      setTranscript('');
+      handleProcessCommand(textToSend);
     }
   };
 
@@ -94,7 +96,9 @@ export default function DinamoAgent({ onClose }) {
               disabled={processing || !transcript.trim()}
               onClick={() => {
                 stopListening();
-                handleProcessCommand(transcript);
+                const textToSend = transcript;
+                setTranscript('');
+                handleProcessCommand(textToSend);
               }}
             >
               <Sparkles size={18} />

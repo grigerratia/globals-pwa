@@ -225,25 +225,38 @@ export const sendDinamoMessage = async (textMessage) => {
         chatSession = createSession(modelosDisponibles[i]);
       }
       
-      const result = await chatSession.sendMessage(textMessage);
-      const call = result.response.functionCalls()?.[0];
+      let result = await chatSession.sendMessage(textMessage);
       
-      if (call) {
-        // 1. El LLM quiere ejecutar una función
-        const apiResponse = await executeTool(call);
+      // Bucle para manejar múltiples llamadas a herramientas (en paralelo o secuenciales)
+      while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
+        const calls = result.response.functionCalls();
+        const functionResponses = [];
         
-        // 2. Le devolvemos el resultado de la función al LLM
-        const followUpResult = await chatSession.sendMessage([{
-          functionResponse: {
-            name: call.name,
-            response: apiResponse
+        for (const call of calls) {
+          try {
+            const apiResponse = await executeTool(call);
+            functionResponses.push({
+              functionResponse: {
+                name: call.name,
+                response: apiResponse
+              }
+            });
+          } catch (toolErr) {
+            console.error(`Error ejecutando herramienta ${call.name}:`, toolErr);
+            functionResponses.push({
+              functionResponse: {
+                name: call.name,
+                response: { success: false, error: toolErr.message || 'Error desconocido' }
+              }
+            });
           }
-        }]);
+        }
         
-        return followUpResult.response.text();
+        // Enviar todas las respuestas de las herramientas de vuelta al LLM
+        result = await chatSession.sendMessage(functionResponses);
       }
       
-      // Si no hubo llamada a función, es una respuesta normal
+      // Una vez resueltas todas las funciones, devolver el texto
       return result.response.text();
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
