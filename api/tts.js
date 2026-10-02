@@ -7,7 +7,6 @@ export default async function handler(req) {
     return new Response('Method not allowed', { status: 405 });
   }
 
-  // Ahora usamos la llave de Gemini
   const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
@@ -17,9 +16,14 @@ export default async function handler(req) {
   try {
     const { input } = await req.json();
     
+    // Gemini 3.8 Flash TTS usa "Voice Design" mediante prompts.
+    // Le instruimos explícitamente que use voz de hombre antes del texto.
     const reqBody = {
+      systemInstruction: {
+        parts: [{ text: "You are a male voice actor. Speak with a natural, professional male voice in Spanish." }]
+      },
       contents: [{
-        parts: [{ text: input }]
+        parts: [{ text: `(Voz de hombre adulto, tono seguro y amigable): ${input}` }]
       }]
     };
 
@@ -45,7 +49,6 @@ export default async function handler(req) {
        return new Response(JSON.stringify({ error: { message: "Gemini no devolvió audio" } }), { status: 500 });
     }
     
-    // Decodificar Base64 a binario (compatible con Edge)
     const binaryData = Uint8Array.from(atob(inlineData.data), c => c.charCodeAt(0));
     
     return new Response(binaryData, {
