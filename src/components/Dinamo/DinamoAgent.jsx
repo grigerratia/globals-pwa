@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic, X, Loader2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import styles from './DinamoAgent.module.scss';
@@ -12,37 +12,8 @@ export default function DinamoAgent({ onClose }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef(null);
 
-  const handleProcessCommand = async (text) => {
-    setProcessing(true);
-    setAiResponse('');
-    
-    try {
-      const responseText = await sendDinamoMessage(text);
-      setAiResponse(responseText);
-      speak(responseText);
-    } catch (err) {
-      const errMsg = 'Error de conexión con Dinamo.';
-      setAiResponse(errMsg);
-      speak(errMsg);
-    }
-    
-    setProcessing(false);
-  };
-
-  const { isListening, transcript, error, startListening, stopListening, setTranscript } = useVoiceRecognition((finalText) => {
-    handleProcessCommand(finalText);
-  });
-
-  // Escuchar tan pronto como se abre el modal
-  useEffect(() => {
-    startListening();
-    return () => {
-      stopListening();
-      window.speechSynthesis.cancel();
-      if (audioRef.current) audioRef.current.pause();
-    };
-  }, [startListening, stopListening]);
-
+  
+  
   async function speak(text) {
     window.speechSynthesis.cancel();
     if (audioRef.current) audioRef.current.pause();
@@ -123,6 +94,39 @@ export default function DinamoAgent({ onClose }) {
     
     window.speechSynthesis.speak(utterance);
   };
+
+  const handleProcessCommand = async (text) => {
+    setProcessing(true);
+    setAiResponse('');
+    
+    try {
+      const responseText = await sendDinamoMessage(text);
+      setAiResponse(responseText);
+      speak(responseText);
+    } catch (err) {
+      console.error(err);
+      const errMsg = 'Error de conexión con Dinamo.';
+      setAiResponse(errMsg);
+      speak(errMsg);
+    }
+    
+    setProcessing(false);
+  };
+
+  const { isListening, transcript, error, startListening, stopListening, setTranscript } = useVoiceRecognition((finalText) => {
+    handleProcessCommand(finalText);
+  });
+
+  // Escuchar tan pronto como se abre el modal
+  useEffect(() => {
+    startListening();
+    return () => {
+      stopListening();
+      window.speechSynthesis.cancel();
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, [startListening, stopListening]);
+
 
   // Asegurar que las voces carguen (en algunos navegadores es asíncrono)
   useEffect(() => {
