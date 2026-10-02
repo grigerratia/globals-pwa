@@ -56,22 +56,19 @@ export default function DinamoAgent({ onClose }) {
 
     if (!cleanText) return;
 
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (apiKey) {
-      try {
-        setIsSpeaking(true);
-        const response = await fetch('https://api.openai.com/v1/audio/speech', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'tts-1',
-            input: cleanText,
-            voice: 'echo', // Voz masculina
-          })
-        });
+    try {
+      setIsSpeaking(true);
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: cleanText,
+          voice: 'echo',
+        })
+      });
         
         if (response.ok) {
           const blob = await response.blob();
@@ -89,7 +86,6 @@ export default function DinamoAgent({ onClose }) {
       } catch (err) {
         console.error("Error con OpenAI TTS, usando voz del navegador", err);
       }
-    }
 
     // Fallback a la voz del navegador
     const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -193,16 +189,19 @@ export default function DinamoAgent({ onClose }) {
               disabled={processing}
             />
             <button 
-              className={styles.btnSendText}
-              disabled={processing || !transcript.trim()}
+              className={`${styles.btnSendText} ${isListening ? styles.btnSendListening : ''}`}
+              disabled={processing || (!isListening && !transcript.trim())}
               onClick={() => {
-                stopListening();
-                const textToSend = transcript;
-                setTranscript('');
-                handleProcessCommand(textToSend);
+                if (isListening) {
+                  stopListening();
+                } else {
+                  const textToSend = transcript;
+                  setTranscript('');
+                  handleProcessCommand(textToSend);
+                }
               }}
             >
-              <Sparkles size={18} />
+              {isListening ? <Loader2 size={18} className={styles.spin} /> : <Sparkles size={18} />}
             </button>
           </div>
 
@@ -242,9 +241,11 @@ export default function DinamoAgent({ onClose }) {
             </button>
           )}
           {isListening && (
-            <button className={`${styles.btnListen} ${styles.btnStop}`} onClick={stopListening}>
-              <Mic size={24} /> Enviar (Detener)
-            </button>
+            <div className={styles.listeningAnimation}>
+              <div className={styles.wave}></div>
+              <div className={styles.wave}></div>
+              <div className={styles.wave}></div>
+            </div>
           )}
         </div>
       </div>

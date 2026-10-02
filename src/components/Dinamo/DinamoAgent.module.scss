@@ -132,6 +132,15 @@
       &:hover:not(:disabled) {
         background: #7c3aed;
       }
+
+      &.btnSendListening {
+        background: #dc2626;
+        animation: pulse-red 1.5s infinite;
+
+        &:hover:not(:disabled) {
+          background: #b91c1c;
+        }
+      }
     }
   }
 
