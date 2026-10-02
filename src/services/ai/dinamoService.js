@@ -126,9 +126,9 @@ const tools = [
 
 // Modelos disponibles (Listado actualizado para 2026 según tu entorno)
 const modelosDisponibles = [
-  'gemini-3.8-flash',       // Principal (Cuota nueva)
-  'gemini-3.5-flash-lite',  // Respaldo 1
-  'gemini-3.5-flash'        // Respaldo 2 (Agotado por hoy en pruebas intensivas)
+  'gemini-3.5-flash-lite',  // Principal (El más rápido)
+  'gemini-3.5-flash',       // Respaldo 1
+  'gemini-3.8-flash'        // Respaldo 2 (El más pesado)
 ];
 let currentModelIndex = 0;
 let chatSession = null;
@@ -297,19 +297,31 @@ const executeTool = async (call) => {
 };
 
 export const sendDinamoMessage = async (textMessage) => {
+  let herramientasCompletadasTexto = "";
+
   for (let i = currentModelIndex; i < modelosDisponibles.length; i++) {
     try {
+      let currentPrompt = textMessage;
+      
       if (!chatSession || currentModelIndex !== i) {
         currentModelIndex = i;
         chatSession = createSession(modelosDisponibles[i]);
+        
+        // Memoria de Transacción: Si nos caímos y pasamos a este modelo, 
+        // le informamos todo lo que ya hicimos para que NO lo repita.
+        if (herramientasCompletadasTexto !== "") {
+          currentPrompt = `${textMessage}
+
+[MEMORIA DE TRANSACCIÓN: Debido a un fallo de conexión, estoy retomando esta tarea. YA HE EJECUTADO con éxito las siguientes herramientas. NO las repitas bajo ninguna circunstancia. Solo haz las que falten o respóndele al usuario con los resultados]:
+${herramientasCompletadasTexto}`;
+        }
       }
       
-      let result = await chatSession.sendMessage(textMessage);
+      let result = await chatSession.sendMessage(currentPrompt);
       
       let loopCount = 0;
-      const MAX_LOOPS = 4; // Cortafuegos: máximo 4 iteraciones de herramientas para evitar loops infinitos
+      const MAX_LOOPS = 4;
       
-      // Bucle para manejar múltiples llamadas a herramientas (en paralelo o secuenciales)
       while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
         loopCount++;
         if (loopCount > MAX_LOOPS) {
@@ -318,42 +330,44 @@ export const sendDinamoMessage = async (textMessage) => {
         }
         
         const calls = result.response.functionCalls();
-        let toolResponsesText = "Resultados del sistema (Herramientas ejecutadas):\n";
+        let toolResponsesText = "Resultados del sistema (Herramientas ejecutadas):
+";
         
         for (const call of calls) {
           try {
             const apiResponse = await executeTool(call);
-            toolResponsesText += `- Herramienta '${call.name}': ${JSON.stringify(apiResponse)}\n`;
+            const apiResponseStr = JSON.stringify(apiResponse);
+            toolResponsesText += `- Herramienta '${call.name}': ${apiResponseStr}\n`;
+            
+            // Guardamos en la memoria por si el LLM se cae al procesar estos resultados
+            herramientasCompletadasTexto += `- TAREA COMPLETADA: '${call.name}' (Argumentos: ${JSON.stringify(call.args)}). Resultado exitoso.\n`;
           } catch (toolErr) {
             console.error(`Error ejecutando herramienta ${call.name}:`, toolErr);
             toolResponsesText += `- Herramienta '${call.name}': ERROR: ${toolErr.message || 'Desconocido'}\n`;
           }
         }
         
-        // Pausa breve para evitar error 429 por límite de tasa de la API de Gemini
         await new Promise(r => setTimeout(r, 600));
         
-        // Enviar todas las respuestas como texto del USUARIO.
-        // Esto evita el error "400 Role 'function' is not supported" en los modelos 3.8 y lite.
+        // Si aquí se rompe por 429, el catch lo atrapará y el próximo modelo sabrá lo que se hizo.
+        currentPrompt = toolResponsesText; 
         result = await chatSession.sendMessage(toolResponsesText);
       }
       
-      // Una vez resueltas todas las funciones, devolver el texto
       return result.response.text();
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
       
-      // Si es el último modelo de la lista y falló
       if (i === modelosDisponibles.length - 1) {
         if (error.message.includes('429')) {
-          return "Atención: Has agotado tu cuota de peticiones gratuitas en TODOS mis motores (3.8, 3.5 y Lite). Debemos esperar a que Google recargue los servidores.";
+          return "Atención: Has agotado tu cuota de peticiones gratuitas en TODOS mis motores (Lite, 3.5 y 3.8). Debemos esperar a que Google recargue los servidores.";
         }
         console.error("Todos los modelos de Dinamo fallaron.");
         return "Lo siento, mis sistemas están muy saturados. La tarea que me pediste era muy pesada. Inténtalo en un momento.";
       }
       
-      // Si falla (por 429 o cualquier otra cosa) y no es el último, 
-      // el bucle pasa silenciosamente al siguiente modelo.
+      // Si llegamos aquí, el for loop incrementará 'i' y la Memoria de Transacción
+      // inyectará 'herramientasCompletadasTexto' en el nuevo session.
     }
   }
 };
