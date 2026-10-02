@@ -320,13 +320,15 @@ ${herramientasCompletadasTexto}`;
       let result = await chatSession.sendMessage(currentPrompt);
       
       let loopCount = 0;
-      const MAX_LOOPS = 4;
+      const MAX_LOOPS = 8; // Aumentado para tolerar modelos Lite secuenciales
       
       while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
         loopCount++;
         if (loopCount > MAX_LOOPS) {
           console.warn("[Dinamo] Cortafuegos activado: demasiadas llamadas recursivas.");
-          return "Me detuve por seguridad porque la tarea requería demasiados pasos automáticos. Por favor, verifica qué cambios se hicieron e indícame si sigo.";
+          // En lugar de arrojar un error robótico, le damos la orden al agente de que resuma lo que logró hacer y se despida.
+          result = await chatSession.sendMessage("Has excedido el límite de pasos operativos permitidos en esta transacción. Detente de inmediato, NO LLAMES a más herramientas, y hazle un resumen amable al usuario de lo que sí lograste procesar exitosamente.");
+          break; // Salimos del bucle para devolver la respuesta del modelo
         }
         
         const calls = result.response.functionCalls();
