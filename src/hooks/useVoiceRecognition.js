@@ -42,7 +42,7 @@ export function useVoiceRecognition(onVoiceEnd) {
 
         const formData = new FormData();
         formData.append('file', audioBlob, 'audio.webm');
-        formData.append('model', 'whisper-1');
+        formData.append('model', 'whisper-large-v3');
         formData.append('language', 'es'); // Fuerza a español
 
         try {
