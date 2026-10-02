@@ -53,9 +53,12 @@ export default function DinamoAgent({ onClose }) {
           audio.onerror = () => setIsSpeaking(false);
           audio.play();
           return;
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          console.error("Error Gemini TTS:", errData);
         }
       } catch (err) {
-        console.error("Error con OpenAI TTS, usando voz del navegador", err);
+        console.error("Error con API de Voz, usando voz del navegador", err);
       }
 
     // Fallback a la voz del navegador
