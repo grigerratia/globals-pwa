@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { appLogs, subscribeToLogs } from '../utils/logger';
+import { appLogs, subscribeToLogs, clearLogs } from '../utils/logger';
 import { X, Bug, Trash2 } from 'lucide-react';
 
 export default function DebugConsole({ onClose }) {
@@ -26,7 +26,7 @@ export default function DebugConsole({ onClose }) {
             <Bug size={20} color="#ef4444" /> Consola de Depuración (Errores)
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={() => { appLogs.length = 0; setLogs([]); }} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }} title="Limpiar"><Trash2 size={20} /></button>
+            <button onClick={clearLogs} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }} title="Limpiar"><Trash2 size={20} /></button>
             <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={24} /></button>
           </div>
         </div>

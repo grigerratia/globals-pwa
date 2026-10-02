@@ -1,4 +1,7 @@
-export const appLogs = [];
+import { supabase } from '../supabase';
+
+const LOCAL_KEY = 'dinamo_app_errors';
+export let appLogs = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]');
 const listeners = new Set();
 
 export const subscribeToLogs = (fn) => {
@@ -8,6 +11,20 @@ export const subscribeToLogs = (fn) => {
 
 const notify = () => {
   listeners.forEach((fn) => fn());
+};
+
+const saveToDB = async (type, msg) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('audit_logs').insert([{
+        usuario_id: session.user.id,
+        usuario_nombre: session.user.user_metadata?.nombre || session.user.email,
+        accion: `ERROR_${type}`,
+        detalles: { message: msg }
+      }]);
+    }
+  } catch (e) {}
 };
 
 const addLog = (type, ...args) => {
@@ -20,7 +37,16 @@ const addLog = (type, ...args) => {
   }).join(' ');
   
   appLogs.unshift({ timestamp: new Date().toISOString(), type, message: msg });
-  if (appLogs.length > 50) appLogs.pop();
+  if (appLogs.length > 100) appLogs.pop();
+  
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(appLogs));
+  notify();
+  saveToDB(type, msg);
+};
+
+export const clearLogs = () => {
+  appLogs = [];
+  localStorage.removeItem(LOCAL_KEY);
   notify();
 };
 
@@ -37,9 +63,9 @@ console.warn = (...args) => {
 };
 
 window.addEventListener('error', (e) => {
-  addLog('WINDOW_ERROR', e.message, e.error);
+  addLog('WINDOW', e.message, e.error);
 });
 
 window.addEventListener('unhandledrejection', (e) => {
-  addLog('PROMISE_REJECTION', e.reason);
+  addLog('PROMISE', e.reason);
 });

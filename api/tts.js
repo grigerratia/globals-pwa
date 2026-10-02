@@ -16,14 +16,11 @@ export default async function handler(req) {
   try {
     const { input } = await req.json();
     
-    // Gemini 3.8 Flash TTS usa "Voice Design" mediante prompts.
-    // Le instruimos explícitamente que use voz de hombre antes del texto.
+    // El modelo gemini-3.8-flash-tts no soporta "systemInstruction".
+    // Enviamos el diseño de voz (Voice Design) directamente como parte del texto de entrada.
     const reqBody = {
-      systemInstruction: {
-        parts: [{ text: "You are a male voice actor. Speak with a natural, professional male voice in Spanish." }]
-      },
       contents: [{
-        parts: [{ text: `(Voz de hombre adulto, tono seguro y amigable): ${input}` }]
+        parts: [{ text: `(Voz de hombre adulto profesional, tono seguro y amable): ${input}` }]
       }]
     };
 
