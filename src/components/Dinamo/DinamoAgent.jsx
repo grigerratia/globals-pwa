@@ -10,6 +10,7 @@ export default function DinamoAgent({ onClose }) {
   const [aiResponse, setAiResponse] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioRef = useRef(null);
 
   const handleProcessCommand = async (text) => {
     setProcessing(true);
@@ -37,12 +38,14 @@ export default function DinamoAgent({ onClose }) {
     startListening();
     return () => {
       stopListening();
-      window.speechSynthesis.cancel(); // Parar de hablar al cerrar
+      window.speechSynthesis.cancel();
+      if (audioRef.current) audioRef.current.pause();
     };
   }, [startListening, stopListening]);
 
-  const speak = (text) => {
+  async function speak(text) {
     window.speechSynthesis.cancel();
+    if (audioRef.current) audioRef.current.pause();
     if (isMuted) return;
     
     // Limpiar Markdown y Emojis para que la voz no los lea ("asterisco asterisco")
@@ -51,6 +54,44 @@ export default function DinamoAgent({ onClose }) {
       .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
       .trim();
 
+    if (!cleanText) return;
+
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (apiKey) {
+      try {
+        setIsSpeaking(true);
+        const response = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            input: cleanText,
+            voice: 'echo', // Voz masculina
+          })
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          audio.onended = () => {
+            setIsSpeaking(false);
+            URL.revokeObjectURL(url);
+          };
+          audio.onerror = () => setIsSpeaking(false);
+          audio.play();
+          return;
+        }
+      } catch (err) {
+        console.error("Error con OpenAI TTS, usando voz del navegador", err);
+      }
+    }
+
+    // Fallback a la voz del navegador
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'es-ES';
     
@@ -106,6 +147,10 @@ export default function DinamoAgent({ onClose }) {
   const toggleMute = () => {
     if (!isMuted) {
       window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       setIsSpeaking(false);
     }
     setIsMuted(!isMuted);
@@ -193,15 +238,13 @@ export default function DinamoAgent({ onClose }) {
         <div className={styles.controls}>
           {!isListening && !processing && (
             <button className={styles.btnListen} onClick={resetAndListenAgain}>
-              <Mic size={24} /> Hablar de nuevo
+              <Mic size={24} /> Hablar
             </button>
           )}
           {isListening && (
-            <div className={styles.listeningAnimation}>
-              <div className={styles.wave}></div>
-              <div className={styles.wave}></div>
-              <div className={styles.wave}></div>
-            </div>
+            <button className={`${styles.btnListen} ${styles.btnStop}`} onClick={stopListening}>
+              <Mic size={24} /> Enviar (Detener)
+            </button>
           )}
         </div>
       </div>

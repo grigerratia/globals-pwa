@@ -191,7 +191,22 @@
     &:hover {
       background: #475569;
     }
+
+    &.btnStop {
+      background: #dc2626;
+      animation: pulse-red 1.5s infinite;
+
+      &:hover {
+        background: #b91c1c;
+      }
+    }
   }
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
 
 .listeningAnimation {

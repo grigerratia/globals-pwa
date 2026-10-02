@@ -5,79 +5,89 @@ export function useVoiceRecognition(onVoiceEnd) {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState(null);
   
-  const recognitionRef = useRef(null);
-  const manualStopRef = useRef(false);
-  const transcriptRef = useRef(''); // Mantiene el valor actualizado para el onend
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const onVoiceEndRef = useRef(onVoiceEnd);
 
-  // Mantener la referencia fresca sin causar re-renders
   useEffect(() => {
     onVoiceEndRef.current = onVoiceEnd;
   }, [onVoiceEnd]);
 
-  useEffect(() => {
-    transcriptRef.current = transcript;
-  }, [transcript]);
+  const startListening = useCallback(async () => {
+    setError(null);
+    setTranscript('');
+    audioChunksRef.current = [];
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'es-ES'; // Castellano
-      } else {
-        setError('El reconocimiento de voz no es compatible con este navegador.');
-      }
+      mediaRecorder.onstop = async () => {
+        setIsListening(false);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // Detener las pistas de audio para apagar la lucecita del micro
+        stream.getTracks().forEach(track => track.stop());
+
+        if (audioChunksRef.current.length === 0) return;
+
+        setTranscript('Procesando audio (Whisper)...');
+
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+        if (!apiKey) {
+          setError('Falta VITE_OPENAI_API_KEY en .env');
+          setTranscript('');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.webm');
+        formData.append('model', 'whisper-1');
+        formData.append('language', 'es'); // Fuerza a español
+
+        try {
+          const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+            },
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error(`Whisper API error: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          const finalTranscript = data.text;
+          setTranscript(finalTranscript);
+          
+          if (finalTranscript.trim() && onVoiceEndRef.current) {
+            onVoiceEndRef.current(finalTranscript);
+          }
+        } catch (err) {
+          setError(`Error transcribiendo: ${err.message}`);
+          setTranscript('');
+        }
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (err) {
+      setError(`No se pudo acceder al micrófono: ${err.message}`);
     }
   }, []);
 
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-    setError(null);
-    setTranscript('');
-    setIsListening(true);
-    manualStopRef.current = false;
-    
-    try {
-      recognitionRef.current.start();
-    } catch (e) {
-      console.warn("Speech recognition already started", e);
-    }
-    
-    recognitionRef.current.onresult = (event) => {
-      const current = event.resultIndex;
-      const t = event.results[current][0].transcript;
-      setTranscript(t);
-    };
-
-    recognitionRef.current.onerror = (event) => {
-      // Ignorar el error "no-speech" para que no bloquee la UI de forma molesta
-      if (event.error !== 'no-speech') {
-        setError(`Error: ${event.error}`);
-      }
-      setIsListening(false);
-    };
-
-    recognitionRef.current.onend = () => {
-      setIsListening(false);
-      // Si el micro se apagó solo (no manualmente) y hay texto, enviar
-      if (!manualStopRef.current && transcriptRef.current.trim() && onVoiceEndRef.current) {
-        onVoiceEndRef.current(transcriptRef.current);
-      }
-    };
-  }, []); // Sin dependencias para que nunca cambie
-
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      manualStopRef.current = true;
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {
-        // ignorar
-      }
-      setIsListening(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
     }
   }, []);
 
