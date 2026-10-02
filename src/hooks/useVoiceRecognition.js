@@ -52,7 +52,8 @@ export function useVoiceRecognition(onVoiceEnd) {
           });
 
           if (!response.ok) {
-            throw new Error(`Whisper API error: ${response.statusText}`);
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error?.message || `Error ${response.status}: ${response.statusText}`);
           }
 
           const data = await response.json();

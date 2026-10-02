@@ -10,14 +10,14 @@ export default async function handler(req) {
   const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
   
   try {
-    const body = await req.json();
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: req.body,
+      duplex: 'half'
     });
     
     return new Response(response.body, {
@@ -27,6 +27,6 @@ export default async function handler(req) {
       }
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: { message: error.message } }), { status: 500 });
   }
 }

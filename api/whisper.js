@@ -10,14 +10,16 @@ export default async function handler(req) {
   const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
   
   try {
-    const formData = await req.formData();
-    
+    // Para evitar problemas de reconstrucción de FormData en el servidor,
+    // pasamos el body y el Content-Type original (con el boundary) directo a OpenAI.
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': req.headers.get('content-type'),
       },
-      body: formData
+      body: req.body,
+      duplex: 'half' // Requerido en fetch de Node/Edge para streams
     });
     
     const data = await response.json();
@@ -26,6 +28,6 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: { message: error.message } }), { status: 500 });
   }
 }
