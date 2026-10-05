@@ -125,7 +125,7 @@ export default function DinamoAgent({ onClose }) {
   useEffect(() => {
     startListening();
     return () => {
-      stopListening();
+      stopListening(true);
       window.speechSynthesis.cancel();
       if (audioRef.current) audioRef.current.pause();
     };
@@ -141,7 +141,7 @@ export default function DinamoAgent({ onClose }) {
 
   const handleManualSubmit = (e) => {
     if (e.key === 'Enter' && transcript.trim()) {
-      stopListening();
+      stopListening(true);
       const textToSend = transcript;
       setTranscript('');
       handleProcessCommand(textToSend);
@@ -189,7 +189,7 @@ export default function DinamoAgent({ onClose }) {
               type="text" 
               value={transcript}
               onChange={(e) => {
-                if (isListening) stopListening(); // Si escribe, apagar micrófono
+                if (isListening) stopListening(true); // Si escribe, apagar micrófono
                 setTranscript(e.target.value);
               }}
               onKeyDown={handleManualSubmit}

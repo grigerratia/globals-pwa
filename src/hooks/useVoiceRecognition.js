@@ -8,6 +8,7 @@ export function useVoiceRecognition(onVoiceEnd) {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const onVoiceEndRef = useRef(onVoiceEnd);
+  const abortRef = useRef(false);
 
   useEffect(() => {
     onVoiceEndRef.current = onVoiceEnd;
@@ -17,6 +18,7 @@ export function useVoiceRecognition(onVoiceEnd) {
     setError(null);
     setTranscript('');
     audioChunksRef.current = [];
+    abortRef.current = false;
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -37,6 +39,11 @@ export function useVoiceRecognition(onVoiceEnd) {
         stream.getTracks().forEach(track => track.stop());
 
         if (audioChunksRef.current.length === 0) return;
+
+        if (abortRef.current) {
+          setTranscript('');
+          return;
+        }
 
         setTranscript('Procesando audio (Whisper)...');
 
@@ -76,7 +83,8 @@ export function useVoiceRecognition(onVoiceEnd) {
     }
   }, []);
 
-  const stopListening = useCallback(() => {
+  const stopListening = useCallback((abort = false) => {
+    abortRef.current = abort;
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
