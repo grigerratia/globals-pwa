@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { LogOut, Archive, Trash2, Activity } from 'lucide-react';
+import { LogOut, Archive, Trash2, Activity , MoreVertical} from 'lucide-react';
 // removed firebase import
 import { 
   DndContext, 
@@ -582,35 +582,62 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       <div className={styles.stickyHeader}>
       <TopHeader session={session} currentView="tablero" />
 
+      
       <div className={styles.toolbar}>
         <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
-        <div className={styles.desktopToolbarActions}>
-          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-          <button 
-            className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
-            onClick={() => setShowArchived(!showArchived)}
-          >
-            <Archive size={18} />
-            <span className={styles.hideOnMobile}>
-              {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
-            </span>
-          </button>
-          )}
-          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
-          <button 
-            className={styles.btnArchive}
-            style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
-            onClick={() => setShowCancelados(true)}
-          >
-            <Trash2 size={18} />
-            <span className={styles.hideOnMobile}>
-              Cancelados
-            </span>
-          </button>
-          )}
-        </div>
-      </div>
+        
+        {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+          <>
+            <div className={styles.desktopToolbarActions}>
+              <button 
+                className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+                onClick={() => setShowArchived(!showArchived)}
+              >
+                <Archive size={18} />
+                <span className={styles.hideOnMobile}>
+                  {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+                </span>
+              </button>
+              <button 
+                className={styles.btnArchive}
+                style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+                onClick={() => setShowCancelados(true)}
+              >
+                <Trash2 size={18} />
+                <span className={styles.hideOnMobile}>Cancelados</span>
+              </button>
+            </div>
 
+            <div className={styles.mobileToolbarActions}>
+              <button 
+                className={styles.btnMobileMenu}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                title="Menú de opciones"
+              >
+                <MoreVertical size={20} />
+              </button>
+              
+              {isMobileMenuOpen && (
+                <div className={styles.mobileToolbarDropdown}>
+                  <button 
+                    onClick={() => { setShowArchived(!showArchived); setIsMobileMenuOpen(false); }}
+                  >
+                    <Archive size={16} />
+                    {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+                  </button>
+                  <button 
+                    style={{ color: '#ef4444' }}
+                    onClick={() => { setShowCancelados(true); setIsMobileMenuOpen(false); }}
+                  >
+                    <Trash2 size={16} />
+                    Ver Cancelados
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
       </div>
       {boardError && (
         <div className={styles.boardError}>

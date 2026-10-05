@@ -3,6 +3,8 @@ import { Kanban, Activity, TrendingUp, CheckCircle, Briefcase, AlertCircle, Wren
 import { supabase } from '../../supabase';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
+import CanceladosModal from '../Modals/CanceladosModal';
+import { Archive, Trash2, MoreVertical } from 'lucide-react';
 import TopHeader from '../TopHeader/TopHeader';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
 
@@ -10,6 +12,9 @@ export default function ExecutiveDashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
   const [estados, setEstados] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
+  const [showCancelados, setShowCancelados] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [proyectoDetalleId, setProyectoDetalleId] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   
@@ -48,7 +53,8 @@ export default function ExecutiveDashboard({ session }) {
   if (cargando) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
+        <div className={styles.spinner}>  {showCancelados && <CanceladosModal onClose={() => setShowCancelados(false)} session={session} />}
+    </div>
         <p>Cargando vista ejecutiva...</p>
       </div>
     );
@@ -57,7 +63,7 @@ export default function ExecutiveDashboard({ session }) {
   const userRole = session?.user?.user_metadata?.rol;
   const isLiderComercial = userRole === 'Líder Comercial';
 
-  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Archivado' && !p.estado?.includes('Cancelado'));
+  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
   const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado');
   
   // FINANCIEROS - Corregido a presupuesto_vendido en lugar de precio_venta
@@ -82,12 +88,67 @@ export default function ExecutiveDashboard({ session }) {
   return (
     <div className={styles.executiveContainer}>
       <TopHeader session={session} currentView="ejecutivo" />
+      
       <header className={styles.header} style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className={styles.greeting}>
           <p style={{ margin: 0, fontWeight: 600, color: '#334155' }}>Resumen Ejecutivo</p>
         </div>
-        <div className={styles.searchSection}>
-          <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
+        <div className={styles.toolbar} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
+          </div>
+          
+          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+            <>
+              <div className={styles.desktopToolbarActions}>
+                <button 
+                  className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+                  onClick={() => setShowArchived(!showArchived)}
+                >
+                  <Archive size={18} />
+                  <span className={styles.hideOnMobile}>
+                    {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+                  </span>
+                </button>
+                <button 
+                  className={styles.btnArchive}
+                  style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+                  onClick={() => setShowCancelados(true)}
+                >
+                  <Trash2 size={18} />
+                  <span className={styles.hideOnMobile}>Cancelados</span>
+                </button>
+              </div>
+
+              <div className={styles.mobileToolbarActions}>
+                <button 
+                  className={styles.btnMobileMenu}
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  title="Menú de opciones"
+                >
+                  <MoreVertical size={20} />
+                </button>
+                
+                {isMobileMenuOpen && (
+                  <div className={styles.mobileToolbarDropdown}>
+                    <button 
+                      onClick={() => { setShowArchived(!showArchived); setIsMobileMenuOpen(false); }}
+                    >
+                      <Archive size={16} />
+                      {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+                    </button>
+                    <button 
+                      style={{ color: '#ef4444' }}
+                      onClick={() => { setShowCancelados(true); setIsMobileMenuOpen(false); }}
+                    >
+                      <Trash2 size={16} />
+                      Ver Cancelados
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </header>
 

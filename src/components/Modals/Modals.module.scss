@@ -164,7 +164,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 1rem;
   border-radius: 6px;
   transition: background 0.2s;
   
@@ -209,7 +209,7 @@
   margin-top: 1rem;
   input {
     flex: 1;
-    padding: 0.5rem;
+    padding: 1rem;
     border-radius: 6px;
     border: 1px solid #cbd5e1;
     background: #ffffff;
@@ -218,6 +218,6 @@
 
 @media (max-width: 600px) {
   .modal {
-    padding: 0.5rem !important;
+    padding: 1rem !important;
   }
 }

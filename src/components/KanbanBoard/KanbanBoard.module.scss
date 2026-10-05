@@ -207,7 +207,7 @@
     align-items: center;
     gap: 0.4rem;
     @media (max-width: 768px) {
-      padding: 0.5rem;
+      padding: 1rem;
     }
     border-radius: 8px;
     font-weight: 600;
@@ -477,7 +477,7 @@
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    padding: 0.5rem;
+    padding: 1rem;
     gap: 0.1rem;
     z-index: 1000;
     min-width: 220px;
@@ -535,5 +535,65 @@
   gap: 0.5rem;
   @media (max-width: 768px) {
     display: none !important;
+  }
+}
+
+.mobileToolbarActions {
+  display: none;
+  position: relative;
+  
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+.btnMobileMenu {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobileToolbarDropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  z-index: 100;
+  overflow: hidden;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    color: #334155;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: #f8fafc;
+    }
   }
 }
