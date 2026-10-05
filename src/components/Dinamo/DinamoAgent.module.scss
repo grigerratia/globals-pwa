@@ -1,6 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
+  padding: 1rem;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   z-index: 10000;
@@ -11,11 +12,11 @@
 }
 
 .modal {
-  background: #1e293b;
-  width: 90%;
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  width: calc(100% - 2rem);
   max-width: 450px;
   border-radius: 20px;
-  padding: 2rem;
+  padding: 1.25rem;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -48,16 +49,19 @@
   gap: 0.5rem;
 
   .avatar {
-    width: 64px;
-    height: 64px;
-    flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  object-fit: cover; /* if it's an image, wait, it's a div with background */
+
     border-radius: 50%;
     background: linear-gradient(135deg, #3b82f6, #8b5cf6);
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  aspect-ratio: 1/1;
+  box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
   }
 
   h3 {
@@ -162,9 +166,9 @@
   }
 
   .response {
-    background: rgba(139, 92, 246, 0.1);
-    border-left: 3px solid #8b5cf6;
-    padding: 1rem;
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 3px solid #3b82f6;
+  padding: 0.75rem 0.5rem;
     border-radius: 0 8px 8px 0;
     color: #f8fafc;
     display: flex;

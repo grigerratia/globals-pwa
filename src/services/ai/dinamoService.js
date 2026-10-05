@@ -45,7 +45,7 @@ const tools = [
       },
       {
         name: 'modificar_proyecto',
-        description: 'Modifica cualquier otro campo de un proyecto (título, cliente, fecha de entrega, presupuesto, etc). IMPORTANTE: Confirma con el usuario antes de hacer cambios destructivos.',
+        description: 'Modifica campos de un proyecto. IMPORTANTE: Si el usuario te pide agregar un teléfono, usa el parámetro cliente_telefono explícitamente, NUNCA lo metas en las notas a menos que lo pida.',
         parameters: {
           type: SchemaType.OBJECT,
           properties: {

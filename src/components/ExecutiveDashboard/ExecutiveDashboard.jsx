@@ -32,7 +32,7 @@ export default function ExecutiveDashboard({ session }) {
         .select('*')
         .neq('accion', 'Inició sesión')
         .order('created_at', { ascending: false })
-        .limit(15);
+        .limit(30);
       if (logs) {
         setAuditLogs(logs);
       }
@@ -216,7 +216,13 @@ export default function ExecutiveDashboard({ session }) {
                 <div key={log.id} className={styles.activityItem} onClick={() => projectId && setProyectoDetalleId(projectId)} style={{ cursor: projectId ? 'pointer' : 'default' }}>
                   <div className={styles.activityMain}>
                     <h4 style={{ fontSize: '0.95rem' }}>{log.accion}</h4>
-                    {title && <span className={styles.badge} style={{ opacity: 0.8 }}>{title}</span>}
+                    {log.detalles?.titulo && <span className={styles.badge} style={{ opacity: 0.8 }}>{log.detalles.titulo}</span>}
+                  </div>
+                  <div className={styles.activityDetails} style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    {log.accion === 'Movió proyecto de fase' && (
+                      <span>De <strong>{log.detalles?.origen || '...'}</strong> a <strong>{log.detalles?.nuevo_estado || '...'}</strong></span>
+                    )}
+                    {log.detalles?.motivo && <span> (Motivo: {log.detalles.motivo})</span>}
                   </div>
                   <div className={styles.activityMeta} style={{ marginTop: '0.25rem' }}>
                     <span>{new Date(log.created_at).toLocaleString()}</span>

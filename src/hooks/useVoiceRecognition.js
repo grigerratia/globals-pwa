@@ -41,7 +41,6 @@ export function useVoiceRecognition(onVoiceEnd) {
         if (audioChunksRef.current.length === 0) return;
 
         if (abortRef.current) {
-          setTranscript('');
           return;
         }
 
@@ -72,7 +71,7 @@ export function useVoiceRecognition(onVoiceEnd) {
           }
         } catch (err) {
           setError(`Error transcribiendo: ${err.message}`);
-          setTranscript('');
+          // setTranscript('');
         }
       };
 

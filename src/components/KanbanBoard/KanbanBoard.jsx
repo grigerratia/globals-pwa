@@ -458,7 +458,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       const destColumn = columnWhereLanded.estadoOriginal;
       const pry = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
       
-      const validation = validateProjectMove(pry, destColumn, estados, session);
+      const pryOriginal = { ...pry, estado: estadoOrigenReal };
+      const validation = validateProjectMove(pryOriginal, destColumn, estados, session);
       
       if (!validation.isValid) {
         showError(validation.error);
@@ -466,10 +467,52 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         return;
       }
       
-      const cambioDeFase = pry.estado !== destColumn;
-      if (requiresMotive && cambioDeFase) {
+      const cambioDeFase = estadoOrigenReal !== destColumn;
+
+      const executeMove = async (motive = null, nuevasNotas = null) => {
+        const colIndex = columnasRef.current.findIndex(c => c.estadoOriginal === destColumn);
+        if (colIndex === -1) return;
+        
+        const proyectosFinales = columnasRef.current[colIndex].proyectos.map((p, i) => {
+          let updated = { ...p, orden: i, estado: destColumn };
+          if (p.id === active.id && cambioDeFase) {
+            updated.dias = 0;
+            updated.fecha_ultima_actualizacion = new Date().toISOString();
+            if (motive) updated.motivo_cancelacion = motive;
+            if (nuevasNotas) updated.notas = nuevasNotas;
+          }
+          return updated;
+        });
+
+        setColumnas(prev => {
+          const nuevas = prev.map(c => ({ ...c, proyectos: [...c.proyectos] }));
+          nuevas[colIndex].proyectos = proyectosFinales;
+          return nuevas;
+        });
+
+        (async () => {
+          for (const p of proyectosFinales) {
+            const updateData = { orden: p.orden, estado: p.estado };
+            if (p.id === active.id && cambioDeFase) {
+              updateData.fecha_ultima_actualizacion = p.fecha_ultima_actualizacion;
+              if (motive) updateData.motivo_cancelacion = motive;
+              if (nuevasNotas) updateData.notas = nuevasNotas;
+
+              logAudit(session, 'Movió proyecto de fase', { 
+                proyecto_id: p.id, 
+                titulo: p.titulo, 
+                nuevo_estado: destColumn, 
+                origen: estadoOrigenReal, 
+                motivo: motive 
+              });
+            }
+            await supabase.from('proyectos').update(updateData).eq('id', p.id);
+          }
+        })();
+      };
+      if (validation.requiresMotive && cambioDeFase) {
         setMotivePrompt({
-           title: `Motivo de ${requiresMotive}`,
+           title: `Motivo de ${validation.requiresMotive}`,
            onConfirm: (motive) => {
              executeMove(motive);
              setMotivePrompt(null);
@@ -479,7 +522,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
              setMotivePrompt(null);
            }
         });
-      } else if (isRetroceso && cambioDeFase) {
+      } else if (validation.isRetroceso && cambioDeFase) {
         setMotivePrompt({
            title: 'Motivo de Retroceso',
            onConfirm: (motive) => {
@@ -493,7 +536,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
              setMotivePrompt(null);
            }
         });
-      } else if (requiresDias && cambioDeFase) {
+      } else if (validation.requiresDias && cambioDeFase) {
         setDiasEstimadosPrompt({
            columna: destColumn,
            error: null,
