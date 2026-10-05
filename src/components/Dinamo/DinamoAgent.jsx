@@ -23,6 +23,7 @@ export default function DinamoAgent({ onClose }) {
     const cleanText = text
       .replace(/[*_#]/g, '')
       .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
+      .replace(/\[WIDGET:[^\]]+\]/g, '')
       .trim();
 
     if (!cleanText) return;
@@ -218,27 +219,69 @@ export default function DinamoAgent({ onClose }) {
             </div>
           )}
 
-          {aiResponse && (
-            <div className={styles.response}>
-              <button 
-                onClick={toggleMute} 
-                className={styles.muteButton} 
-                title={isMuted ? "Activar voz" : "Silenciar voz"}
-              >
-                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              </button>
-              
-              <div className={styles.markdownResponse}>
-                <ReactMarkdown>{aiResponse}</ReactMarkdown>
-              </div>
-              
-              {!isMuted && isSpeaking && (
-                <div className={styles.soundWaves}>
-                  <span></span><span></span><span></span>
+          {aiResponse && (() => {
+            const hasConfirm = aiResponse.includes('[WIDGET:CONFIRM_CHECKBOXES]');
+            const hasDias = aiResponse.includes('[WIDGET:INPUT_DIAS]');
+            const hasMotivo = aiResponse.includes('[WIDGET:INPUT_MOTIVO]');
+            const cleanResponse = aiResponse.replace(/\[WIDGET:[^\]]+\]/g, '').trim();
+
+            return (
+              <div className={styles.response}>
+                <button 
+                  onClick={toggleMute} 
+                  className={styles.muteButton} 
+                  title={isMuted ? "Activar voz" : "Silenciar voz"}
+                >
+                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+                
+                <div style={{ flex: 1 }}>
+                  <div className={styles.markdownResponse}>
+                    <ReactMarkdown>{cleanResponse}</ReactMarkdown>
+                  </div>
+                  
+                  {(hasConfirm || hasDias || hasMotivo) && (
+                    <div className={styles.widgetContainer}>
+                      {hasConfirm && (
+                        <div className={styles.widgetButtons}>
+                          <button onClick={() => handleProcessCommand("Sí, confirmo y apruebo las casillas/hoja. Procede con el movimiento.")} className={styles.btnWidgetConfirm}>Sí, confirmar</button>
+                          <button onClick={() => handleProcessCommand("No, cancela la acción.")} className={styles.btnWidgetCancel}>No, cancelar</button>
+                        </div>
+                      )}
+                      {hasDias && (
+                        <div className={styles.widgetInputForm}>
+                          <input type="number" id="widget-dias" placeholder="Ingresa los días..." min="1" onKeyDown={(e) => {
+                            if (e.key === 'Enter' && e.target.value) handleProcessCommand(`Tomará aproximadamente ${e.target.value} días.`);
+                          }}/>
+                          <button onClick={() => {
+                            const val = document.getElementById('widget-dias').value;
+                            if(val) handleProcessCommand(`Tomará aproximadamente ${val} días.`);
+                          }}>Enviar Días</button>
+                        </div>
+                      )}
+                      {hasMotivo && (
+                        <div className={styles.widgetInputForm}>
+                          <input type="text" id="widget-motivo" placeholder="Escribe el motivo..." onKeyDown={(e) => {
+                            if (e.key === 'Enter' && e.target.value) handleProcessCommand(`El motivo es: ${e.target.value}`);
+                          }}/>
+                          <button onClick={() => {
+                            const val = document.getElementById('widget-motivo').value;
+                            if(val) handleProcessCommand(`El motivo es: ${val}`);
+                          }}>Enviar Motivo</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+
+                {!isMuted && isSpeaking && (
+                  <div className={styles.soundWaves}>
+                    <span></span><span></span><span></span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <div className={styles.controls}>

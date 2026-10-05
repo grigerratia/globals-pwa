@@ -303,3 +303,74 @@
   0%, 100% { transform: scaleY(0.4); }
   50% { transform: scaleY(1); }
 }
+
+.widgetContainer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.widgetButtons {
+  display: flex;
+  gap: 0.5rem;
+  
+  button {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .btnWidgetConfirm {
+    background: #10b981;
+    color: white;
+  }
+
+  .btnWidgetCancel {
+    background: #334155;
+    color: white;
+  }
+}
+
+.widgetInputForm {
+  display: flex;
+  gap: 0.5rem;
+  
+  input {
+    flex: 1;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid #334155;
+    color: #fff;
+    padding: 0.75rem;
+    border-radius: 8px;
+    outline: none;
+    
+    &:focus {
+      border-color: #8b5cf6;
+    }
+  }
+  
+  button {
+    background: #8b5cf6;
+    color: white;
+    border: none;
+    padding: 0 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    
+    &:hover {
+      background: #7c3aed;
+    }
+  }
+}

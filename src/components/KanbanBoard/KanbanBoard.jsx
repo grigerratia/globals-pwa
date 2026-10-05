@@ -11,6 +11,7 @@ import {
   useSensors,
   closestCorners 
 } from '@dnd-kit/core';
+import { validateProjectMove } from '../../utils/kanbanRules';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { BarChart2, Plus, X, QrCode, Menu, Calculator } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
@@ -365,195 +366,24 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
 
     if (type === 'Card') {
-      const proyecto = active.data.current?.proyecto;
-      setProyectoActivo(proyecto);
-      setEstadoOrigenReal(proyecto.estado);
-    }
-  };
-
-  const handleDragOver = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeType = active.data.current?.type;
-    if (activeType === 'Column') return; 
-
-    const activeId = active.id;
-    const overId = over.id;
-    if (activeId === overId) return;
-
-    const activeColumn = encontrarEstadoPorId(activeId);
-    const overColumn = encontrarEstadoPorId(overId);
-    if (!activeColumn || !overColumn) return;
-
-    if (activeColumn !== overColumn) {
-      setColumnas(prev => {
-        const nuevasColumnas = prev.map(c => ({ ...c, proyectos: [...c.proyectos] }));
-        const colOrigenIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
-        const colDestinoIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === overColumn);
-
-        const activeItems = nuevasColumnas[colOrigenIndex].proyectos;
-        const overItems = nuevasColumnas[colDestinoIndex].proyectos;
-
-        const activeIndex = activeItems.findIndex(p => p.id === activeId);
-        const overIndex = overItems.findIndex(p => p.id === overId);
-
-        const proyectoA_Mover = activeItems[activeIndex];
-
-
-        const proyectoMovido = { ...proyectoA_Mover, estado: overColumn };
-        activeItems.splice(activeIndex, 1);
-        
-        const isOverColumn = estados.includes(overId);
-        const nuevoIndice = isOverColumn ? overItems.length : (overIndex >= 0 ? overIndex : overItems.length);
-        overItems.splice(nuevoIndice, 0, proyectoMovido);
-
-        return nuevasColumnas;
-      });
-    }
-  };
-
-
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    setProyectoActivo(null);
-    setColumnaActiva(null);
-
-    if (!over) return;
-
-    const type = active.data.current?.type;
-
-    if (type === 'Column') {
-      if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
-        showError("Acceso denegado: Solo el Líder Comercial puede mover columnas.");
-        return;
-      }
-
-      if (active.id !== over.id) {
-        const oldIndex = estados.indexOf(active.id);
-        const newIndex = estados.indexOf(over.id);
-        const nuevosEstados = arrayMove(estados, oldIndex, newIndex);
-        setEstados(nuevosEstados);
-        setColumnas(prev => arrayMove(prev, oldIndex, newIndex));
-        
-        // Guardar el nuevo orden de las columnas en Supabase
-        (async () => {
-          for (let i = 0; i < nuevosEstados.length; i++) {
-            await supabase.from('columnas').update({ orden: i }).eq('nombre', nuevosEstados[i]);
-          }
-        })();
-      }
-      return;
-    }
-
-    if (type === 'Card') {
-      // Where did the card visually land after handleDragOver?
       const columnWhereLanded = columnasRef.current.find(c => c.proyectos.some(p => p.id === active.id));
       if (!columnWhereLanded) return;
       
       const destColumn = columnWhereLanded.estadoOriginal;
-      const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
-      const destinoGlobalIdx = estados.indexOf(destColumn);
-      const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
-      const cambioDeFase = estadoOrigenReal !== destColumn;
-      
-      const isRoutineArchive = destColumn === 'Archivado' && estadoOrigenReal === 'Entregado y cerrado';
-      
-      // Compute from current state `columnas`
-      const pryHover = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
-      if (pryHover) {
-        const isLider = (session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones');
-        const isEncargado = (pryHover.encargados || []).some(enc => enc.user_id === session?.user?.id || enc.id === session?.user?.id);
-        if (!isLider && !isEncargado) {
-          showError("Acceso denegado: Solo el Líder Comercial o un encargado pueden reordenar este proyecto.");
-          if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
-          return;
-        }
-      }
-
-      // Variables re-defined in executeMove
-
-      
-      // REGLA: COLUMNA "En pausa/espera"
       const pry = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
       
-      if (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa')) {
-        const isLider = (session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones');
-        if (!isLider) {
-          showError("Acceso denegado: Solo el Líder Comercial puede mover proyectos a Pausa/Espera.");
-          if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
-          return;
-        }
-      } else {
-        // VALIDADOR DE LEVANTAMIENTO
-        if (estadoOrigenReal === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
-          if (!pry.levantamiento_fecha) {
-            showError('No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.');
-            if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
-            return;
-          }
-        }
-
-        // OTHER GATES
-        if (destinoGlobalIdx > origenGlobalIdx && !isSpecialDest) {
-          const presupIdx = estados.indexOf('Presupuesto enviado');
-          if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !pry.presupuesto_aprobado) {
-            showError("No puede ser movido: Falta aprobar el presupuesto.");
-            if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
-            return;
-          }
-
-          const logisIdx = estados.indexOf('Logística y compras');
-          if (logisIdx !== -1 && destinoGlobalIdx > logisIdx && !pry.materiales_comprados) {
-            showError("No puede ser movido: Faltan materiales por comprar.");
-            if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
-            return;
-          }
-        }
+      const validation = validateProjectMove(pry, destColumn, estados, session);
+      
+      if (!validation.isValid) {
+        showError(validation.error);
+        if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+        return;
       }
-
-      const executeMove = (motive = null, nuevasNotas = null) => {
-        const nuevasColumnas = columnasRef.current.map(c => ({ ...c, proyectos: [...c.proyectos] }));
-        const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === destColumn);
-        const proyectosColumna = nuevasColumnas[colIndex].proyectos;
-  
-        let proyectosReordenados = proyectosColumna;
-        if (!cambioDeFase) {
-          const activeIndex = proyectosColumna.findIndex(p => p.id === active.id);
-          let overIndex = proyectosColumna.findIndex(p => p.id === over.id);
-          if (overIndex === -1) overIndex = proyectosColumna.length - 1;
-          proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
-        }
-        
-        nuevasColumnas[colIndex].proyectos = proyectosReordenados.map((p, i) => ({ ...p, orden: i, estado: destColumn }));
-        setColumnas(nuevasColumnas);
-        originalColumnasRef.current = null;
-  
-        (async () => {
-          for (let p of nuevasColumnas[colIndex].proyectos) {
-            const updateData = { orden: p.orden, estado: p.estado };
-            if (p.id === active.id && cambioDeFase) {
-              updateData.fecha_ultima_actualizacion = new Date().toISOString();
-              updateData.dias_estancado = 0;
-              if (motive) {
-                updateData.motivo_cancelacion = motive;
-              } else if (!isSpecialDest) {
-                updateData.motivo_cancelacion = null;
-              }
-              if (nuevasNotas) {
-                updateData.notas = nuevasNotas;
-              }
-              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
-            }
-            await supabase.from('proyectos').update(updateData).eq('id', p.id);
-          }
-        })();
-      };
-
-      const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
-      if (cambioDeFase && (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || (destColumn === 'Archivado' && !isRoutineArchive))) {
+      
+      const cambioDeFase = pry.estado !== destColumn;
+      if (requiresMotive && cambioDeFase) {
         setMotivePrompt({
-           title: `Motivo de ${destColumn === 'Archivado' ? 'Archivo' : 'Pausa'}`,
+           title: `Motivo de ${requiresMotive}`,
            onConfirm: (motive) => {
              executeMove(motive);
              setMotivePrompt(null);
@@ -563,11 +393,11 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
              setMotivePrompt(null);
            }
         });
-      } else if (isRetroceso) {
+      } else if (isRetroceso && cambioDeFase) {
         setMotivePrompt({
            title: 'Motivo de Retroceso',
            onConfirm: (motive) => {
-             const notaAnadida = `[RETROCESO] De "${estadoOrigenReal}" a "${destColumn}": ${motive}`;
+             const notaAnadida = `[RETROCESO] De "${pry.estado}" a "${destColumn}": ${motive}`;
              const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
              executeMove(null, nuevasNotas);
              setMotivePrompt(null);
@@ -577,30 +407,24 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
              setMotivePrompt(null);
            }
         });
-      } else if (cambioDeFase && !isSpecialDest && destinoGlobalIdx > origenGlobalIdx) {
+      } else if (requiresDias && cambioDeFase) {
         setDiasEstimadosPrompt({
            columna: destColumn,
            error: null,
            onConfirm: (dias) => {
-             // Validate against fecha_entrega if exists
              if (pry.fecha_entrega) {
                const entrega = new Date(pry.fecha_entrega + 'T00:00:00');
                const estimadoDate = new Date();
                estimadoDate.setDate(estimadoDate.getDate() + dias);
                if (estimadoDate > entrega) {
                  setDiasEstimadosPrompt(prev => ({ ...prev, error: `Los días estimados superan la fecha de entrega final (${pry.fecha_entrega}). Introduce un número menor.` }));
-                 return; // Do not close modal
+                 return;
                }
              }
-
-             // Clean old tags
              let currentNotas = pry.notas || '';
              currentNotas = currentNotas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
-             
-             // Append new tag
              const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${dias}]`;
              const nuevasNotas = currentNotas ? currentNotas + '\n\n' + notaAnadida : notaAnadida;
-
              executeMove(null, nuevasNotas);
              setDiasEstimadosPrompt(null);
            },

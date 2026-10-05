@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { validateProjectMove } from '../../utils/kanbanRules';
 import { supabase } from '../../supabase';
 import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
@@ -33,6 +34,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [motivePrompt, setMotivePrompt] = useState(null);
+  const [diasEstimadosPrompt, setDiasEstimadosPrompt] = useState(null);
   const [archiveMotive, setArchiveMotive] = useState('');
   const [cancelMotive, setCancelMotive] = useState('');
 
@@ -148,63 +150,80 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
   const handleChange = async (field, value) => {
     if (field === 'estado') {
-       const isSpecial = value.toLowerCase().includes('espera') || value.toLowerCase().includes('pausa') || value === 'Archivado' || value === 'Cancelado';
-       if (isSpecial) {
+       const validation = validateProjectMove(proyecto, value, estados, session);
+       
+       if (!validation.isValid) {
+         setMsg({ text: validation.error, type: 'error' });
+         setTimeout(() => setMsg({ text: '', type: '' }), 5000);
+         return; // Revert select visual state (React state wasn't updated so it snaps back)
+       }
+
+       const executeStateChange = async (motive = null, notasExtras = null) => {
+         const updates = { estado: value };
+         if (motive) updates.motivo_cancelacion = motive;
+         else if (validation.requiresMotive === null) updates.motivo_cancelacion = null;
+         
+         if (notasExtras) {
+           updates.notas = proyecto.notas ? proyecto.notas + '\n\n' + notasExtras : notasExtras;
+         }
+
+         updates.fecha_ultima_actualizacion = new Date().toISOString();
+         updates.dias_estancado = 0;
+
+         setProyecto(prev => ({ ...prev, ...updates }));
+         const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
+         if (!error) {
+           onProjectUpdated({ ...proyecto, ...updates });
+           logAudit(session, 'Cambió estado de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, nuevo_estado: value });
+           setMsg({ text: 'Estado actualizado', type: 'success' });
+           setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+         }
+       };
+
+       if (validation.requiresMotive) {
          setMotivePrompt({
-           title: `Motivo de ${value === 'Archivado' ? 'Archivo' : (value === 'Cancelado' ? 'Cancelación' : 'Pausa')}`,
-           onConfirm: async (motive) => {
-             const updates = { estado: value, motivo_cancelacion: motive };
-             setProyecto(prev => ({ ...prev, ...updates }));
-             const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
-             if (!error) {
-               onProjectUpdated({ ...proyecto, ...updates });
-               logAudit(session, 'Editó estado de proyecto con motivo', { proyecto_id: proyectoId, titulo: proyecto.titulo, estado: value });
-             }
+           title: `Motivo de ${validation.requiresMotive}`,
+           onConfirm: (motive) => {
+             executeStateChange(motive);
              setMotivePrompt(null);
            },
-           onCancel: () => {
-             setMotivePrompt(null);
-           }
+           onCancel: () => setMotivePrompt(null)
          });
-         return; // Wait for user confirmation
+       } else if (validation.isRetroceso) {
+         setMotivePrompt({
+           title: 'Motivo de Retroceso',
+           onConfirm: (motive) => {
+             const notaAnadida = `[RETROCESO] De "${proyecto.estado}" a "${value}": ${motive}`;
+             executeStateChange(null, notaAnadida);
+             setMotivePrompt(null);
+           },
+           onCancel: () => setMotivePrompt(null)
+         });
+       } else if (validation.requiresDias) {
+         setDiasEstimadosPrompt({
+           columna: value,
+           error: null,
+           onConfirm: (dias) => {
+             if (proyecto.fecha_entrega) {
+               const entrega = new Date(proyecto.fecha_entrega + 'T00:00:00');
+               const estimadoDate = new Date();
+               estimadoDate.setDate(estimadoDate.getDate() + dias);
+               if (estimadoDate > entrega) {
+                 setDiasEstimadosPrompt(prev => ({ ...prev, error: `Los días superan la fecha de entrega final (${proyecto.fecha_entrega}). Introduce un número menor.` }));
+                 return;
+               }
+             }
+             const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${dias}]`;
+             let cleanNotas = proyecto.notas ? proyecto.notas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim() : '';
+             const nuevasNotas = cleanNotas ? cleanNotas + '\n\n' + notaAnadida : notaAnadida;
+             executeStateChange(null, `${notaAnadida}`);
+             setDiasEstimadosPrompt(null);
+           },
+           onCancel: () => setDiasEstimadosPrompt(null)
+         });
+       } else {
+         executeStateChange();
        }
-    }
-
-    let updates = { [field]: value };
-    if (field === 'estado') {
-       updates.motivo_cancelacion = null;
-    }
-    setProyecto(prev => ({ ...prev, ...updates }));
-    const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
-    if (!error) {
-      onProjectUpdated({ ...proyecto, ...updates });
-      logAudit(session, 'Editó campo de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, campo: field, valor: value });
-    }
-  };
-
-  const handleMultipleChange = async (updates) => {
-    setProyecto(prev => ({ ...prev, ...updates }));
-    const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
-    if (!error) {
-      onProjectUpdated({ ...proyecto, ...updates });
-      logAudit(session, 'Editó múltiples campos de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, campos_actualizados: Object.keys(updates) });
-    }
-  };
-
-  const handleArchiveProject = async () => {
-    if (!archiveMotive.trim()) return;
-    
-    // Check if column exists, create if not
-    const { data: colData } = await supabase.from('columnas').select('nombre').eq('nombre', 'Archivado').single();
-    if (!colData) {
-      await supabase.from('columnas').insert([{ nombre: 'Archivado', orden: 98 }]);
-    }
-    
-    const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', motivo_cancelacion: archiveMotive }).eq('id', proyectoId);
-    if (!error) {
-      logAudit(session, 'Archivó proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: archiveMotive });
-      onProjectUpdated({ ...proyecto, estado: 'Archivado', motivo_cancelacion: archiveMotive });
-      onClose();
     } else {
       setConfirmArchive(false);
       setMsg({ text: 'Error al archivar: ' + error.message, type: 'error' });
@@ -958,6 +977,36 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       </div>
 
 
+
+      
+      {diasEstimadosPrompt && (
+        <div onClick={(e) => { e.stopPropagation(); diasEstimadosPrompt.onCancel(); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem' }}>Días Estimados en Fase Actual</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>Para avanzar a "{diasEstimadosPrompt.columna}", ¿cuántos días estimados aproximados estará en esta fase?</p>
+            {diasEstimadosPrompt.error && <p style={{ color: '#f87171', fontSize: '0.85rem', marginBottom: '1rem', padding: '0.5rem', background: 'rgba(248,113,113,0.1)', borderRadius: '4px' }}>{diasEstimadosPrompt.error}</p>}
+            <input 
+              type="number"
+              id="dropdownDiasInput"
+              autoFocus
+              min="1"
+              defaultValue="1"
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={diasEstimadosPrompt.onCancel} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+              <button 
+                onClick={() => {
+                  const val = document.getElementById('dropdownDiasInput').value;
+                  if (!val || Number(val) < 1) return alert('Por favor ingresa un número válido mayor a 0');
+                  diasEstimadosPrompt.onConfirm(Number(val));
+                }}
+                style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {motivePrompt && (
         <div onClick={(e) => { e.stopPropagation(); setMotivePrompt(null); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>

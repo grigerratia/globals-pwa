@@ -1,3 +1,4 @@
+import { validateProjectMove } from '../../utils/kanbanRules';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { supabase } from '../../supabase';
 
@@ -29,22 +30,15 @@ const tools = [
       },
       {
         name: 'actualizar_estado_proyecto',
-        description: 'Cambia la fase o estado de un proyecto en el tablero Kanban. ADVERTENCIA: Debes estar seguro del ID del proyecto antes de usar esto.',
+        description: 'Cambia la fase de un proyecto Kanban. Si la validación bloquea el movimiento por falta de presupuesto_aprobado, materiales_comprados, o levantamiento_fecha, debes preguntarle al usuario si desea confirmarlo/omitirlo, y luego llamar esta herramienta nuevamente pasando "confirmar_casillas: true". Si la fase requiere días estimados, pídeselos y envíalos. Si requiere motivo, envíalo.',
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            id_proyecto: {
-              type: SchemaType.STRING,
-              description: 'El ID UUID del proyecto en la base de datos.',
-            },
-            nuevo_estado: {
-              type: SchemaType.STRING,
-              description: 'El nuevo estado. Valores exactos: "En Conversación", "Levantamiento", "En Diseño", "Presupuesto enviado", "Aprobado", "Logística y compras", "En fabricación", "Listo para instalación", "En instalación", "Entregado y cerrado", "En pausa/espera", "Cancelado", "Archivado". RESPETA LAS MAYÚSCULAS.',
-            },
-            motivo: {
-              type: SchemaType.STRING,
-              description: 'Si se mueve a Pausa/Espera, Cancelado o se Retrocede de fase, es obligatorio dar un motivo detallado.',
-            }
+            id_proyecto: { type: SchemaType.STRING, description: 'ID UUID del proyecto' },
+            nuevo_estado: { type: SchemaType.STRING, description: 'Ej: "Logística y compras"' },
+            motivo: { type: SchemaType.STRING, description: 'Obligatorio si se Pausa, Cancela o Retrocede.' },
+            dias_estimados: { type: SchemaType.NUMBER, description: 'Días que tomará. Obligatorio al avanzar.' },
+            confirmar_casillas: { type: SchemaType.BOOLEAN, description: 'Poner en true si el usuario te confirmó verbalmente que marcaras el presupuesto/materiales como listos, o si confirmó omitir el levantamiento.' }
           },
           required: ['id_proyecto', 'nuevo_estado'],
         },
@@ -69,15 +63,16 @@ const tools = [
 
       {
         name: 'crear_proyecto',
-        description: 'Crea un nuevo proyecto en el sistema.',
+        description: 'Crea un nuevo proyecto en el sistema. Pregunta los datos que te falten. Si lo creas en una fase adelantada (ej. Logística), no se exigirán casillas previas porque asume que nace allí.',
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            titulo: { type: SchemaType.STRING, description: 'El nombre o título corto del proyecto' },
-            cliente_nombre: { type: SchemaType.STRING, description: 'El nombre de la persona de contacto (ej. Osbaldo, Juan Pérez)' },
-            cliente_empresa: { type: SchemaType.STRING, description: 'El nombre de la empresa o marca del cliente (ej. Coca Cola, Polar)' },
+            titulo: { type: SchemaType.STRING },
+            cliente_nombre: { type: SchemaType.STRING },
+            cliente_empresa: { type: SchemaType.STRING },
             cliente_telefono: { type: SchemaType.STRING },
-            estado: { type: SchemaType.STRING, description: 'Por defecto usa "En Conversación" si no se especifica' }
+            estado: { type: SchemaType.STRING, description: 'Columna inicial. Si el usuario no te dice y tu contexto dice una, usa la del contexto. Sino, usa "En Conversación".' },
+            dias_estimados: { type: SchemaType.NUMBER, description: 'Días que tomará en esa fase inicial. Obligatorio preguntar si no lo dice.' }
           },
           required: ['titulo'],
         },
@@ -148,7 +143,11 @@ const createSession = (modelName) => {
        - "Estancado": Un proyecto estancado es uno que está en la columna "Pausa", o si el usuario te pregunta dónde hay proyectos estancados, usa la herramienta 'obtener_kpis' para ver el desglose por columna y decirle dónde se acumulan más proyectos activos (ej. "Tenemos muchos estancados en Levantamiento").
        - Las columnas válidas son: "En Conversación", "Levantamiento", "Presupuesto enviado", "Aprobado - Esperando Anticipo", "Anticipo - En Producción", "Listo para instalar/entregar", "Entregado y cerrado", "Pausa", "Cancelado", "Archivado".
        - Nunca inventes datos que no tienes. Si no tienes una herramienta para modificar un formulario específico (como la Hoja de Levantamiento), dile amablemente que no tienes acceso a esa función todavía.
-    7. PARA ASIGNAR USUARIOS: Si te piden que alguien (ej. Idalys, Griger) sea encargado de un proyecto, USA ÚNICAMENTE la herramienta 'asignar_encargado'. NUNCA lo escribas en el campo notas de 'modificar_proyecto'.`,
+    7. PARA ASIGNAR USUARIOS: Si te piden que alguien (ej. Idalys, Griger) sea encargado de un proyecto, USA ÚNICAMENTE la herramienta 'asignar_encargado'. NUNCA lo escribas en el campo notas de 'modificar_proyecto'.
+    8. WIDGETS INTERACTIVOS: Cuando CUALQUIER herramienta te devuelva un error bloqueando la acción por falta de información o confirmación, DEBES explicarle la situación al usuario y agregar una de estas etiquetas al final de tu mensaje para mostrarle botones en pantalla:
+       - Si el error te pide confirmar si el presupuesto está aprobado, materiales comprados, u omitir el levantamiento: escribe exactamente [WIDGET:CONFIRM_CHECKBOXES]
+       - Si el error te pide días estimados: escribe exactamente [WIDGET:INPUT_DIAS]
+       - Si el error te pide un motivo (pausa, archivo, cancelación): escribe exactamente [WIDGET:INPUT_MOTIVO]`,
   });
   return model.startChat({});
 };
@@ -179,15 +178,46 @@ const executeTool = async (call) => {
     }
 
     if (name === 'actualizar_estado_proyecto') {
-      const { id_proyecto, nuevo_estado, motivo } = args;
+      const { id_proyecto, nuevo_estado, motivo, dias_estimados, confirmar_casillas } = args;
+      
+      const { data: currentP } = await supabase.from('proyectos').select('*').eq('id', id_proyecto).single();
+      const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
+      const estadosList = colsData ? colsData.map(c => c.nombre) : [];
+      
+      const session = await supabase.auth.getSession().then(({ data }) => data.session);
+      
+      const validation = validateProjectMove(currentP, nuevo_estado, estadosList, session);
+      
+      if (!validation.isValid && !confirmar_casillas) {
+         throw new Error(`BLOQUEADO POR REGLA DE NEGOCIO: ${validation.error}. PREGÚNTALE AL USUARIO SI CONFIRMA Y, SI DICE QUE SÍ, LLAMA ESTA HERRAMIENTA OTRA VEZ CON confirmar_casillas: true`);
+      }
+      if (validation.requiresDias && !dias_estimados) {
+         throw new Error("FALTAN DÍAS ESTIMADOS: Esta fase requiere que especifiques 'dias_estimados'. Pregúntale al usuario cuántos días aproximados tomará.");
+      }
+      if (validation.requiresMotive && !motivo) {
+         throw new Error(`FALTA MOTIVO: Esta acción exige un motivo de ${validation.requiresMotive}. Pregúntale al usuario el motivo y mándalo.`);
+      }
+      
       const updateData = { estado: nuevo_estado, fecha_ultima_actualizacion: new Date().toISOString() };
       
-      // Si requiere motivo (Cancelado, Pausa, Retroceso), lo añadimos a notas
-      if (motivo) {
-        const { data: currentP } = await supabase.from('proyectos').select('notas').eq('id', id_proyecto).single();
-        const notaAnadida = `[DINAMO - ${nuevo_estado}] Motivo: ${motivo}`;
-        updateData.notas = currentP?.notas ? currentP.notas + '\n\n' + notaAnadida : notaAnadida;
-        if (nuevo_estado === 'Cancelado') updateData.motivo_cancelacion = motivo;
+      // Auto-check casillas if confirmed
+      if (!validation.isValid && confirmar_casillas) {
+         if (validation.rule === 'PRESUPUESTO') updateData.presupuesto_aprobado = true;
+         if (validation.rule === 'MATERIALES') updateData.materiales_comprados = true;
+         if (validation.rule === 'LEVANTAMIENTO') updateData.omitir_levantamiento = true;
+      }
+      
+      let notaAnadida = `[DINAMO - ${nuevo_estado}]`;
+      if (motivo) notaAnadida += ` Motivo: ${motivo}`;
+      if (dias_estimados) notaAnadida += `\n[DÍAS ESTIMADOS FASE ACTUAL: ${dias_estimados}]`;
+      
+      if (motivo || dias_estimados) {
+        let currentNotas = currentP?.notas || '';
+        if (dias_estimados) currentNotas = currentNotas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+        updateData.notas = currentNotas ? currentNotas + '\n\n' + notaAnadida : notaAnadida;
+        if (nuevo_estado === 'Cancelado' || nuevo_estado === 'Archivado' || nuevo_estado.includes('pausa')) {
+           updateData.motivo_cancelacion = motivo;
+        }
       }
       
       const { error } = await supabase.from('proyectos').update(updateData).eq('id', id_proyecto);
@@ -210,6 +240,13 @@ const executeTool = async (call) => {
         ? superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }))
         : [];
         
+      const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
+      const estadosList = colsData ? colsData.map(c => c.nombre) : [];
+      
+      if (!args.dias_estimados) {
+         throw new Error("FALTAN DÍAS ESTIMADOS: Al crear un proyecto, debes preguntarle al usuario cuántos días aproximados tomará en su fase inicial.");
+      }
+
       const nuevoProy = {
         titulo: args.titulo,
         cliente_nombre: args.cliente_nombre || '',
@@ -217,8 +254,20 @@ const executeTool = async (call) => {
         cliente_telefono: args.cliente_telefono || '',
         estado: args.estado || 'En Conversación',
         encargados: encargadosPorDefecto,
+        notas: `[DINAMO - Proyecto Creado]\n[DÍAS ESTIMADOS FASE ACTUAL: ${args.dias_estimados}]`,
         fecha_creacion: new Date().toISOString()
       };
+      
+      // Lógica de casillas automáticas basada en la columna destino
+      const targetIdx = estadosList.indexOf(nuevoProy.estado);
+      const levantamientoIdx = estadosList.indexOf('Levantamiento');
+      const presupIdx = estadosList.indexOf('Presupuesto enviado');
+      const logisIdx = estadosList.indexOf('Logística y compras');
+
+      if (targetIdx > levantamientoIdx && levantamientoIdx !== -1) nuevoProy.omitir_levantamiento = true;
+      if (targetIdx > presupIdx && presupIdx !== -1) nuevoProy.presupuesto_aprobado = true;
+      if (targetIdx > logisIdx && logisIdx !== -1) nuevoProy.materiales_comprados = true;
+      
       const { data, error } = await supabase.from('proyectos').insert(nuevoProy).select('id');
       if (error) throw error;
       return { success: true, message: `Proyecto creado exitosamente con ID ${data[0].id}.` };
@@ -320,13 +369,12 @@ ${herramientasCompletadasTexto}`;
       let result = await chatSession.sendMessage(currentPrompt);
       
       let loopCount = 0;
-      const MAX_LOOPS = 8; // Aumentado para tolerar modelos Lite secuenciales
+      const MAX_LOOPS = 20; // Permitir que Dinamo continúe verificando y ejecutando tareas largas sin cortarlo.
       
       while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
         loopCount++;
         if (loopCount > MAX_LOOPS) {
           console.warn("[Dinamo] Cortafuegos activado: demasiadas llamadas recursivas.");
-          // En lugar de arrojar un error robótico, le damos la orden al agente de que resuma lo que logró hacer y se despida.
           result = await chatSession.sendMessage("Has excedido el límite de pasos operativos permitidos en esta transacción. Detente de inmediato, NO LLAMES a más herramientas, y hazle un resumen amable al usuario de lo que sí lograste procesar exitosamente.");
           break; // Salimos del bucle para devolver la respuesta del modelo
         }
