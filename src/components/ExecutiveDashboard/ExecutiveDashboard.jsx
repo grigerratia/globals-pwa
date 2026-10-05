@@ -1,25 +1,26 @@
 import { useState, useEffect } from 'react';
+import { Kanban, Activity, TrendingUp, CheckCircle, Briefcase, AlertCircle, Wrench, BarChart2, X } from 'lucide-react';
 import { supabase } from '../../supabase';
-import { Mic, Kanban, TrendingUp, AlertCircle, CheckCircle, Briefcase, Activity, Wrench, BarChart2 } from 'lucide-react';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
-import ProjectDetailModal from '../Modals/ProjectDetailModal';
+import ProjectDetailModal from '../KanbanBoard/ProjectDetailModal';
 
 export default function ExecutiveDashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
+  const [estados, setEstados] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [proyectoDetalleId, setProyectoDetalleId] = useState(null);
-  const [estados, setEstados] = useState([]);
+  
+  // Estado para el modal de KPIs (Tarjetas interactivas)
+  const [modalKpi, setModalKpi] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
-      // Fetch columns
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       if (colsData) {
         setEstados(colsData.map(c => c.nombre));
       }
 
-      // Fetch projects
       const { data: proys } = await supabase.from('proyectos').select('*');
       if (proys) {
         setProyectos(proys);
@@ -30,12 +31,7 @@ export default function ExecutiveDashboard({ session }) {
   }, []);
 
   const goToKanban = () => {
-    // If we use localStorage or session state for routing
     window.location.href = '/kanban';
-  };
-
-  const handleMicClick = () => {
-    alert("Activando Monster AI... (Próximamente)");
   };
 
   if (cargando) {
@@ -47,25 +43,31 @@ export default function ExecutiveDashboard({ session }) {
     );
   }
 
-  // Cálculos de KPIs
   const userRole = session?.user?.user_metadata?.rol;
   const isLiderComercial = userRole === 'Líder Comercial';
 
-  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Archivado' && !p.estado.includes('Cancelado'));
+  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Archivado' && !p.estado?.includes('Cancelado'));
   const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado');
   
-  // Financieros (Líder Comercial)
-  const ingresosProyectados = activos.reduce((sum, p) => sum + (Number(p.precio_venta) || 0), 0);
-  const ingresosCompletados = completados.reduce((sum, p) => sum + (Number(p.precio_venta) || 0), 0);
+  // FINANCIEROS - Corregido a presupuesto_vendido en lugar de precio_venta
+  const ingresosProyectados = activos.reduce((sum, p) => sum + (Number(p.presupuesto_vendido) || 0), 0);
+  const ingresosCompletados = completados.reduce((sum, p) => sum + (Number(p.presupuesto_vendido) || 0), 0);
   
-  // Operativos (Líder de Operaciones)
+  // OPERATIVOS
   const produccionFases = ['Logística y compras', 'En fabricación', 'Listo para instalación', 'En instalación'];
   const enProduccion = activos.filter(p => produccionFases.includes(p.estado));
   
-  const estancados = activos.filter(p => p.dias_estancado > 5); // Ejemplo: > 5 días sin mover
+  const hoy = new Date();
+  const estancados = activos.filter(p => {
+    if (p.estado?.includes('Pausa')) return true;
+    if (!p.fecha_ultima_actualizacion) return false;
+    const diffTime = Math.abs(hoy - new Date(p.fecha_ultima_actualizacion));
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) > 5;
+  });
   
-  // Resumen rápido de últimos movidos
   const recientes = [...activos].sort((a, b) => new Date(b.fecha_ultima_actualizacion) - new Date(a.fecha_ultima_actualizacion)).slice(0, 5);
+
+  const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
 
   return (
     <div className={styles.executiveContainer}>
@@ -108,35 +110,47 @@ export default function ExecutiveDashboard({ session }) {
           
           {isLiderComercial ? (
             <>
-              <div className={`${styles.kpiCard} ${styles.cardProyectados}`}>
+              <div 
+                className={`${styles.kpiCard} ${styles.cardProyectados}`} 
+                onClick={() => setModalKpi({ title: 'Ingresos Proyectados (Activos)', data: activos })}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.kpiHeader}>
                   <TrendingUp size={20} />
                   <h3>Ingresos Proyectados</h3>
                 </div>
                 <div className={styles.kpiValue}>
-                  ${ingresosProyectados.toLocaleString('en-US')}
+                  {formatCurrency(ingresosProyectados)}
                 </div>
                 <div className={styles.kpiSub}>
-                  En {activos.length} proyectos activos
+                  En {activos.length} proyectos activos (Click para ver)
                 </div>
               </div>
 
-              <div className={`${styles.kpiCard} ${styles.cardCerrados}`}>
+              <div 
+                className={`${styles.kpiCard} ${styles.cardCerrados}`}
+                onClick={() => setModalKpi({ title: 'Ingresos Cerrados', data: completados })}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.kpiHeader}>
                   <CheckCircle size={20} />
                   <h3>Ingresos Cerrados</h3>
                 </div>
                 <div className={styles.kpiValue}>
-                  ${ingresosCompletados.toLocaleString('en-US')}
+                  {formatCurrency(ingresosCompletados)}
                 </div>
                 <div className={styles.kpiSub}>
-                  Histórico completado
+                  Histórico completado (Click para ver)
                 </div>
               </div>
             </>
           ) : (
             <>
-              <div className={`${styles.kpiCard} ${styles.cardProyectados}`}>
+              <div 
+                className={`${styles.kpiCard} ${styles.cardProyectados}`}
+                onClick={() => setModalKpi({ title: 'Proyectos en Producción', data: enProduccion })}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.kpiHeader}>
                   <Wrench size={20} />
                   <h3>En Producción</h3>
@@ -145,11 +159,15 @@ export default function ExecutiveDashboard({ session }) {
                   {enProduccion.length}
                 </div>
                 <div className={styles.kpiSub}>
-                  Proyectos en logística, fab. o inst.
+                  Logística, fab. o inst. (Click para ver)
                 </div>
               </div>
 
-              <div className={`${styles.kpiCard} ${styles.cardCerrados}`}>
+              <div 
+                className={`${styles.kpiCard} ${styles.cardCerrados}`}
+                onClick={() => setModalKpi({ title: 'Proyectos Completados', data: completados })}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.kpiHeader}>
                   <CheckCircle size={20} />
                   <h3>Proyectos Completados</h3>
@@ -158,13 +176,17 @@ export default function ExecutiveDashboard({ session }) {
                   {completados.length}
                 </div>
                 <div className={styles.kpiSub}>
-                  Histórico cerrado
+                  Histórico cerrado (Click para ver)
                 </div>
               </div>
             </>
           )}
 
-          <div className={`${styles.kpiCard} ${styles.cardActivos}`}>
+          <div 
+            className={`${styles.kpiCard} ${styles.cardActivos}`}
+            onClick={() => setModalKpi({ title: 'Todos los Proyectos Activos', data: activos })}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={styles.kpiHeader}>
               <Briefcase size={20} />
               <h3>Proyectos Activos</h3>
@@ -173,11 +195,15 @@ export default function ExecutiveDashboard({ session }) {
               {activos.length}
             </div>
             <div className={styles.kpiSub}>
-              En progreso
+              En progreso (Click para ver)
             </div>
           </div>
 
-          <div className={`${styles.kpiCard} ${styles.cardAtencion}`}>
+          <div 
+            className={`${styles.kpiCard} ${styles.cardAtencion}`}
+            onClick={() => setModalKpi({ title: 'Requieren Atención (Estancados > 5 días o en Pausa)', data: estancados })}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={styles.kpiHeader}>
               <AlertCircle size={20} />
               <h3>Atención Requerida</h3>
@@ -186,7 +212,7 @@ export default function ExecutiveDashboard({ session }) {
               {estancados.length}
             </div>
             <div className={styles.kpiSub}>
-              Estancados por &gt; 5 días
+              Estancados por &gt; 5 días (Click para ver)
             </div>
           </div>
         </section>
@@ -205,13 +231,60 @@ export default function ExecutiveDashboard({ session }) {
                 </div>
                 <div className={styles.activityMeta}>
                   <span>Actualizado: {new Date(p.fecha_ultima_actualizacion).toLocaleDateString()}</span>
-                  {p.precio_venta && <span>• ${Number(p.precio_venta).toLocaleString('en-US')}</span>}
+                  {p.presupuesto_vendido && <span>• {formatCurrency(p.presupuesto_vendido)}</span>}
                 </div>
               </div>
             ))}
           </div>
         </section>
       </main>
+
+      {/* Modal para mostrar lista de proyectos de la KPI clickeada */}
+      {modalKpi && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div style={{
+            background: 'white', width: '90%', maxWidth: '600px', maxHeight: '80vh',
+            borderRadius: '12px', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>{modalKpi.title}</h3>
+              <button onClick={() => setModalKpi(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={24} />
+              </button>
+            </div>
+            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {modalKpi.data.length === 0 ? (
+                <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>No hay proyectos en esta categoría.</p>
+              ) : (
+                modalKpi.data.map(p => (
+                  <div 
+                    key={p.id} 
+                    className={styles.activityItem}
+                    onClick={() => {
+                      setModalKpi(null);
+                      setProyectoDetalleId(p.id);
+                    }}
+                  >
+                    <div className={styles.activityMain}>
+                      <h4 style={{ color: '#3b82f6' }}>{p.titulo}</h4>
+                      <span className={styles.badge}>{p.estado}</span>
+                    </div>
+                    <div className={styles.activityMeta} style={{ marginTop: '4px' }}>
+                      <span>Cliente: {p.cliente_nombre || p.cliente_empresa || 'N/A'}</span>
+                      {p.presupuesto_vendido && <span>• {formatCurrency(p.presupuesto_vendido)}</span>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {proyectoDetalleId && (
         <ProjectDetailModal
