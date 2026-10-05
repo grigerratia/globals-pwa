@@ -50,7 +50,7 @@
 }
 
 .message {
-  padding: 1rem;
+  /* padding removed per user request */
   margin: 1rem 1.5rem 0;
   border-radius: 6px;
   text-align: center;
@@ -108,7 +108,7 @@
   border-collapse: collapse;
   
   th, td {
-    padding: 1rem;
+    /* padding removed per user request */
     text-align: left;
     border-bottom: 1px solid #334155;
     color: #e2e8f0;

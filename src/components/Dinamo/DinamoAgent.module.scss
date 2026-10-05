@@ -21,6 +21,8 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
   gap: 1.5rem;
 }
 
@@ -42,6 +44,8 @@
 .header {
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
   align-items: center;
   gap: 0.5rem;
 
@@ -73,6 +77,8 @@
 .chatArea {
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
   gap: 1rem;
 
   .error {
@@ -310,6 +316,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
   gap: 0.75rem;
 }
 
