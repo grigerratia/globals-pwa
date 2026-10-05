@@ -53,6 +53,7 @@ const tools = [
             titulo: { type: SchemaType.STRING },
             cliente_nombre: { type: SchemaType.STRING },
             cliente_empresa: { type: SchemaType.STRING },
+            cliente_telefono: { type: SchemaType.STRING },
             presupuesto_vendido: { type: SchemaType.NUMBER },
             fecha_entrega: { type: SchemaType.STRING },
             notas: { type: SchemaType.STRING }
