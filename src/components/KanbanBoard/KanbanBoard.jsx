@@ -220,17 +220,21 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     };
 
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
-    let encargados = nuevoProyectoData.encargados;
-    if (!encargados || encargados.length === 0) {
-      // Buscar a los líderes (comercial y operaciones) para asignarlos por defecto
-      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').in('rol', ['Líder Comercial', 'Líder de Operaciones']);
-      if (superusers && superusers.length > 0) {
-        encargados = superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }));
-      } else {
-        // Fallback si no hay líderes
-        encargados = [];
-      }
+    let encargados = nuevoProyectoData.encargados || [];
+    const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').in('rol', ['Líder Comercial', 'Líder de Operaciones']);
+    
+    if (!superusers || !superusers.some(su => su.rol === 'Líder Comercial')) {
+      showError("No se puede crear el proyecto: Debe existir al menos un usuario con el rol 'Líder Comercial' en el sistema.");
+      return;
     }
+
+    const newEncargados = [...encargados];
+    superusers.forEach(su => {
+      if (!newEncargados.some(e => e.id === su.id)) {
+        newEncargados.push({ id: su.id, nombre: su.nombre, rol: su.rol });
+      }
+    });
+    encargados = newEncargados;
 
     // Días estimados por defecto o manual
     const dias = nuevoProyectoData.diasEstimados || 3;

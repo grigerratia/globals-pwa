@@ -236,9 +236,12 @@ const executeTool = async (call) => {
 
     if (name === 'crear_proyecto') {
       const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').in('rol', ['Líder Comercial', 'Líder de Operaciones']);
-      const encargadosPorDefecto = superusers && superusers.length > 0 
-        ? superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }))
-        : [];
+      
+      if (!superusers || !superusers.some(su => su.rol === 'Líder Comercial')) {
+         throw new Error("ERROR AL CREAR PROYECTO: El sistema no permite crear proyectos si no existe un usuario con rol 'Líder Comercial'. Por favor avisa al administrador.");
+      }
+      
+      const encargadosPorDefecto = superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }));
         
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       const estadosList = colsData ? colsData.map(c => c.nombre) : [];
