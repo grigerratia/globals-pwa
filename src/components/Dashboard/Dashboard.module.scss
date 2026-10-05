@@ -39,7 +39,7 @@
 }
 
 .aiCard {
-  background: linear-gradient(to right bottom, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
   border-radius: 16px;
   padding: 1.5rem 2rem;
   color: white;
@@ -275,7 +275,11 @@
   }
 
   .aiCard {
-    padding: 1.25rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+  .aiBody {
+    padding: 0.5rem;
   }
   
   .aiHeader h2 {
@@ -343,4 +347,13 @@
 
 .pulse {
   animation: pulseAnim 1.5s infinite ease-in-out;
+}
+
+.aiResultWrapper {
+  margin-top: 1rem;
+  padding: 0;
+  
+  @media (max-width: 768px) {
+    margin-top: 0.5rem;
+  }
 }

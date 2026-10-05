@@ -45,7 +45,7 @@
     height: 100vh !important;
     margin: 0 !important;
     border-radius: 0 !important;
-    padding: 1rem !important;
+    padding: 0.5rem !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -886,7 +886,7 @@
 
 @media (max-width: 600px) {
   .modal {
-    padding: 1rem !important;
+    padding: 0.5rem !important;
   }
 }
 
