@@ -61,7 +61,7 @@
     border-radius: 50%;
     background: linear-gradient(135deg, #3b82f6, #8b5cf6);
     display: flex;
-    align-items: flex-start;
+    align-items: center;
   justify-content: center;
   margin-bottom: 0.5rem;
   aspect-ratio: 1/1;
@@ -130,7 +130,7 @@
       width: 36px;
       height: 36px;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
   justify-content: center;
       cursor: pointer;
       transition: opacity 0.2s, background 0.2s;
@@ -157,7 +157,7 @@
 
   .processing {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
   justify-content: center;
     gap: 0.5rem;
     color: #8b5cf6;
@@ -280,7 +280,7 @@
   opacity: 0.8;
   transition: opacity 0.2s;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
 
   &:hover {

@@ -44,6 +44,16 @@ export default function ExecutiveDashboard({ session }) {
       setCargando(false);
     }
     fetchData();
+    
+    const channel = supabase.channel('audit_logs_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, (payload) => {
+        if (payload.new.accion !== 'Inició sesión') {
+          setAuditLogs(prev => [payload.new, ...prev].slice(0, 30));
+        }
+      })
+      .subscribe();
+      
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const goToKanban = () => {
@@ -270,7 +280,7 @@ export default function ExecutiveDashboard({ session }) {
             <h2>Actividad Reciente</h2>
           </div>
           <div className={styles.activityList}>
-            {auditLogs.map(log => {
+            {auditLogs.length === 0 ? <p style={{ padding: "1rem", color: "#64748b", textAlign: "center", fontSize: "0.9rem" }}>No hay actividad reciente para mostrar.</p> : auditLogs.map(log => {
               const projectId = log.detalles?.proyecto_id || log.detalles?.id;
               const title = log.detalles?.titulo || log.detalles?.nuevo_estado || '';
               return (

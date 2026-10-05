@@ -95,6 +95,8 @@
     flex-direction: column;
     button {
       width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
     }
   }
   .financeSummary {
@@ -419,6 +421,11 @@
     font-size: 0.95rem;
     color: #334155;
     cursor: pointer;
+    flex: 1;
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
   }
 }
 
