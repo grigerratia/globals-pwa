@@ -146,7 +146,7 @@ function App() {
 
   if (window.location.pathname === '/' && isSuperuser) {
     ActiveComponent = <ExecutiveDashboard session={session} />;
-  } else if (window.location.pathname === '/' || window.location.pathname === '/kanban') {
+  } else if (window.location.pathname === '/' || window.location.pathname === '/kanban' || window.location.pathname === '/tablero') {
     ActiveComponent = <KanbanBoard session={session} />;
   }
 
