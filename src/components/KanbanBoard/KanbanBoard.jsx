@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { requestFirebaseToken } from '../../firebase';
+import { LogOut, Archive, Trash2, Activity } from 'lucide-react';
+// removed firebase import
 import { 
   DndContext, 
   DragOverlay, 
@@ -10,21 +11,24 @@ import {
   useSensors,
   closestCorners 
 } from '@dnd-kit/core';
+import { validateProjectMove } from '../../utils/kanbanRules';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, X } from 'lucide-react';
+import { BarChart2, Plus, X, QrCode, Menu, Calculator } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
 import KanbanColumn from '../KanbanColumn/KanbanColumn';
 import KanbanCard from '../KanbanCard/KanbanCard';
 import AddColumnModal from '../Modals/AddColumnModal';
 import AddProjectModal from '../Modals/AddProjectModal';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
+import CanceladosModal from '../Modals/CanceladosModal';
 import ColumnSettingsModal from '../Modals/ColumnSettingsModal';
 import AIAgentModal from '../Modals/AIAgentModal';
-import { validateProjectMove } from "../../utils/kanbanRules";
 import { logAudit } from '../../utils/audit';
+import logo from '../../assets/logo.png';
 
 const defaultEstados = [
   'Levantamiento', 
+  'En Diseño', 
   'Presupuesto enviado', 
   'Logística y compras', 
   'En fabricación', 
@@ -34,10 +38,31 @@ const defaultEstados = [
   'En pausa/espera'
 ];
 
+import BellNotifications from './BellNotifications';
+import GlobalSearch from '../GlobalSearch/GlobalSearch';
+
+
+const getTextForBg = (bg) => {
+  const map = {
+    '#f8fafc': '#334155',
+    '#fee2e2': '#991b1b',
+    '#ffedd5': '#9a3412',
+    '#fef3c7': '#92400e',
+    '#dcfce7': '#166534',
+    '#e0f2fe': '#075985',
+    '#ede9fe': '#5b21b6',
+    '#fce7f3': '#9d174d'
+  };
+  return map[bg] || '#334155';
+};
+
 export default function KanbanBoard({ session }) {
+  const userRole = session?.user?.user_metadata?.rol;
+  const canViewFinances = userRole === "Administración" || userRole === "Administrador" || userRole === "Líder Comercial";
   const [estados, setEstados] = useState([]);
   const [columnas, setColumnas] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [proyectoActivo, setProyectoActivo] = useState(null);
   const [columnaActiva, setColumnaActiva] = useState(null);
@@ -53,15 +78,21 @@ export default function KanbanBoard({ session }) {
   const [proyectoDetalleId, setProyectoDetalleId] = useState(null);
   const [columnSettingsId, setColumnSettingsId] = useState(null);
   const [isAgentOpen, setIsAgentOpen] = useState(false);
-  
-  const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [showCancelados, setShowCancelados] = useState(false);
+  const [motivePrompt, setMotivePrompt] = useState(null);
+  const [diasEstimadosPrompt, setDiasEstimadosPrompt] = useState(null);
   const [boardError, setBoardError] = useState(null);
+  const [columnColors, setColumnColors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch { return {}; }
+  });
 
   // Drag to scroll logic
   const boardRef = useRef(null);
   const dragInfo = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
   const originalColumnasRef = useRef(null);
+  const columnasRef = useRef(columnas);
+  useEffect(() => { columnasRef.current = columnas; }, [columnas]);
 
   const handleMouseDown = (e) => {
     // Only apply drag-to-scroll if clicking directly on the board background
@@ -105,7 +136,7 @@ export default function KanbanBoard({ session }) {
       .order('orden', { ascending: true });
       
     if (!colsError && colsData && colsData.length > 0) {
-      estadosActuales = colsData.map(c => c.nombre);
+      estadosActuales = colsData.map(c => c.nombre).filter(n => n !== 'Cancelado' && n !== 'Cancelado_Oculto');
     } else {
       estadosActuales = defaultEstados;
     }
@@ -167,10 +198,64 @@ export default function KanbanBoard({ session }) {
     return null;
   };
 
-  const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
+    const generateTitleWithAI = async (projectData) => {
+      try {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
+        const prompt = `Actúa como un gestor de proyectos. Genera un título corto, directo y descriptivo (máximo 5-7 palabras) para un nuevo proyecto de rotulación/publicidad, usando estos datos iniciales:
+Cliente/Empresa: ${projectData.cliente_empresa || 'Desconocido'}
+Contacto: ${projectData.cliente_nombre || 'Desconocido'}
+Notas/Descripción: ${projectData.notas || 'Sin descripción'}
+
+Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni puntos finales. Ejemplos de formato esperado: "Letrero Luminoso Hato Grill" o "Pendones 2x2 para María"`;
+        const result = await model.generateContent(prompt);
+        let text = result.response.text().trim();
+        if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+        return text;
+      } catch (err) {
+        console.error("Error generando título con IA:", err);
+        return "Proyecto " + (projectData.cliente_empresa || "Nuevo");
+      }
+    };
+
+    const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
+    let encargados = nuevoProyectoData.encargados;
+    if (!encargados || encargados.length === 0) {
+      // Buscar a los líderes (comercial y operaciones) para asignarlos por defecto
+      const { data: superusers } = await supabase.from('usuarios').select('id, nombre, rol').in('rol', ['Líder Comercial', 'Líder de Operaciones']);
+      if (superusers && superusers.length > 0) {
+        encargados = superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }));
+      } else {
+        // Fallback si no hay líderes
+        encargados = [];
+      }
+    }
+
+    // Días estimados por defecto o manual
+    const dias = nuevoProyectoData.diasEstimados || 3;
+    let cleanNotas = (nuevoProyectoData.notas || '').replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+    nuevoProyectoData.notas = cleanNotas ? cleanNotas + '\n\n[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']' : '[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']';
+    delete nuevoProyectoData.diasEstimados;
+
+    const targetIdx = estados.indexOf(nuevoProyectoData.estado);
+    const levantamientoIdx = estados.indexOf('Levantamiento');
+    const presupIdx = estados.indexOf('Presupuesto enviado');
+    const logisIdx = estados.indexOf('Logística y compras');
+
+    if (targetIdx > levantamientoIdx && levantamientoIdx !== -1) {
+      nuevoProyectoData.levantamiento_fecha = new Date().toISOString();
+    }
+    if (targetIdx > presupIdx && presupIdx !== -1) {
+      nuevoProyectoData.presupuesto_aprobado = true;
+    }
+    if (targetIdx > logisIdx && logisIdx !== -1) {
+      nuevoProyectoData.materiales_comprados = true;
+    }
+
     const nuevoProyecto = {
       ...nuevoProyectoData,
-      encargados: nuevoProyectoData.encargados?.length > 0 ? nuevoProyectoData.encargados : [{ nombre: 'Asignar', rol: 'Líder Comercial' }],
+      encargados: encargados,
       orden: 999, // Al final
     };
 
@@ -195,42 +280,70 @@ export default function KanbanBoard({ session }) {
     }));
     
     setAddProjectColumnId(null); // Cerrar modal
+
+    // Disparar generación de título en background
+    generateTitleWithAI(nuevoProyectoData).then(async (aiTitle) => {
+       const { error: updErr } = await supabase.from('proyectos').update({ titulo: aiTitle }).eq('id', proyectoInsertado.id);
+       if (!updErr) {
+         setColumnas(prevCols => prevCols.map(col => {
+           if (col.estadoOriginal === proyectoInsertado.estado) {
+             return {
+               ...col,
+               proyectos: col.proyectos.map(p => p.id === proyectoInsertado.id ? { ...p, titulo: aiTitle } : p)
+             };
+           }
+           return col;
+         }));
+       }
+    });
   };
 
-  const agregarColumnaSubmit = async (nombre) => {
-    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+  const agregarColumnaSubmit = async (nombre, dias_defecto = 7) => {
+    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
       showError('Acceso denegado: Solo el Líder Comercial puede agregar columnas.');
       return;
     }
-    if (!estados.includes(nombre)) {
-      const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length }]);
-      
-      if (error) {
-        showError('Error al crear la columna: ' + error.message);
-      } else {
-        setEstados(prev => [...prev, nombre]);
-        setColumnas(prev => [...prev, { estadoOriginal: nombre, proyectos: [] }]);
-      }
+    const nombreLower = nombre.toLowerCase().trim();
+    const existe = estados.some(est => est.toLowerCase().trim() === nombreLower);
+    if (existe) {
+      showError(`Ya existe una columna con el nombre "${nombre}".`);
+      return;
     }
+
+    const { error } = await supabase.from('columnas').insert([{ nombre, orden: estados.length, dias_defecto }]);
+    
+    if (error) {
+      showError('Error al crear la columna: ' + error.message);
+    } else {
+      setEstados(prev => [...prev, nombre]);
+      setColumnas(prev => [...prev, { estadoOriginal: nombre, proyectos: [] }]);
+    }
+    
     setIsAddColumnOpen(false);
   };
 
-  const handleUpdateColumna = async (oldName, newName) => {
-    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+  const handleUpdateColumna = async (oldName, newName, color) => {
+    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
       showError('Acceso denegado: Solo el Líder Comercial puede editar columnas.');
       return;
     }
-    // Optimistic update
     setEstados(prev => prev.map(e => e === oldName ? newName : e));
     setColumnas(prev => prev.map(c => c.estadoOriginal === oldName ? { ...c, estadoOriginal: newName } : c));
     setColumnSettingsId(null);
-    
-    // El trigger en supabase (ON UPDATE CASCADE) actualizará los proyectos
+
+    if (color) {
+      setColumnColors(prev => {
+         const updated = { ...prev, [newName]: color };
+         if (oldName !== newName) delete updated[oldName];
+         localStorage.setItem('globals_column_colors', JSON.stringify(updated));
+         return updated;
+      });
+    }
     await supabase.from('columnas').update({ nombre: newName }).eq('nombre', oldName);
   };
 
   const handleDeleteColumna = async (nombre) => {
-    if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
       showError('Acceso denegado: Solo el Líder Comercial puede eliminar columnas.');
       return;
     }
@@ -288,7 +401,6 @@ export default function KanbanBoard({ session }) {
 
         const proyectoA_Mover = activeItems[activeIndex];
 
-
         const proyectoMovido = { ...proyectoA_Mover, estado: overColumn };
         activeItems.splice(activeIndex, 1);
         
@@ -311,7 +423,7 @@ export default function KanbanBoard({ session }) {
     const type = active.data.current?.type;
 
     if (type === 'Column') {
-      if (session?.user?.user_metadata?.rol !== 'Líder Comercial') {
+      if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
         showError("Acceso denegado: Solo el Líder Comercial puede mover columnas.");
         return;
       }
@@ -334,84 +446,76 @@ export default function KanbanBoard({ session }) {
     }
 
     if (type === 'Card') {
-      const activeColumn = encontrarEstadoPorId(active.id);
-      const overColumn = encontrarEstadoPorId(over.id);
-
-      if (!activeColumn || !overColumn) return;
-
-      setColumnas(prev => {
-        // RESTRICT REORDER IN SAME COLUMN
-        const pryHover = prev.flatMap(c => c.proyectos).find(p => p.id === active.id);
-        if (pryHover) {
-          const isLider = session?.user?.user_metadata?.rol === 'Líder Comercial';
-          const isEncargado = (pryHover.encargados || []).some(enc => enc.id === session?.user?.id);
-          if (!isLider && !isEncargado) {
-            showError("Acceso denegado: Solo el Líder Comercial o un encargado pueden reordenar este proyecto.");
-            return originalColumnasRef.current || prev;
-          }
-        }
-
-        const nuevasColumnas = prev.map(c => ({ ...c, proyectos: [...c.proyectos] }));
-        const colIndex = nuevasColumnas.findIndex(c => c.estadoOriginal === activeColumn);
-        const proyectosColumna = nuevasColumnas[colIndex].proyectos;
-
-        const activeIndex = proyectosColumna.findIndex(p => p.id === active.id);
-        const overIndex = proyectosColumna.findIndex(p => p.id === over.id);
-
-        const proyectosReordenados = arrayMove(proyectosColumna, activeIndex, overIndex);
-        
-        const cambioDeFase = estadoOrigenReal !== activeColumn;
-
-        // VALIDADOR DE LEVANTAMIENTO
-        if (estadoOrigenReal === 'Levantamiento' && activeColumn !== 'Levantamiento') {
-          const pry = proyectosColumna.find(p => p.id === active.id);
-          if (!pry.levantamiento_fecha) {
-            showError('No puedes avanzar. Debes llenar la Hoja de Levantamiento primero.');
-            return originalColumnasRef.current || prev;
-          }
-        }
-
-        // OTHER GATES
-        const origenGlobalIdx = estados.indexOf(estadoOrigenReal);
-        const destinoGlobalIdx = estados.indexOf(activeColumn);
-
-        if (destinoGlobalIdx > origenGlobalIdx) {
-          const pry = proyectosColumna.find(p => p.id === active.id);
-          const presupIdx = estados.indexOf('Presupuesto enviado');
-          if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !pry.presupuesto_aprobado) {
-            showError("No puede avanzar: Falta aprobar el presupuesto.");
-            return originalColumnasRef.current || prev;
-          }
-
-          const logisIdx = estados.indexOf('Logística y compras');
-          if (logisIdx !== -1 && destinoGlobalIdx > logisIdx && !pry.materiales_comprados) {
-            showError("No puede avanzar: Faltan materiales por comprar.");
-            return originalColumnasRef.current || prev;
-          }
-        }
-
-        const proyectosFinales = proyectosReordenados.map((p, i) => {
-          if (p.id === active.id && cambioDeFase) {
-            return { ...p, orden: i, dias: 0, fecha_ultima_actualizacion: new Date().toISOString() };
-          }
-          return { ...p, orden: i };
+      const columnWhereLanded = columnasRef.current.find(c => c.proyectos.some(p => p.id === active.id));
+      if (!columnWhereLanded) return;
+      
+      const destColumn = columnWhereLanded.estadoOriginal;
+      const pry = columnasRef.current.flatMap(c => c.proyectos).find(p => p.id === active.id);
+      
+      const validation = validateProjectMove(pry, destColumn, estados, session);
+      
+      if (!validation.isValid) {
+        showError(validation.error);
+        if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+        return;
+      }
+      
+      const cambioDeFase = pry.estado !== destColumn;
+      if (requiresMotive && cambioDeFase) {
+        setMotivePrompt({
+           title: `Motivo de ${requiresMotive}`,
+           onConfirm: (motive) => {
+             executeMove(motive);
+             setMotivePrompt(null);
+           },
+           onCancel: () => {
+             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+             setMotivePrompt(null);
+           }
         });
-
-        nuevasColumnas[colIndex].proyectos = proyectosFinales;
-        
-        (async () => {
-          for (const p of proyectosFinales) {
-            const updateData = { orden: p.orden, estado: p.estado };
-            if (p.id === active.id && cambioDeFase) {
-              updateData.fecha_ultima_actualizacion = p.fecha_ultima_actualizacion;
-              logAudit(session, 'Movió proyecto de fase', { proyecto_id: p.id, titulo: p.titulo, nuevo_estado: p.estado, origen: estadoOrigenReal });
-            }
-            await supabase.from('proyectos').update(updateData).eq('id', p.id);
-          }
-        })();
-
-        return nuevasColumnas;
-      });
+      } else if (isRetroceso && cambioDeFase) {
+        setMotivePrompt({
+           title: 'Motivo de Retroceso',
+           onConfirm: (motive) => {
+             const notaAnadida = `[RETROCESO] De "${pry.estado}" a "${destColumn}": ${motive}`;
+             const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
+             executeMove(null, nuevasNotas);
+             setMotivePrompt(null);
+           },
+           onCancel: () => {
+             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+             setMotivePrompt(null);
+           }
+        });
+      } else if (requiresDias && cambioDeFase) {
+        setDiasEstimadosPrompt({
+           columna: destColumn,
+           error: null,
+           onConfirm: (dias) => {
+             if (pry.fecha_entrega) {
+               const entrega = new Date(pry.fecha_entrega + 'T00:00:00');
+               const estimadoDate = new Date();
+               estimadoDate.setDate(estimadoDate.getDate() + dias);
+               if (estimadoDate > entrega) {
+                 setDiasEstimadosPrompt(prev => ({ ...prev, error: `Los días estimados superan la fecha de entrega final (${pry.fecha_entrega}). Introduce un número menor.` }));
+                 return;
+               }
+             }
+             let currentNotas = pry.notas || '';
+             currentNotas = currentNotas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+             const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${dias}]`;
+             const nuevasNotas = currentNotas ? currentNotas + '\n\n' + notaAnadida : notaAnadida;
+             executeMove(null, nuevasNotas);
+             setDiasEstimadosPrompt(null);
+           },
+           onCancel: () => {
+             if (originalColumnasRef.current) setColumnas(originalColumnasRef.current);
+             setDiasEstimadosPrompt(null);
+           }
+        });
+      } else {
+        executeMove();
+      }
     }
   };
 
@@ -426,55 +530,174 @@ export default function KanbanBoard({ session }) {
 
   return (
     <>
+      <div className={styles.stickyHeader}>
       <header className={styles.topHeader}>
-        <div className={styles.logo}>
-          <h2>Globals</h2>
-          <span>Kanban</span>
+        <div className={styles.logoAndProfile}>
+          <div className={styles.logo}>
+            <img src={logo} alt="Globals Logo" style={{ height: "40px" }} />
+          </div>
+          <div className={styles.profileInfo}>
+            <span className={styles.userName} title={session?.user?.user_metadata?.nombre || session?.user?.email}>
+              {session?.user?.user_metadata?.nombre || session?.user?.email}
+            </span>
+            <span className={styles.userRole}>
+              {session?.user?.user_metadata?.rol || 'Usuario'}
+            </span>
+          </div>
         </div>
-        <div className={styles.userInfo}>
-          <button className={styles.btnAgent} onClick={() => setIsAgentOpen(true)}>
-            🤖 Agente IA
-          </button>
-          <button 
-            className={styles.btnLogout} 
-            style={{ background: '#ecfdf5', color: '#059669', borderColor: '#a7f3d0' }}
-            onClick={async () => {
-              const t = await requestFirebaseToken();
-              if (t) {
-                const { error } = await supabase.from('fcm_tokens').upsert({ token: t, user_id: session.user.id });
-                if (error) { alert('Error guardando token: ' + error.message); } else { alert('¡Notificaciones activadas con éxito en este dispositivo!'); }
-              } else {
-                alert('No se pudo activar. Asegúrate de dar permisos en el navegador.');
-              }
-            }}>
-            🔔 Activar Push
-          </button>
 
-          <span className={styles.userEmail}>
-            {session?.user?.user_metadata?.nombre || session?.user?.email}
-          </span>
-          <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
-            Cerrar Sesión
+        <div className={styles.userInfo}>
+          <BellNotifications session={session} />
+
+          <div className={styles.desktopOnlyActions}>
+            {canViewFinances && (
+              <button 
+                className={styles.btnActionMobile} 
+                title="Dashboard Financiero"
+                style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                onClick={() => window.location.href = '/dashboard'}
+              >
+                <BarChart2 size={20} />
+              </button>
+            )}
+
+            {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+              <>
+                <button 
+                  className={styles.btnActionMobile} 
+                  title="Vista Ejecutiva"
+                  style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+                  onClick={() => window.location.href = '/'}
+                >
+                  <Activity size={20} />
+                  <span className={styles.hideOnMobile}>Ejecutivo</span>
+                </button>
+                <button 
+                  className={styles.btnActionMobile} 
+                  title="Cotizador"
+                  style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+                  onClick={() => window.location.href = '/cotizador'}
+                >
+                  <Calculator size={20} />
+                  <span className={styles.hideOnMobile}>Cotizador</span>
+                </button>
+              </>
+            )}
+
+            <button 
+              className={styles.btnActionMobile} 
+              title="WhatsApp Admin"
+              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              onClick={() => window.location.href = '/admin/whatsapp'}
+            >
+              <QrCode size={20} />
+            </button>
+            
+            <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
+              <LogOut size={18} /> <span className={styles.hideOnMobile}>Cerrar Sesión</span>
+            </button>
+          </div>
+
+          <button className={styles.mobileMenuBtn} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
+        
+        {isMobileMenuOpen && (
+          <div className={styles.mobileDropdown}>
+            {canViewFinances && (
+              <button 
+                className={`${styles.mobileMenuItem} ${styles.primary}`}
+                onClick={() => window.location.href = '/dashboard'}
+              >
+                <BarChart2 size={18} />
+                <span>Dashboard Financiero</span>
+              </button>
+            )}
+            {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+              <>
+                <button 
+                  className={styles.mobileMenuItem}
+                  onClick={() => window.location.href = '/'}
+                >
+                  <Activity size={18} />
+                  <span>Vista Ejecutiva</span>
+                </button>
+                <button 
+                  className={styles.mobileMenuItem}
+                  onClick={() => window.location.href = '/cotizador'}
+                >
+                  <Calculator size={18} />
+                  <span>Cotizador</span>
+                </button>
+              </>
+            )}
+            <button 
+              className={styles.mobileMenuItem}
+              onClick={() => window.location.href = '/admin/whatsapp'}
+            >
+              <QrCode size={18} />
+              <span>WhatsApp Admin</span>
+            </button>
+            
+            {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+              <>
+                <div className={styles.divider}></div>
+                <button 
+                  className={styles.mobileMenuItem}
+                  onClick={() => { setShowArchived(!showArchived); setIsMobileMenuOpen(false); }}
+                >
+                  <Archive size={18} />
+                  <span>{showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}</span>
+                </button>
+                <button 
+                  className={`${styles.mobileMenuItem} ${styles.danger}`}
+                  onClick={() => { setShowCancelados(true); setIsMobileMenuOpen(false); }}
+                >
+                  <Trash2 size={18} />
+                  <span>Cancelados</span>
+                </button>
+              </>
+            )}
+            
+            <div className={styles.divider}></div>
+            <button className={styles.mobileMenuItem} onClick={() => supabase.auth.signOut()}>
+              <LogOut size={18} /> <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        )}
       </header>
 
       <div className={styles.toolbar}>
-        <input 
-          type="text" 
-          placeholder="Buscar por cliente, teléfono o título..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-        />
-        <button 
-          className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
-          onClick={() => setShowArchived(!showArchived)}
-        >
-          {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
-        </button>
+        <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
+        <div className={styles.desktopToolbarActions}>
+          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+          <button 
+            className={`${styles.btnArchive} ${showArchived ? styles.active : ''}`}
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Archive size={18} />
+            <span className={styles.hideOnMobile}>
+              {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+            </span>
+          </button>
+          )}
+          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+          <button 
+            className={styles.btnArchive}
+            style={{ background: '#ef4444', color: 'white', borderColor: '#b91c1c' }}
+            onClick={() => setShowCancelados(true)}
+          >
+            <Trash2 size={18} />
+            <span className={styles.hideOnMobile}>
+              Cancelados
+            </span>
+          </button>
+          )}
+        </div>
       </div>
 
+      </div>
       {boardError && (
         <div className={styles.boardError}>
           <span>{boardError}</span>
@@ -509,30 +732,14 @@ export default function KanbanBoard({ session }) {
               // Normalmente 'Archivado' es una columna más, o ocultamos las demás.
               // Mejor mostramos la columna 'Archivado' si showArchived es true.
 
-              // Filtrar proyectos según la búsqueda
-              const normalizeStr = (str) => {
-                if (!str) return '';
-                return str
-                  .normalize("NFD")
-                  .replace(/[\u0300-\u036f]/g, "") // quita acentos
-                  .replace(/[.,/#!$%^&*;:{}=_`~()-]/g,"") // quita signos de puntuación
-                  .toLowerCase();
-              };
-
-              const proyectosFiltrados = col.proyectos.filter(p => {
-                const s = normalizeStr(searchTerm);
-                if (!s) return true;
-                return (
-                  normalizeStr(p.titulo).includes(s) ||
-                  normalizeStr(p.cliente_telefono).includes(s) ||
-                  normalizeStr(p.notas).includes(s)
-                );
-              });
+              const proyectosFiltrados = col.proyectos;
 
               // Si hay término de búsqueda, tal vez queramos ocultar columnas vacías, pero lo dejaremos así.
               return (
                 <KanbanColumn 
                   key={col.estadoOriginal} 
+                  colorBg={columnColors[col.estadoOriginal] || '#f8fafc'}
+                  colorText={getTextForBg(columnColors[col.estadoOriginal] || '#f8fafc')}
                   titulo={col.estadoOriginal} 
                   cantidad={proyectosFiltrados.length}
                   proyectos={proyectosFiltrados}
@@ -540,6 +747,7 @@ export default function KanbanBoard({ session }) {
                   onAddProject={() => setAddProjectColumnId(col.estadoOriginal)}
                   onCardClick={setProyectoDetalleId}
                   onSettingsClick={setColumnSettingsId}
+                  onBotClick={() => setIsAgentOpen(col.estadoOriginal)}
                 />
               );
             })}
@@ -553,6 +761,8 @@ export default function KanbanBoard({ session }) {
         <DragOverlay>
           {columnaActiva ? (
             <KanbanColumn 
+              colorBg={columnColors[columnaActiva.estadoOriginal] || '#f8fafc'}
+              colorText={getTextForBg(columnColors[columnaActiva.estadoOriginal] || '#f8fafc')}
               titulo={columnaActiva.estadoOriginal} 
               cantidad={columnaActiva.proyectos.length}
               proyectos={columnaActiva.proyectos}
@@ -577,6 +787,74 @@ export default function KanbanBoard({ session }) {
           columnaEstado={addProjectColumnId} 
           onClose={() => setAddProjectColumnId(null)} 
           onAdd={handleAgregarProyectoSubmit} 
+        />
+      )}
+
+
+      {diasEstimadosPrompt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem' }}>Días Estimados para la Fase</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>
+              ¿Cuántos días estimas que tomará esta tarjeta en la columna <strong>{diasEstimadosPrompt.columna}</strong>?
+            </p>
+            {diasEstimadosPrompt.error && (
+              <div style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.85rem' }}>{diasEstimadosPrompt.error}</div>
+            )}
+            <input 
+              type="number"
+              id="diasEstimadosInput"
+              autoFocus
+              min="1"
+              placeholder="Ej. 3"
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={diasEstimadosPrompt.onCancel} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+              <button 
+                onClick={() => {
+                  const val = parseInt(document.getElementById('diasEstimadosInput').value, 10);
+                  if (!val || isNaN(val)) { return; }
+                  diasEstimadosPrompt.onConfirm(val);
+                }} 
+                style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {motivePrompt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem' }}>{motivePrompt.title}</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>Por favor, indica el motivo detallado de esta acción.</p>
+            <textarea 
+              id="motiveInput"
+              autoFocus
+              placeholder="Ej. Falta de material, decisión del cliente..."
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={motivePrompt.onCancel} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+              <button 
+                onClick={() => {
+                  const val = document.getElementById('motiveInput').value;
+                  if (!val.trim()) { return; }
+                  motivePrompt.onConfirm(val);
+                }} 
+                style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+              >Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelados && (
+
+        <CanceladosModal 
+          session={session}
+          onClose={() => setShowCancelados(false)}
         />
       )}
 
@@ -611,7 +889,7 @@ export default function KanbanBoard({ session }) {
 
       {columnSettingsId && (
         <ColumnSettingsModal
-          columna={columnas.find(c => c.estadoOriginal === columnSettingsId)}
+          columna={{ ...columnas.find(c => c.estadoOriginal === columnSettingsId), color: columnColors[columnSettingsId] }}
           onClose={() => setColumnSettingsId(null)}
           onUpdate={handleUpdateColumna}
           onDelete={handleDeleteColumna}
@@ -620,6 +898,7 @@ export default function KanbanBoard({ session }) {
 
       {isAgentOpen && (
         <AIAgentModal 
+          estadoPredefinido={typeof isAgentOpen === 'string' ? isAgentOpen : null}
           onClose={() => setIsAgentOpen(false)}
           onProjectCreated={handleAgregarProyectoSubmit}
         />
