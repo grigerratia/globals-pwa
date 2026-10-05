@@ -3,7 +3,7 @@ import { Kanban, Activity, TrendingUp, CheckCircle, Briefcase, AlertCircle, Wren
 import { supabase } from '../../supabase';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
-import ProjectDetailModal from '../KanbanBoard/ProjectDetailModal';
+import ProjectDetailModal from '../Modals/ProjectDetailModal';
 
 export default function ExecutiveDashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);

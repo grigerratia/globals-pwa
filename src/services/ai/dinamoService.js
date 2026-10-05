@@ -332,8 +332,7 @@ ${herramientasCompletadasTexto}`;
         }
         
         const calls = result.response.functionCalls();
-        let toolResponsesText = "Resultados del sistema (Herramientas ejecutadas):
-";
+        let toolResponsesText = "Resultados del sistema (Herramientas ejecutadas):\\n";
         
         for (const call of calls) {
           try {
