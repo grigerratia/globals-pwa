@@ -141,6 +141,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       setComentarios(prev => prev.some(c => c.id === data[0].id) ? prev : [data[0], ...prev]);
       setNuevoComentario('');
       setReplyingTo(null);
+      logAudit(session, "Añadió comentario a proyecto", { proyecto_id: proyectoId, titulo: proyecto.titulo });
     } else {
       console.error(error);
       setMsg({ text: 'Aún no existe la tabla comentarios o hubo un error.', type: 'error' });
@@ -225,9 +226,24 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
          executeStateChange();
        }
     } else {
-      setConfirmArchive(false);
-      setMsg({ text: 'Error al archivar: ' + error.message, type: 'error' });
-      setTimeout(() => setMsg({ text: '', type: '' }), 5000);
+      const updates = { [field]: value, fecha_ultima_actualizacion: new Date().toISOString() };
+      setProyecto(prev => ({ ...prev, ...updates }));
+      const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
+      if (!error) {
+        onProjectUpdated({ ...proyecto, ...updates });
+        const fname = {
+          titulo: 'título', cliente_nombre: 'persona de contacto', cliente_empresa: 'empresa/cliente',
+          cliente_telefono: 'teléfono', notas: 'notas/descripción', presupuesto_aprobado: 'estado de presupuesto',
+          materiales_comprados: 'estado de materiales', presupuesto_vendido: 'presupuesto vendido',
+          costo_materiales: 'costo de materiales', costo_operativo: 'costo operativo', encargados: 'encargados'
+        }[field] || field;
+        if (field !== 'presupuesto_aprobado' && field !== 'materiales_comprados') {
+          logAudit(session, `Actualizó ${fname} de proyecto`, { proyecto_id: proyectoId, titulo: proyecto.titulo });
+        }
+      } else {
+        setMsg({ text: `Error al actualizar ${field}: ` + error.message, type: 'error' });
+        setTimeout(() => setMsg({ text: '', type: '' }), 5000);
+      }
     }
   };
 

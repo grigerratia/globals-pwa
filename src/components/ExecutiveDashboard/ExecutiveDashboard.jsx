@@ -11,6 +11,7 @@ export default function ExecutiveDashboard({ session }) {
   const [estados, setEstados] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [proyectoDetalleId, setProyectoDetalleId] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
   
   // Estado para el modal de KPIs (Tarjetas interactivas)
   const [modalKpi, setModalKpi] = useState(null);
@@ -25,6 +26,15 @@ export default function ExecutiveDashboard({ session }) {
       const { data: proys } = await supabase.from('proyectos').select('*');
       if (proys) {
         setProyectos(proys);
+      }
+
+      const { data: logs } = await supabase.from('audit_logs')
+        .select('*')
+        .neq('accion', 'Inició sesión')
+        .order('created_at', { ascending: false })
+        .limit(15);
+      if (logs) {
+        setAuditLogs(logs);
       }
       setCargando(false);
     }
@@ -66,7 +76,6 @@ export default function ExecutiveDashboard({ session }) {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) > 5;
   });
   
-  const recientes = [...activos].sort((a, b) => new Date(b.fecha_ultima_actualizacion) - new Date(a.fecha_ultima_actualizacion)).slice(0, 5);
 
   const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
 
@@ -200,18 +209,22 @@ export default function ExecutiveDashboard({ session }) {
             <h2>Actividad Reciente</h2>
           </div>
           <div className={styles.activityList}>
-            {recientes.map(p => (
-              <div key={p.id} className={styles.activityItem} onClick={() => setProyectoDetalleId(p.id)}>
-                <div className={styles.activityMain}>
-                  <h4>{p.titulo}</h4>
-                  <span className={styles.badge}>{p.estado}</span>
+            {auditLogs.map(log => {
+              const projectId = log.detalles?.proyecto_id || log.detalles?.id;
+              const title = log.detalles?.titulo || log.detalles?.nuevo_estado || '';
+              return (
+                <div key={log.id} className={styles.activityItem} onClick={() => projectId && setProyectoDetalleId(projectId)} style={{ cursor: projectId ? 'pointer' : 'default' }}>
+                  <div className={styles.activityMain}>
+                    <h4 style={{ fontSize: '0.95rem' }}>{log.accion}</h4>
+                    {title && <span className={styles.badge} style={{ opacity: 0.8 }}>{title}</span>}
+                  </div>
+                  <div className={styles.activityMeta} style={{ marginTop: '0.25rem' }}>
+                    <span>{new Date(log.created_at).toLocaleString()}</span>
+                    <span>• {log.usuario_nombre}</span>
+                  </div>
                 </div>
-                <div className={styles.activityMeta}>
-                  <span>Actualizado: {new Date(p.fecha_ultima_actualizacion).toLocaleDateString()}</span>
-                  {p.presupuesto_vendido && <span>• {formatCurrency(p.presupuesto_vendido)}</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </main>
