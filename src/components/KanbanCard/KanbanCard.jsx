@@ -30,8 +30,21 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
     'En pausa/espera': 999
   };
 
+  const isArchivedOrCanceled = ['Archivado', 'Cancelado', 'Cancelado_Oculto'].includes(proyecto.estado);
   const limite = SLA_LIMITS[proyecto.estado] || 2;
-  const isStalled = proyecto.dias > limite;
+  const isStalled = !isArchivedOrCanceled && (proyecto.dias > limite);
+
+  let isOverdue = false;
+  let daysOverdue = 0;
+  if (proyecto.fecha_entrega && !isArchivedOrCanceled && !['Entregado y cerrado'].includes(proyecto.estado)) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const entrega = new Date(proyecto.fecha_entrega + 'T00:00:00');
+    if (today > entrega) {
+      isOverdue = true;
+      daysOverdue = Math.floor((today - entrega) / (1000 * 60 * 60 * 24));
+    }
+  }
 
   // 2. Extraemos el contenido renderizado para no declararlo como un componente interno
   const renderCardContent = () => (
@@ -43,16 +56,23 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
           <span>{proyecto.cliente_telefono || 'Sin Tlf'}</span>
         </div>
         
-        {isStalled ? (
-          <span className={styles.alerta}>
-            <AlertCircle size={12} />
-            {proyecto.dias} d (¡Atascado!)
-          </span>
-        ) : (
-          <span className={styles.diasLabel}>
-            <Clock size={12} />
-            {proyecto.dias} d
-          </span>
+        {!isArchivedOrCanceled && (
+          isOverdue ? (
+            <span className={styles.alerta} style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)' }}>
+              <AlertCircle size={12} />
+              Vencido {daysOverdue} d
+            </span>
+          ) : isStalled ? (
+            <span className={styles.alerta}>
+              <AlertCircle size={12} />
+              {proyecto.dias} d (¡Atascado!)
+            </span>
+          ) : (
+            <span className={styles.diasLabel}>
+              <Clock size={12} />
+              {proyecto.dias} d
+            </span>
+          )
         )}
       </div>
       <div className={styles.creadoLabel}>
@@ -70,7 +90,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
   if (isOverlay) {
     return (
       <div 
-        className={`${styles.card} ${styles.cardDragging} ${isStalled ? styles.cardStalled : ''}`} 
+        className={`${styles.card} ${styles.cardDragging} ${isOverdue || isStalled ? styles.cardStalled : ''}`} 
         style={style}
       >
         {renderCardContent()}
@@ -84,7 +104,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
       style={style}
       {...attributes}
       {...listeners}
-      className={`${styles.card} ${isStalled ? styles.cardStalled : ''}`}
+      className={`${styles.card} ${isOverdue || isStalled ? styles.cardStalled : ''}`}
       onClick={(e) => {
         // ...
         onClick(proyecto.id);

@@ -832,14 +832,19 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           session={session}
           onClose={() => setProyectoDetalleId(null)}
           onProjectUpdated={(updatedProject) => {
+            const hoy = new Date();
+            const fechaUltima = new Date(updatedProject.fecha_ultima_actualizacion || updatedProject.fecha_creacion);
+            const dias = Math.floor((hoy - fechaUltima) / (1000 * 60 * 60 * 24));
+            const projectWithDias = { ...updatedProject, dias: dias >= 0 ? dias : 0 };
+
             setColumnas(prev => {
               let cleaned = prev.map(c => ({
                 ...c,
-                proyectos: c.proyectos.filter(p => p.id !== updatedProject.id)
+                proyectos: c.proyectos.filter(p => p.id !== projectWithDias.id)
               }));
               return cleaned.map(c => {
-                if (c.estadoOriginal === updatedProject.estado) {
-                  return { ...c, proyectos: [...c.proyectos, updatedProject].sort((a,b) => a.orden - b.orden) };
+                if (c.estadoOriginal === projectWithDias.estado) {
+                  return { ...c, proyectos: [...c.proyectos, projectWithDias].sort((a,b) => a.orden - b.orden) };
                 }
                 return c;
               });

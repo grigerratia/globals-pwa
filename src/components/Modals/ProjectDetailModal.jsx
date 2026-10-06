@@ -247,6 +247,42 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
   };
 
+  const handleArchiveProject = async () => {
+    if (!archiveMotive.trim()) {
+      setMsg({ text: 'Debes ingresar un motivo de archivo', type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+      return;
+    }
+    
+    // Asegurarse de que el estado 'Archivado' exista en la tabla columnas para evitar el error de Foreign Key
+    const { data: colData } = await supabase.from('columnas').select('nombre').eq('nombre', 'Archivado').single();
+    if (!colData) {
+      const { error: insErr } = await supabase.from('columnas').insert([{ nombre: 'Archivado', orden: 998 }]);
+      if (insErr) {
+        setMsg({ text: 'Error creando estado: ' + insErr.message, type: 'error' });
+        setConfirmArchive(false);
+        return;
+      }
+    }
+
+    const currentNotas = proyecto.notas || '';
+    const dateStr = new Date().toLocaleDateString();
+    const notasActualizadas = currentNotas ? currentNotas + `\n\n[ARCHIVADO el ${dateStr}]: ${archiveMotive}` : `[ARCHIVADO el ${dateStr}]: ${archiveMotive}`;
+
+    const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', notas: notasActualizadas, fecha_ultima_actualizacion: new Date().toISOString() }).eq('id', proyectoId);
+    if (!error) {
+      await logAudit(session, 'Archivó proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: archiveMotive });
+      onProjectUpdated({ ...proyecto, estado: 'Archivado', notas: notasActualizadas, fecha_ultima_actualizacion: new Date().toISOString() });
+      setConfirmArchive(false);
+      onClose();
+    } else {
+      console.error("Error al archivar:", error);
+      setConfirmArchive(false);
+      setMsg({ text: 'Error al archivar: ' + error.message, type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 5000);
+    }
+  };
+
   const handleCancelProject = async () => {
     if (!cancelMotive.trim()) {
       setMsg({ text: 'Debes ingresar un motivo de cancelación', type: 'error' });
