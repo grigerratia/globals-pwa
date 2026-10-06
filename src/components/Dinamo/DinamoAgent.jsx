@@ -227,13 +227,20 @@ export default function DinamoAgent({ onClose }) {
 
             return (
               <div className={styles.response}>
-                <button 
-                  onClick={toggleMute} 
-                  className={styles.muteButton} 
-                  title={isMuted ? "Activar voz" : "Silenciar voz"}
-                >
-                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                </button>
+                <div className={styles.avatarIndicatorGroup}>
+                  <button 
+                    onClick={toggleMute} 
+                    className={styles.muteButton} 
+                    title={isMuted ? "Activar voz" : "Silenciar voz"}
+                  >
+                    {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                  </button>
+                  {!isMuted && isSpeaking && (
+                    <div className={styles.soundWaves}>
+                      <span></span><span></span><span></span>
+                    </div>
+                  )}
+                </div>
                 
                 <div style={{ flex: 1 }}>
                   <div className={styles.markdownResponse}>
@@ -273,12 +280,6 @@ export default function DinamoAgent({ onClose }) {
                     </div>
                   )}
                 </div>
-
-                {!isMuted && isSpeaking && (
-                  <div className={styles.soundWaves}>
-                    <span></span><span></span><span></span>
-                  </div>
-                )}
               </div>
             );
           })()}

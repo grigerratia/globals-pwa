@@ -170,8 +170,7 @@
   }
 
   .response {
-  padding: 0.5rem 0;
-
+    padding: 0.5rem 0;
     border-radius: 0 8px 8px 0;
     color: #f8fafc;
     display: flex;
@@ -179,12 +178,6 @@
     gap: 0.75rem;
     font-size: 0.95rem;
     line-height: 1.5;
-    
-    svg {
-      color: #8b5cf6;
-      flex-shrink: 0; min-width: 64px; min-height: 64px;
-      margin-top: 2px;
-    }
   }
 }
 
@@ -269,12 +262,23 @@
   strong { color: #fff; font-weight: 600; }
 }
 
-.muteButton {
-  flex-shrink: 0; min-width: 64px; min-height: 64px;
+.avatarIndicatorGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 40px;
   margin-top: 4px;
+}
+
+.muteButton {
+  flex-shrink: 0; 
+  width: 24px; 
+  height: 24px;
   background: transparent;
   border: none;
-  color: #fff;
+  color: #8b5cf6;
   cursor: pointer;
   padding: 0;
   opacity: 0.8;
@@ -291,10 +295,11 @@
 .soundWaves {
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   gap: 3px;
   height: 16px;
-  margin-top: 4px;
-  flex-shrink: 0; min-width: 64px; min-height: 64px;
+  flex-shrink: 0; 
+  width: 24px;
   
   span {
     display: block;
