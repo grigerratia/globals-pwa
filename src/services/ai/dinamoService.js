@@ -3,8 +3,13 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { supabase } from '../../supabase';
 
 // Inicializar SDK
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+const googleKeys = [
+  import.meta.env.VITE_GEMINI_API_KEY,
+  import.meta.env.VITE_GEMINI_API_KEY_2,
+  import.meta.env.VITE_GEMINI_API_KEY_3
+].filter(Boolean);
+
+let currentGoogleKeyIndex = 0;
 
 // --- EJE 3: SISTEMA DE REFERENCIAS CORTAS (Short-ID Mapping) ---
 let projectToShortMap = {};
@@ -374,12 +379,14 @@ const executeTool = async (call) => {
 };
 
 export const sendDinamoMessage = async (textMessage) => {
+  let keysTried = 1;
   for (let i = currentModelIndex; i < modelosDisponibles.length; i++) {
     const currentModel = modelosDisponibles[i];
     try {
       let finalTextResponse = "";
 
       if (currentModel.provider === 'google') {
+        const genAI = new GoogleGenerativeAI(googleKeys[currentGoogleKeyIndex]);
         const model = genAI.getGenerativeModel({
           model: currentModel.id,
           tools: tools,
@@ -610,9 +617,24 @@ export const sendDinamoMessage = async (textMessage) => {
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${currentModel.id}:`, error.message);
       
+      const isQuotaError = error.message.includes('429') || error.message.includes('503') || error.message.includes('insufficient_quota');
+
+      if (currentModel.provider === 'google' && isQuotaError) {
+        if (keysTried < googleKeys.length) {
+          console.warn(`[Dinamo] Rotando a la siguiente API Key de Google... (${keysTried}/${googleKeys.length})`);
+          currentGoogleKeyIndex = (currentGoogleKeyIndex + 1) % googleKeys.length;
+          keysTried++;
+          i--; // Reintentar el mismo modelo con la nueva llave
+          continue;
+        }
+      }
+
+      // Si llegamos aquí, agotamos las llaves de este modelo o fue un error diferente
+      keysTried = 1;
+
       if (i === modelosDisponibles.length - 1) {
-        if (error.message.includes('429') || error.message.includes('503') || error.message.includes('insufficient_quota')) {
-          return "Atención: Cuota agotada o servidores saturados en TODOS los modelos. Debemos esperar un momento para reintentar.";
+        if (isQuotaError) {
+          return "Atención: Cuota agotada o servidores saturados en TODOS los modelos y llaves. Debemos esperar un momento para reintentar.";
         }
         return "Lo siento, mis sistemas están saturados en este momento. Intenta de nuevo más tarde.";
       }
