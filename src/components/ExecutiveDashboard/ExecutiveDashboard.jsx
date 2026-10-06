@@ -21,8 +21,6 @@ export default function ExecutiveDashboard({ session }) {
   // Estado para el modal de KPIs (Tarjetas interactivas)
   const [modalKpi, setModalKpi] = useState(null);
 
-  useEffect(() => {
-    
   const fetchLogs = async () => {
     const { data: logs, error } = await supabase.from('audit_logs')
       .select('*')
@@ -36,6 +34,8 @@ export default function ExecutiveDashboard({ session }) {
     }
   };
 
+  useEffect(() => {
+    
   async function fetchData() {
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       if (colsData) {
