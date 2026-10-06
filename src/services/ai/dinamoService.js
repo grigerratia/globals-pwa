@@ -34,24 +34,6 @@ function truncateHistory(history, maxTurns) {
 const groqApiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const cohereApiKey = import.meta.env.VITE_COHERE_API_KEY;
 
-const cohereTools = tools[0].functionDeclarations.map(decl => ({
-  name: decl.name,
-  description: decl.description,
-  parameter_definitions: Object.keys(decl.parameters?.properties || {}).reduce((acc, key) => {
-    let pType = decl.parameters.properties[key].type.toLowerCase();
-    if (pType.includes('string')) pType = 'str';
-    else if (pType.includes('boolean')) pType = 'bool';
-    else if (pType.includes('number')) pType = 'float';
-    else pType = 'str';
-
-    acc[key] = {
-      type: pType,
-      description: decl.parameters.properties[key].description,
-      required: decl.parameters?.required?.includes(key) || false
-    };
-    return acc;
-  }, {})
-}));
 
 const SYSTEM_PROMPT = `Eres Dinamo, asistente IA de Kanban Global's. Eres profesional, directo y MUY BREVE.
 REGLAS:
