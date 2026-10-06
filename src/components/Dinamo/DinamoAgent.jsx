@@ -64,28 +64,46 @@ export default function DinamoAgent({ onClose }) {
 
     // Fallback a la voz del navegador
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'es-ES';
     
-    // Intentar buscar una voz masculina
     const voices = window.speechSynthesis.getVoices();
+    let selectedVoice = null;
+
+    // Voces masculinas conocidas (español)
+    const maleVoiceNames = [
+      'Microsoft Raul', // Windows es-MX
+      'Microsoft Pablo', // Windows es-ES
+      'Google español de Estados Unidos', // Chrome es-US (often male)
+      'Diego', // Mac es-AR
+      'Jorge', // Mac es-ES
+      'Juan', // Mac es-MX
+      'Carlos' // Mac es-CO
+    ];
     
-    // Buscar primero una voz de alta calidad (Google WaveNet) que suele venir en Chrome
-    const premiumVoice = voices.find(v => v.lang.startsWith('es') && v.name.includes('Google español'));
+    for (const name of maleVoiceNames) {
+      selectedVoice = voices.find(v => v.lang.startsWith('es') && v.name.includes(name));
+      if (selectedVoice) break;
+    }
     
-    // Si no, buscar una voz masculina
-    const maleVoice = voices.find(v => 
-      v.lang.startsWith('es') && 
-      (v.name.includes('Pablo') || v.name.includes('Jorge') || v.name.includes('Diego') || v.name.toLowerCase().includes('masculine') || v.name.toLowerCase().includes('male'))
-    );
-    
-    if (premiumVoice) {
-      utterance.voice = premiumVoice;
-    } else if (maleVoice) {
-      utterance.voice = maleVoice;
+    // Si no hay ninguna conocida, buscar cualquiera que diga male o masculine
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.startsWith('es') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('masculine')));
+    }
+
+    // Si aún no hay, evitar voces femeninas conocidas
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.startsWith('es') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('mujer') && !v.name.includes('Sabina') && !v.name.includes('Helena') && !v.name.includes('Laura') && !v.name.includes('Mónica') && !v.name.includes('Paulina') && !v.name.includes('Victoria') && !v.name.includes('Google español'));
+    }
+
+    // Fallback final: cualquiera en español
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.startsWith('es'));
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
     } else {
-      // Fallback a cualquier voz en español si no hay masculinas específicas
-      const esVoice = voices.find(v => v.lang.startsWith('es'));
-      if (esVoice) utterance.voice = esVoice;
+      utterance.lang = 'es-ES';
     }
 
     // Ajustes para que suene menos robótico

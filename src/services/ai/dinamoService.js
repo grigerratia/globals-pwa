@@ -306,9 +306,9 @@ const executeTool = async (call) => {
         encargados.push(newEncargado);
         const { error: updError } = await supabase.from('proyectos').update({ encargados }).eq('id', args.id_proyecto);
         if (updError) throw updError;
-        return { success: true, message: `Usuario ${uData[0].nombre} asignado correctamente al proyecto.` };
+        return { success: true, message: `Usuario ${targetUser.nombre} asignado correctamente al proyecto.` };
       } else {
-        return { success: true, message: `El usuario ${uData[0].nombre} ya estaba asignado a este proyecto.` };
+        return { success: true, message: `El usuario ${targetUser.nombre} ya estaba asignado a este proyecto.` };
       }
     }
 
