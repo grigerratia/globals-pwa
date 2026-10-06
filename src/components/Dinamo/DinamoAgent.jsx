@@ -30,37 +30,45 @@ export default function DinamoAgent({ onClose }) {
 
     try {
       setIsSpeaking(true);
-      const response = await fetch('/api/tts', {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const reqBody = {
+        contents: [{
+          parts: [{ text: `(Voz de hombre adulto profesional, tono seguro y amable): ${cleanText}` }]
+        }]
+      };
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          model: 'tts-1',
-          input: cleanText,
-          voice: 'echo',
-        })
+        body: JSON.stringify(reqBody)
       });
         
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
+      if (response.ok) {
+        const data = await response.json();
+        const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        
+        if (inlineData && inlineData.data) {
+          const url = `data:${inlineData.mimeType || 'audio/mp3'};base64,${inlineData.data}`;
           const audio = new Audio(url);
           audioRef.current = audio;
           audio.onended = () => {
             setIsSpeaking(false);
-            URL.revokeObjectURL(url);
           };
           audio.onerror = () => setIsSpeaking(false);
           audio.play();
           return;
         } else {
-          const errData = await response.json().catch(() => ({}));
-          console.error("Error Gemini TTS:", errData);
+          console.error("Error Gemini TTS: No audio data returned", data);
         }
-      } catch (err) {
-        console.error("Error con API de Voz, usando voz del navegador", err);
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.error("Error Gemini TTS:", errData);
       }
+    } catch (err) {
+      console.error("Error con API de Voz, usando voz del navegador", err);
+    }
 
     // Fallback a la voz del navegador
     const utterance = new SpeechSynthesisUtterance(cleanText);
