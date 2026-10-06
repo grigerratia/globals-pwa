@@ -427,7 +427,7 @@
   flex: 1;
 
   .searchIcon {
-    position: absolute;
+    position: fixed;
     left: 10px;
     color: #94a3b8;
   }
@@ -470,7 +470,7 @@
   @media (max-width: 768px) {
     display: flex;
     flex-direction: column;
-    position: absolute;
+    position: fixed;
     top: 65px;
     right: 1rem;
     background: white;
@@ -561,7 +561,7 @@
 }
 
 .mobileToolbarDropdown {
-  position: absolute;
+  position: fixed;
   top: calc(100% + 0.5rem);
   right: 0;
   background: white;
@@ -596,4 +596,18 @@
       background: #f8fafc;
     }
   }
+}
+
+.savingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #3b82f6;
+  font-size: 1.2rem;
 }

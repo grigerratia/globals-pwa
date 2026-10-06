@@ -67,6 +67,7 @@ export default function KanbanBoard({ session }) {
   
   const [proyectoActivo, setProyectoActivo] = useState(null);
   const [columnaActiva, setColumnaActiva] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [estadoOrigenReal, setEstadoOrigenReal] = useState(null);
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 5 } });
@@ -274,7 +275,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
 
     setAddProjectColumnId(null);
-    logAudit(session, 'Creó un proyecto nuevo', { proyecto_id: data[0].id, titulo: data[0].titulo, estado: data[0].estado });
+    await logAudit(session, 'Creó un proyecto nuevo', { proyecto_id: data[0].id, titulo: data[0].titulo, estado: data[0].estado });
 
     const proyectoInsertado = { ...data[0], dias: 0, telefono: data[0].cliente_telefono || 'Sin teléfono' };
 
@@ -490,7 +491,9 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           return nuevas;
         });
 
-        (async () => {
+        
+        setIsSaving(true);
+        try {
           for (const p of proyectosFinales) {
             const updateData = { orden: p.orden, estado: p.estado };
             if (p.id === active.id && cambioDeFase) {
@@ -498,7 +501,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               if (motive) updateData.motivo_cancelacion = motive;
               if (nuevasNotas) updateData.notas = nuevasNotas;
 
-              logAudit(session, 'Movió proyecto de fase', { 
+              await logAudit(session, 'Movió proyecto de fase', { 
                 proyecto_id: p.id, 
                 titulo: p.titulo, 
                 nuevo_estado: destColumn, 
@@ -506,9 +509,13 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
                 motivo: motive 
               });
             }
-            const {error: err} = await supabase.from('proyectos').update(updateData).eq('id', p.id); if(err) { console.error("Error update proy:", err); alert("Error guardando proyecto: " + err.message); }
+            const {error: err} = await supabase.from('proyectos').update(updateData).eq('id', p.id); 
+            if(err) { console.error("Error update proy:", err); alert("Error guardando proyecto: " + err.message); }
           }
-        })();
+        } finally {
+          setIsSaving(false);
+        }
+
       };
       if (validation.requiresMotive && cambioDeFase) {
         setMotivePrompt({
@@ -649,6 +656,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       )}
 
       <div className={styles.boardContainer}>
+      {isSaving && <div className={styles.savingOverlay}>Guardando cambios...</div>}
       <DndContext 
         sensors={sensors}
         collisionDetection={closestCorners}

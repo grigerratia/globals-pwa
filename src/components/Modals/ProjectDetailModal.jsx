@@ -141,7 +141,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       setComentarios(prev => prev.some(c => c.id === data[0].id) ? prev : [data[0], ...prev]);
       setNuevoComentario('');
       setReplyingTo(null);
-      logAudit(session, "Añadió comentario a proyecto", { proyecto_id: proyectoId, titulo: proyecto.titulo });
+      await logAudit(session, "Añadió comentario a proyecto", { proyecto_id: proyectoId, titulo: proyecto.titulo });
     } else {
       console.error(error);
       setMsg({ text: 'Aún no existe la tabla comentarios o hubo un error.', type: 'error' });
@@ -175,7 +175,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
          const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
          if (!error) {
            onProjectUpdated({ ...proyecto, ...updates });
-           logAudit(session, 'Cambió estado de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, nuevo_estado: value });
+           await logAudit(session, 'Cambió estado de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, nuevo_estado: value });
            setMsg({ text: 'Estado actualizado', type: 'success' });
            setTimeout(() => setMsg({ text: '', type: '' }), 3000);
          }
@@ -238,7 +238,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
           costo_materiales: 'costo de materiales', costo_operativo: 'costo operativo', encargados: 'encargados'
         }[field] || field;
         if (field !== 'presupuesto_aprobado' && field !== 'materiales_comprados') {
-          logAudit(session, `Actualizó ${fname} de proyecto`, { proyecto_id: proyectoId, titulo: proyecto.titulo });
+          await logAudit(session, `Actualizó ${fname} de proyecto`, { proyecto_id: proyectoId, titulo: proyecto.titulo });
         }
       } else {
         setMsg({ text: `Error al actualizar ${field}: ` + error.message, type: 'error' });
@@ -267,7 +267,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
     const { error } = await supabase.from('proyectos').update({ estado: 'Cancelado', motivo_cancelacion: cancelMotive }).eq('id', proyectoId);
     if (!error) {
-      logAudit(session, 'Canceló proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: cancelMotive });
+      await logAudit(session, 'Canceló proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: cancelMotive });
       onProjectDeleted(proyectoId);
       onClose();
     } else {

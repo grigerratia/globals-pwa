@@ -22,7 +22,21 @@ export default function ExecutiveDashboard({ session }) {
   const [modalKpi, setModalKpi] = useState(null);
 
   useEffect(() => {
-    async function fetchData() {
+    
+  const fetchLogs = async () => {
+    const { data: logs, error } = await supabase.from('audit_logs')
+      .select('*')
+      .neq('accion', 'Inició sesión')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) {
+      alert("Error cargando actividad: " + error.message);
+    } else if (logs) {
+      setAuditLogs(logs);
+    }
+  };
+
+  async function fetchData() {
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       if (colsData) {
         setEstados(colsData.map(c => c.nombre));
@@ -33,14 +47,7 @@ export default function ExecutiveDashboard({ session }) {
         setProyectos(proys);
       }
 
-      const { data: logs } = await supabase.from('audit_logs')
-        .select('*')
-        .neq('accion', 'Inició sesión')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (logs) {
-        setAuditLogs(logs);
-      }
+      await fetchLogs();
       setCargando(false);
     }
     fetchData();
@@ -278,6 +285,7 @@ export default function ExecutiveDashboard({ session }) {
           <div className={styles.sectionHeader}>
             <Activity size={18} />
             <h2>Actividad Reciente</h2>
+            <button onClick={fetchLogs} style={{ marginLeft: "auto", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.2rem 0.5rem", fontSize: "0.8rem", cursor: "pointer" }}>Actualizar</button>
           </div>
           <div className={styles.activityList}>
             {auditLogs.length === 0 ? <p style={{ padding: "1rem", color: "#64748b", textAlign: "center", fontSize: "0.9rem" }}>No hay actividad reciente para mostrar.</p> : auditLogs.map(log => {

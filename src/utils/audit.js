@@ -18,6 +18,6 @@ export const logAudit = async (session, accion, detalles = {}) => {
       alert("Error en DB (audit_logs): " + logErr.message);
     }
   } catch (err) {
-    console.error('Error logging audit:', err);
+    console.error('Error logging audit:', err); alert("Error de red guardando log: " + err.message);
   }
 };
