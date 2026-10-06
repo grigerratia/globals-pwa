@@ -5,15 +5,16 @@ export default function ColumnSettingsModal({ columna, onClose, onUpdate, onDele
   const [nombre, setNombre] = useState(columna.estadoOriginal);
   const [colorBg, setColorBg] = useState(columna.color || '#f1f5f9');
   
-  const PASTEL_COLORS = [
-    { bg: '#f8fafc', text: '#334155', name: 'Gris' },
-    { bg: '#fee2e2', text: '#991b1b', name: 'Rojo' },
-    { bg: '#ffedd5', text: '#9a3412', name: 'Naranja' },
-    { bg: '#fef3c7', text: '#92400e', name: 'Amarillo' },
-    { bg: '#dcfce7', text: '#166534', name: 'Verde' },
-    { bg: '#e0f2fe', text: '#075985', name: 'Azul' },
-    { bg: '#ede9fe', text: '#5b21b6', name: 'Morado' },
-    { bg: '#fce7f3', text: '#9d174d', name: 'Rosa' },
+  const MODERN_GRADIENTS = [
+    { bg: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)', text: '#78350f', name: 'Sunrise' },
+    { bg: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', text: '#064e3b', name: 'Ocean' },
+    { bg: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)', text: '#4c1d95', name: 'Dream' },
+    { bg: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', text: '#831843', name: 'Cherry' },
+    { bg: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', text: '#312e81', name: 'Dusk' },
+    { bg: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)', text: '#312e81', name: 'Amethyst' },
+    { bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', text: '#082f49', name: 'Sky' },
+    { bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', text: '#064e3b', name: 'Mint' },
+    { bg: '#f1f5f9', text: '#334155', name: 'Gris Clásico' }
   ];
 
   const handleSubmit = (e) => {
@@ -41,9 +42,9 @@ export default function ColumnSettingsModal({ columna, onClose, onUpdate, onDele
             />
           </div>
           <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
-            <label>Color de fondo (Pastel)</label>
+            <label>Color de fondo (Degradado)</label>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-              {PASTEL_COLORS.map(c => (
+              {MODERN_GRADIENTS.map(c => (
                 <div 
                   key={c.bg}
                   title={c.name}

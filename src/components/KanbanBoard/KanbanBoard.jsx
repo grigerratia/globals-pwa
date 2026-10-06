@@ -52,7 +52,16 @@ const getTextForBg = (bg) => {
     '#dcfce7': '#166534',
     '#e0f2fe': '#075985',
     '#ede9fe': '#5b21b6',
-    '#fce7f3': '#9d174d'
+    '#fce7f3': '#9d174d',
+    'linear-gradient(135deg, #f6d365 0%, #fda085 100%)': '#78350f',
+    'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)': '#064e3b',
+    'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)': '#4c1d95',
+    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)': '#831843',
+    'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)': '#312e81',
+    'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)': '#312e81',
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)': '#082f49',
+    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)': '#064e3b',
+    '#f1f5f9': '#334155',
   };
   return map[bg] || '#334155';
 };
@@ -139,6 +148,12 @@ export default function KanbanBoard({ session }) {
       
     if (!colsError && colsData && colsData.length > 0) {
       estadosActuales = colsData.map(c => c.nombre).filter(n => n !== 'Cancelado' && n !== 'Cancelado_Oculto');
+      
+      const colorsMap = {};
+      colsData.forEach(c => {
+        if (c.color) colorsMap[c.nombre] = c.color;
+      });
+      if (!ignore) setColumnColors(colorsMap);
     } else {
       estadosActuales = defaultEstados;
     }
@@ -346,7 +361,10 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
          return updated;
       });
     }
-    await supabase.from('columnas').update({ nombre: newName }).eq('nombre', oldName);
+    
+    const updateData = { nombre: newName };
+    if (color) updateData.color = color;
+    await supabase.from('columnas').update(updateData).eq('nombre', oldName);
   };
 
   const handleDeleteColumna = async (nombre) => {
