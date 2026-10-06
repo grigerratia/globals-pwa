@@ -28,47 +28,60 @@ export default function DinamoAgent({ onClose }) {
 
     if (!cleanText) return;
 
-    try {
-      setIsSpeaking(true);
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const reqBody = {
-        contents: [{
-          parts: [{ text: `(Voz de hombre adulto profesional, tono seguro y amable): ${cleanText}` }]
-        }]
-      };
-      
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(reqBody)
-      });
-        
-      if (response.ok) {
-        const data = await response.json();
-        const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-        
-        if (inlineData && inlineData.data) {
-          const url = `data:${inlineData.mimeType || 'audio/mp3'};base64,${inlineData.data}`;
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          audio.onended = () => {
-            setIsSpeaking(false);
-          };
-          audio.onerror = () => setIsSpeaking(false);
-          audio.play();
-          return;
-        } else {
-          console.error("Error Gemini TTS: No audio data returned", data);
+        setIsSpeaking(true);
+
+    const googleKeys = [
+      import.meta.env.VITE_GEMINI_API_KEY,
+      import.meta.env.VITE_GEMINI_API_KEY_2,
+      import.meta.env.VITE_GEMINI_API_KEY_3
+    ].filter(Boolean);
+
+    const ttsModels = [
+      'gemini-3.8-flash-tts',
+      'gemini-3.8-flash-lite-tts'
+    ];
+
+    const reqBody = {
+      contents: [{
+        parts: [{ text: `(Voz de hombre adulto profesional, tono seguro y amable): ${cleanText}` }]
+      }]
+    };
+
+    for (const key of googleKeys) {
+      for (const model of ttsModels) {
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reqBody)
+          });
+            
+          if (response.ok) {
+            const data = await response.json();
+            const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+            
+            if (inlineData && inlineData.data) {
+              const url = `data:${inlineData.mimeType || 'audio/mp3'};base64,${inlineData.data}`;
+              const audio = new Audio(url);
+              audioRef.current = audio;
+              audio.onended = () => setIsSpeaking(false);
+              audio.onerror = () => setIsSpeaking(false);
+              audio.play();
+              return; // Éxito, salir de la función
+            }
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            console.warn(`[TTS Fallback] Falla en modelo ${model} con llave actua:`, errData);
+          }
+        } catch (err) {
+          console.warn(`[TTS Fallback] Error de red con ${model}:`, err);
         }
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        console.error("Error Gemini TTS:", errData);
       }
-    } catch (err) {
-      console.error("Error con API de Voz, usando voz del navegador", err);
     }
+
+    console.warn("Agotadas las llaves y modelos TTS de Google. Usando fallback del navegador.");
 
     // Fallback a la voz del navegador
     const utterance = new SpeechSynthesisUtterance(cleanText);
