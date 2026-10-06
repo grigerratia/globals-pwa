@@ -357,20 +357,25 @@ export const sendDinamoMessage = async (textMessage) => {
         systemInstruction: SYSTEM_PROMPT
       });
 
-      // Cortar el historial para mantener solo las últimas interacciones (Sliding Window)
-      const recentHistory = truncateHistory(chatHistory, MAX_HISTORY_TURNS);
-      const chatSession = model.startChat({ history: recentHistory });
+      // Creamos una copia local de la historia para esta transacción
+      let localHistory = [...chatHistory];
+      localHistory.push({ role: 'user', parts: [{ text: textMessage }] });
       
-      let result = await chatSession.sendMessage([{ text: textMessage }]);
+      let recentHistory = truncateHistory(localHistory, MAX_HISTORY_TURNS);
+      let result = await model.generateContent({ contents: recentHistory });
       
       let loopCount = 0;
       const MAX_LOOPS = 20;
       
       while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
         loopCount++;
+        localHistory.push(result.response.candidates[0].content);
+        
         if (loopCount > MAX_LOOPS) {
           console.warn("[Dinamo] Cortafuegos activado.");
-          result = await chatSession.sendMessage([{ text: "Demasiadas recursiones. Detente y resume." }]);
+          localHistory.push({ role: 'user', parts: [{ text: "Demasiadas recursiones. Detente y resume." }] });
+          recentHistory = truncateHistory(localHistory, MAX_HISTORY_TURNS);
+          result = await model.generateContent({ contents: recentHistory });
           break;
         }
         
@@ -380,7 +385,6 @@ export const sendDinamoMessage = async (textMessage) => {
         for (const call of calls) {
           try {
             const apiResponse = await executeTool(call);
-            // EJE 2: USO NATIVO DEL PROTOCOLO DE FUNCTION CALLING
             functionResponses.push({
               functionResponse: { name: call.name, response: apiResponse }
             });
@@ -392,22 +396,25 @@ export const sendDinamoMessage = async (textMessage) => {
         }
         
         await new Promise(r => setTimeout(r, 600));
-        // Se manda nativamente al modelo
-        result = await chatSession.sendMessage(functionResponses);
+        localHistory.push({ role: 'user', parts: functionResponses });
+        recentHistory = truncateHistory(localHistory, MAX_HISTORY_TURNS);
+        result = await model.generateContent({ contents: recentHistory });
       }
       
-      // Actualizar el historial global con lo que sucedió en este turno
-      chatHistory = await chatSession.getHistory();
+      localHistory.push(result.response.candidates[0].content);
       
+      // Si todo fue exitoso, actualizamos la historia global
+      chatHistory = localHistory;
       return result.response.text();
+      
     } catch (error) {
       console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
       
       if (i === modelosDisponibles.length - 1) {
-        if (error.message.includes('429')) {
-          return "Atención: Cuota agotada. Debemos esperar a que Google recargue los servidores.";
+        if (error.message.includes('429') || error.message.includes('503')) {
+          return "Atención: Cuota agotada o servidores saturados. Debemos esperar un momento para reintentar.";
         }
-        return "Lo siento, mis sistemas están muy saturados. Inténtalo en un momento.";
+        return "Lo siento, mis sistemas están saturados en este momento.";
       }
       currentModelIndex = i + 1;
     }
