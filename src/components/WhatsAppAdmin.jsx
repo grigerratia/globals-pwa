@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import styles from './WhatsAppAdmin.module.scss';
 
 export default function WhatsAppAdmin() {
   const [status, setStatus] = useState('LOADING');
@@ -23,10 +24,12 @@ export default function WhatsAppAdmin() {
   }, []);
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}><a href="/" style={{ backgroundColor: '#3b82f6', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' }}>&larr; Volver al Tablero</a></div>
-      <h1>Administración de WhatsApp</h1>
-      <p style={{ marginBottom: '2rem', color: '#64748b' }}>
+    <div className={styles.container}>
+      <div className={styles.backLinkContainer}>
+        <a href="/" className={styles.backLink}>&larr; Volver al Tablero</a>
+      </div>
+      <h1 className={styles.title}>Administración de WhatsApp</h1>
+      <p className={styles.statusText}>
         Estado actual de la conexión: 
         <strong style={{ marginLeft: '10px', color: status === 'CONNECTED' ? '#22c55e' : '#ef4444' }}>
           {status}
@@ -34,26 +37,25 @@ export default function WhatsAppAdmin() {
       </p>
 
       {status === 'QR_READY' && qr && (
-        <div style={{ border: '2px dashed #cbd5e1', padding: '2rem', borderRadius: '1rem', display: 'inline-block' }}>
-          <p style={{ marginBottom: '1rem', fontWeight: 'bold' }}>Escanea este código QR con el WhatsApp de la empresa</p>
-          <img src={qr} alt="WhatsApp QR Code" style={{ width: '300px', height: '300px' }} />
+        <div className={styles.qrContainer}>
+          <p className={styles.qrInstruction}>Escanea este código QR con el WhatsApp de la empresa</p>
+          <img src={qr} alt="WhatsApp QR Code" className={styles.qrImage} />
         </div>
       )}
 
       {status === 'CONNECTED' && (
-        <div style={{ backgroundColor: '#dcfce7', padding: '2rem', borderRadius: '1rem', color: '#166534' }}>
+        <div className={`${styles.statusCard} ${styles.successCard}`}>
           <h2>✅ Conectado y listo</h2>
           <p>El bot de WhatsApp está funcionando correctamente.</p>
         </div>
       )}
 
       {status === 'ERROR' && (
-        <div style={{ backgroundColor: '#fee2e2', padding: '2rem', borderRadius: '1rem', color: '#991b1b' }}>
+        <div className={`${styles.statusCard} ${styles.errorCard}`}>
           <h2>❌ Error de conexión</h2>
           <p>No se pudo contactar con el backend. Asegúrate de que el servidor esté corriendo.</p>
         </div>
       )}
-      
       
     </div>
   );
