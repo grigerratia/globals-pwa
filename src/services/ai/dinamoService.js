@@ -26,22 +26,32 @@ function resolveShortId(shortId) {
 // --- EJE 1: VENTANA DE MEMORIA CONTROLADA ---
 let chatHistory = [];
 const MAX_HISTORY_TURNS = 6;
+
 function truncateHistory(history, maxTurns) {
-  let turns = [];
-  let currentTurn = [];
-  
-  for (const msg of history) {
-    if (msg.role === 'user') {
-      if (currentTurn.length > 0) turns.push(currentTurn);
-      currentTurn = [msg];
-    } else {
-      currentTurn.push(msg);
-    }
-  }
-  if (currentTurn.length > 0) turns.push(currentTurn);
-  
-  return turns.slice(-maxTurns).flat();
+  return history.slice(-(maxTurns * 2));
 }
+
+const groqApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+const cohereApiKey = import.meta.env.VITE_COHERE_API_KEY;
+
+const cohereTools = tools[0].functionDeclarations.map(decl => ({
+  name: decl.name,
+  description: decl.description,
+  parameter_definitions: Object.keys(decl.parameters?.properties || {}).reduce((acc, key) => {
+    let pType = decl.parameters.properties[key].type.toLowerCase();
+    if (pType.includes('string')) pType = 'str';
+    else if (pType.includes('boolean')) pType = 'bool';
+    else if (pType.includes('number')) pType = 'float';
+    else pType = 'str';
+
+    acc[key] = {
+      type: pType,
+      description: decl.parameters.properties[key].description,
+      required: decl.parameters?.required?.includes(key) || false
+    };
+    return acc;
+  }, {})
+}));
 
 const SYSTEM_PROMPT = `Eres Dinamo, asistente IA de Kanban Global's. Eres profesional, directo y MUY BREVE.
 REGLAS:
@@ -158,10 +168,43 @@ const tools = [
   },
 ];
 
+// Convertidor de herramientas a formato OpenAI (Groq)
+const groqTools = tools[0].functionDeclarations.map(decl => ({
+  type: 'function',
+  function: {
+    name: decl.name,
+    description: decl.description,
+    parameters: {
+      type: 'object',
+      properties: Object.keys(decl.parameters?.properties || {}).reduce((acc, key) => {
+        let pType = decl.parameters.properties[key].type.toLowerCase();
+        if (pType.includes('string')) pType = 'string';
+        else if (pType.includes('boolean')) pType = 'boolean';
+        else if (pType.includes('number')) pType = 'number';
+        else pType = 'string';
+
+        acc[key] = {
+          type: pType,
+          description: decl.parameters.properties[key].description
+        };
+        return acc;
+      }, {}),
+      required: decl.parameters?.required || []
+    }
+  }
+}));
+
 const modelosDisponibles = [
-  'gemini-3.5-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-3.8-flash'
+  { id: 'gemini-3.5-flash-lite', provider: 'google' },
+  { id: 'gemini-3.1-flash-lite', provider: 'google' },
+  { id: 'gemini-3.8-flash', provider: 'google' },
+  { id: 'gemini-3.5-flash', provider: 'google' },
+  { id: 'gemini-3-flash-preview', provider: 'google' },
+  { id: 'gemini-3.1-pro-preview', provider: 'google' },
+  { id: 'llama-3.1-8b-instant', provider: 'groq' },
+  { id: 'llama-3.1-70b-versatile', provider: 'groq' },
+  { id: 'command-r', provider: 'cohere' },
+  { id: 'command-r-plus', provider: 'cohere' }
 ];
 let currentModelIndex = 0;
 
@@ -350,73 +393,248 @@ const executeTool = async (call) => {
 
 export const sendDinamoMessage = async (textMessage) => {
   for (let i = currentModelIndex; i < modelosDisponibles.length; i++) {
+    const currentModel = modelosDisponibles[i];
     try {
-      const model = genAI.getGenerativeModel({
-        model: modelosDisponibles[i],
-        tools: tools,
-        systemInstruction: SYSTEM_PROMPT
-      });
+      let finalTextResponse = "";
 
-      // Creamos una copia local de la historia para esta transacción
-      let localHistory = [...chatHistory];
-      localHistory.push({ role: 'user', parts: [{ text: textMessage }] });
-      
-      let recentHistory = truncateHistory(localHistory, MAX_HISTORY_TURNS);
-      let result = await model.generateContent({ contents: recentHistory });
-      
-      let loopCount = 0;
-      const MAX_LOOPS = 20;
-      
-      while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
-        loopCount++;
-        localHistory.push(result.response.candidates[0].content);
+      if (currentModel.provider === 'google') {
+        const model = genAI.getGenerativeModel({
+          model: currentModel.id,
+          tools: tools,
+          systemInstruction: SYSTEM_PROMPT
+        });
+
+        let localHistory = chatHistory.map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }]
+        }));
+        localHistory.push({ role: 'user', parts: [{ text: textMessage }] });
         
-        if (loopCount > MAX_LOOPS) {
-          console.warn("[Dinamo] Cortafuegos activado.");
-          localHistory.push({ role: 'user', parts: [{ text: "Demasiadas recursiones. Detente y resume." }] });
-          recentHistory = truncateHistory(localHistory, MAX_HISTORY_TURNS);
+        let recentHistory = localHistory.slice(-(MAX_HISTORY_TURNS * 2));
+        let result = await model.generateContent({ contents: recentHistory });
+        
+        let loopCount = 0;
+        const MAX_LOOPS = 20;
+        
+        while (result.response.functionCalls() && result.response.functionCalls().length > 0) {
+          loopCount++;
+          localHistory.push(result.response.candidates[0].content);
+          
+          if (loopCount > MAX_LOOPS) {
+            console.warn("[Dinamo] Cortafuegos activado.");
+            localHistory.push({ role: 'user', parts: [{ text: "Demasiadas recursiones. Detente y resume." }] });
+            recentHistory = localHistory.slice(-(MAX_HISTORY_TURNS * 2));
+            result = await model.generateContent({ contents: recentHistory });
+            break;
+          }
+          
+          const calls = result.response.functionCalls();
+          const functionResponses = [];
+          
+          for (const call of calls) {
+            try {
+              const apiResponse = await executeTool(call);
+              functionResponses.push({
+                functionResponse: { name: call.name, response: apiResponse }
+              });
+            } catch (toolErr) {
+              functionResponses.push({
+                functionResponse: { name: call.name, response: { success: false, error: toolErr.message } }
+              });
+            }
+          }
+          
+          await new Promise(r => setTimeout(r, 600));
+          localHistory.push({ role: 'user', parts: functionResponses });
+          recentHistory = localHistory.slice(-(MAX_HISTORY_TURNS * 2));
           result = await model.generateContent({ contents: recentHistory });
-          break;
         }
         
-        const calls = result.response.functionCalls();
-        const functionResponses = [];
+        finalTextResponse = result.response.text();
+
+      } else if (currentModel.provider === 'groq') {
+        let localHistory = chatHistory.map(msg => ({
+          role: msg.role,
+          content: msg.text
+        }));
         
-        for (const call of calls) {
-          try {
-            const apiResponse = await executeTool(call);
-            functionResponses.push({
-              functionResponse: { name: call.name, response: apiResponse }
-            });
-          } catch (toolErr) {
-            functionResponses.push({
-              functionResponse: { name: call.name, response: { success: false, error: toolErr.message } }
-            });
+        // Agregar el system prompt al inicio para Groq
+        localHistory.unshift({ role: 'system', content: SYSTEM_PROMPT });
+        localHistory.push({ role: 'user', content: textMessage });
+        
+        let recentHistory = localHistory;
+        
+        let loopCount = 0;
+        const MAX_LOOPS = 20;
+        
+        let response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: currentModel.id,
+            messages: recentHistory,
+            tools: groqTools,
+            tool_choice: 'auto'
+          })
+        });
+        
+        if (!response.ok) {
+           const errorData = await response.json();
+           throw new Error(errorData.error?.message || response.statusText);
+        }
+        
+        let result = await response.json();
+        let message = result.choices[0].message;
+        
+        while (message.tool_calls && message.tool_calls.length > 0) {
+          loopCount++;
+          recentHistory.push(message); // Agregamos la respuesta del asistente con las tool_calls
+          
+          if (loopCount > MAX_LOOPS) {
+             console.warn("[Dinamo] Cortafuegos activado en Groq.");
+             recentHistory.push({ role: 'user', content: "Demasiadas recursiones. Detente y resume." });
+             break;
+          }
+          
+          for (const call of message.tool_calls) {
+            try {
+              const args = JSON.parse(call.function.arguments || '{}');
+              const apiResponse = await executeTool({ name: call.function.name, args });
+              recentHistory.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                name: call.function.name,
+                content: JSON.stringify(apiResponse)
+              });
+            } catch (toolErr) {
+              recentHistory.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                name: call.function.name,
+                content: JSON.stringify({ success: false, error: toolErr.message })
+              });
+            }
+          }
+          
+          await new Promise(r => setTimeout(r, 600));
+          
+          response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: currentModel.id,
+              messages: recentHistory,
+              tools: groqTools,
+              tool_choice: 'auto'
+            })
+          });
+          
+          if (!response.ok) {
+             const errorData = await response.json();
+             throw new Error(errorData.error?.message || response.statusText);
+          }
+          result = await response.json();
+          message = result.choices[0].message;
+        }
+        
+        finalTextResponse = message.content;
+      } else if (currentModel.provider === 'cohere') {
+        let localHistory = chatHistory.map(msg => ({
+          role: msg.role === 'user' ? 'USER' : 'CHATBOT',
+          message: msg.text
+        }));
+        
+        let loopCount = 0;
+        const MAX_LOOPS = 20;
+        let currentMessage = textMessage;
+        let toolResults = undefined;
+        let isFinal = false;
+        
+        while (!isFinal) {
+          loopCount++;
+          if (loopCount > MAX_LOOPS) {
+             console.warn("[Dinamo] Cortafuegos activado en Cohere.");
+             currentMessage = "Demasiadas recursiones. Detente y resume.";
+             toolResults = undefined;
+          }
+          
+          let requestBody = {
+            model: currentModel.id,
+            message: currentMessage,
+            preamble: SYSTEM_PROMPT,
+            chat_history: localHistory,
+            tools: cohereTools
+          };
+          
+          if (toolResults) {
+            requestBody.tool_results = toolResults;
+            requestBody.message = ""; // Message must be empty when submitting tool_results
+          }
+          
+          let response = await fetch('https://api.cohere.com/v1/chat', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${cohereApiKey}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          });
+          
+          if (!response.ok) {
+             const errorData = await response.json();
+             throw new Error(errorData.message || response.statusText);
+          }
+          
+          let result = await response.json();
+          
+          if (result.tool_calls && result.tool_calls.length > 0) {
+            toolResults = [];
+            for (const call of result.tool_calls) {
+              try {
+                const apiResponse = await executeTool({ name: call.name, args: call.parameters });
+                toolResults.push({
+                  call: call,
+                  outputs: [apiResponse]
+                });
+              } catch (toolErr) {
+                toolResults.push({
+                  call: call,
+                  outputs: [{ success: false, error: toolErr.message }]
+                });
+              }
+            }
+            await new Promise(r => setTimeout(r, 600));
+          } else {
+            finalTextResponse = result.text;
+            isFinal = true;
           }
         }
-        
-        await new Promise(r => setTimeout(r, 600));
-        localHistory.push({ role: 'user', parts: functionResponses });
-        recentHistory = truncateHistory(localHistory, MAX_HISTORY_TURNS);
-        result = await model.generateContent({ contents: recentHistory });
       }
+
+      // Si todo fue exitoso, actualizamos la historia global simplificada (solo texto)
+      chatHistory.push({ role: 'user', text: textMessage });
+      chatHistory.push({ role: 'assistant', text: finalTextResponse });
+      chatHistory = truncateHistory(chatHistory, MAX_HISTORY_TURNS);
       
-      localHistory.push(result.response.candidates[0].content);
-      
-      // Si todo fue exitoso, actualizamos la historia global
-      chatHistory = localHistory;
-      return result.response.text();
+      return finalTextResponse;
       
     } catch (error) {
-      console.warn(`[Dinamo] Falló el modelo ${modelosDisponibles[i]}:`, error.message);
+      console.warn(`[Dinamo] Falló el modelo ${currentModel.id}:`, error.message);
       
       if (i === modelosDisponibles.length - 1) {
-        if (error.message.includes('429') || error.message.includes('503')) {
-          return "Atención: Cuota agotada o servidores saturados. Debemos esperar un momento para reintentar.";
+        if (error.message.includes('429') || error.message.includes('503') || error.message.includes('insufficient_quota')) {
+          return "Atención: Cuota agotada o servidores saturados en TODOS los modelos. Debemos esperar un momento para reintentar.";
         }
-        return "Lo siento, mis sistemas están saturados en este momento.";
+        return "Lo siento, mis sistemas están saturados en este momento. Intenta de nuevo más tarde.";
       }
-      currentModelIndex = i + 1;
+      currentModelIndex = i + 1; // Intentar con el siguiente en el futuro
     }
   }
 };
