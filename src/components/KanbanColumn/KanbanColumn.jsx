@@ -25,11 +25,11 @@ export default function KanbanColumn({ colorBg, colorText, titulo, cantidad, pro
   const columnaClases = `${styles.column} ${isDragging ? styles.columnDragging : ''} ${isOverlay ? styles.columnOverlay : ''}`;
 
   return (
-    <div ref={setNodeRef} style={{...style, backgroundColor: colorBg}} className={columnaClases}>
+    <div ref={setNodeRef} style={{...style, background: colorBg}} className={columnaClases}>
       <div className={styles.header} {...attributes} {...listeners} style={{ cursor: 'grab' }}>
         <h3 className={styles.titulo} style={{ color: colorText || '#1e293b' }}>{titulo}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span className={styles.contador} style={{ backgroundColor: colorText, color: colorBg }}>{cantidad}</span>
+          <span className={styles.contador} style={{ backgroundColor: colorText || '#1e293b', color: '#ffffff' }}>{cantidad}</span>
           <GripHorizontal size={14} color={colorText || 'var(--text-muted)'} />
           {onSettingsClick && (
             <button 
