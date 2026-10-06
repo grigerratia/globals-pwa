@@ -45,7 +45,7 @@
     max-height: 90vh !important; height: auto !important;
     margin: 0 auto !important;
     border-radius: 12px !important;
-    padding: 1rem !important;
+    padding: 0.5rem !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -161,7 +161,7 @@
     transition: all 0.2s ease;
     
     &:hover {
-      background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+      background: rgba(59, 130, 246, 0.04);
     }
     
     &:focus {
@@ -299,7 +299,7 @@
           background: #fff;
           color: #64748b;
           border: 1px solid #cbd5e1;
-          &:hover { background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%); }
+          &:hover { background: rgba(59, 130, 246, 0.04); }
         }
         &.btnConfirm {
           background: #ef4444;
@@ -347,6 +347,10 @@
   padding: 1rem;
   margin-bottom: 0.5rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+    border: none;
+  }
   
   .sectionContent {
     width: 100%;
@@ -368,7 +372,7 @@
 }
 
 .textareaBox {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: rgba(59, 130, 246, 0.04);
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 1rem;
@@ -407,7 +411,7 @@
   transition: background 0.2s;
   
   &:hover {
-    background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+    background: rgba(59, 130, 246, 0.04);
   }
   
   input[type="checkbox"] {
@@ -507,7 +511,7 @@
 }
 
 .commentItem {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: rgba(59, 130, 246, 0.04);
   border-radius: 8px;
   padding: 1rem;
   border: 1px solid #f1f5f9;
@@ -550,7 +554,7 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: rgba(59, 130, 246, 0.04);
   padding: 1rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
@@ -675,7 +679,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: rgba(59, 130, 246, 0.04);
   padding: 0.75rem;
   border-radius: 6px;
   border: 1px dashed #cbd5e1;
@@ -766,7 +770,7 @@
   display: flex;
   justify-content: space-around;
   padding: 1rem;
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: rgba(59, 130, 246, 0.04);
   
   a, button {
     background: none;
@@ -866,7 +870,7 @@
   display: flex;
   gap: 2rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: rgba(59, 130, 246, 0.04);
   border-radius: 8px;
   border: 1px solid #e2e8f0;
 }
@@ -893,7 +897,7 @@
 
 @media (max-width: 600px) {
   .modal {
-    padding: 1rem !important;
+    padding: 0.5rem !important;
   }
 }
 

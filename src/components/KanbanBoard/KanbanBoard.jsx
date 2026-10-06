@@ -506,7 +506,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
                 motivo: motive 
               });
             }
-            await supabase.from('proyectos').update(updateData).eq('id', p.id);
+            const {error: err} = await supabase.from('proyectos').update(updateData).eq('id', p.id); if(err) { console.error("Error update proy:", err); alert("Error guardando proyecto: " + err.message); }
           }
         })();
       };

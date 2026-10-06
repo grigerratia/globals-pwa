@@ -6,12 +6,17 @@ export const logAudit = async (session, accion, detalles = {}) => {
   const usuario_nombre = session.user.user_metadata?.nombre || session.user.email;
 
   try {
-    await supabase.from('audit_logs').insert([{
+    const { error: logErr } = await supabase.from('audit_logs').insert([{
       usuario_id,
       usuario_nombre,
       accion,
       detalles
     }]);
+    
+    if (logErr) {
+      console.error("AUDIT_LOG_ERROR:", logErr);
+      alert("Error en DB (audit_logs): " + logErr.message);
+    }
   } catch (err) {
     console.error('Error logging audit:', err);
   }

@@ -55,7 +55,7 @@
   .avatar {
   width: 64px;
   height: 64px;
-  flex-shrink: 0;
+  flex-shrink: 0; min-width: 64px; min-height: 64px;
   object-fit: cover; /* if it's an image, wait, it's a div with background */
 
     border-radius: 50%;
@@ -182,7 +182,7 @@
     
     svg {
       color: #8b5cf6;
-      flex-shrink: 0;
+      flex-shrink: 0; min-width: 64px; min-height: 64px;
       margin-top: 2px;
     }
   }
@@ -270,7 +270,7 @@
 }
 
 .muteButton {
-  flex-shrink: 0;
+  flex-shrink: 0; min-width: 64px; min-height: 64px;
   margin-top: 4px;
   background: transparent;
   border: none;
@@ -294,7 +294,7 @@
   gap: 3px;
   height: 16px;
   margin-top: 4px;
-  flex-shrink: 0;
+  flex-shrink: 0; min-width: 64px; min-height: 64px;
   
   span {
     display: block;
