@@ -279,6 +279,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       ...nuevoProyectoData,
       encargados: encargados,
       orden: 999, // Al final
+      fecha_creacion: new Date().toISOString()
     };
 
     const { data, error } = await supabase.from('proyectos').insert([nuevoProyecto]).select('*');
