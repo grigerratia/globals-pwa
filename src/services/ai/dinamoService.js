@@ -62,7 +62,8 @@ const tools = [
           type: SchemaType.OBJECT,
           properties: {
             query: { type: SchemaType.STRING, description: 'Término de búsqueda (ej. "Coca Cola"). Vacío para todos.' },
-            estado: { type: SchemaType.STRING, description: 'Opcional. Filtra por columna específica.' }
+            estado: { type: SchemaType.STRING, description: 'Opcional. Filtra por columna específica.' },
+            orden_antiguedad: { type: SchemaType.STRING, description: 'Opcional. "mas_recientes" (por defecto) o "mas_antiguos" para ordenar.' }
           },
           required: ['query'],
         },
@@ -209,7 +210,8 @@ const executeTool = async (call) => {
   
   try {
     if (name === 'buscar_proyectos') {
-      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: false, nullsFirst: false }).limit(20);
+      const isAsc = args.orden_antiguedad === 'mas_antiguos';
+      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: isAsc, nullsFirst: false }).limit(20);
       if (args.query && args.query.trim() !== '') {
         const safeQuery = args.query.replace(/"/g, '');
         q = q.or(`titulo.ilike."%${safeQuery}%",cliente_nombre.ilike."%${safeQuery}%",cliente_empresa.ilike."%${safeQuery}%"`);
