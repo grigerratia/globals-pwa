@@ -76,9 +76,9 @@ const tools = [
           properties: {
             id_proyecto: { type: SchemaType.STRING, description: 'ID corto del proyecto (ej. P1)' },
             nuevo_estado: { type: SchemaType.STRING, description: 'Ej: "Logística y compras"' },
-            motivo: { type: SchemaType.STRING, description: 'Obligatorio si se Pausa, Cancela o Retrocede.' },
+            motivo: { type: SchemaType.STRING, description: 'Obligatorio si se Pausa, Cancela o Retrocede. NUNCA lo inventes. Si el usuario no lo dijo, NO llames la herramienta y responde usando [WIDGET:INPUT_MOTIVO].' },
             dias_estimados: { type: SchemaType.NUMBER, description: 'Días que tomará. Obligatorio al avanzar.' },
-            confirmar_casillas: { type: SchemaType.BOOLEAN, description: 'True si el usuario confirmó por voz/widget.' }
+            confirmar_casillas: { type: SchemaType.BOOLEAN, description: 'Pon en true SOLO si el usuario confirmó por widget, o si YA indicó explícitamente el motivo/días en su mensaje.' }
           },
           required: ['id_proyecto', 'nuevo_estado'],
         },
@@ -246,6 +246,9 @@ const executeTool = async (call) => {
       }
       if (validation.requiresDias && !dias_estimados) {
          throw new Error("FALTAN DÍAS ESTIMADOS: Pregúntale al usuario los días.");
+      }
+      if (validation.requiresMotive && !confirmar_casillas) {
+         throw new Error(`BLOQUEADO: Falta confirmación. NUNCA inventes el motivo. Responde al usuario preguntándole el motivo con [WIDGET:INPUT_MOTIVO]. Cuando responda, llama de nuevo con confirmar_casillas: true y el motivo real.`);
       }
       if (validation.requiresMotive && !motivo) {
          throw new Error(`FALTA MOTIVO: Pregúntale al usuario el motivo.`);
