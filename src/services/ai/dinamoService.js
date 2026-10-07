@@ -209,7 +209,7 @@ const executeTool = async (call) => {
   
   try {
     if (name === 'buscar_proyectos') {
-      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: false }).limit(20);
+      let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion, created_at').order('created_at', { ascending: false }).limit(20);
       if (args.query && args.query.trim() !== '') {
         const safeQuery = args.query.replace(/"/g, '');
         q = q.or(`titulo.ilike."%${safeQuery}%",cliente_nombre.ilike."%${safeQuery}%",cliente_empresa.ilike."%${safeQuery}%"`);
