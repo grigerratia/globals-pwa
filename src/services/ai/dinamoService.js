@@ -12,20 +12,20 @@ const googleKeys = [
 let currentGoogleKeyIndex = 0;
 
 // --- EJE 3: SISTEMA DE REFERENCIAS CORTAS (Short-ID Mapping) ---
-let projectToShortMap = {};
-let shortToProjectMap = {};
-let nextShortId = 1;
+let entityToShortMap = {};
+let shortToEntityMap = {};
+let nextShortId = { P: 1, M: 1, C: 1, E: 1, CM: 1 };
 
-function getShortId(uuid) {
-  if (projectToShortMap[uuid]) return projectToShortMap[uuid];
-  const shortId = `P${nextShortId++}`;
-  projectToShortMap[uuid] = shortId;
-  shortToProjectMap[shortId] = uuid;
+function getShortId(uuid, type = 'P') {
+  if (entityToShortMap[uuid]) return entityToShortMap[uuid];
+  const shortId = `${type}${nextShortId[type]++}`;
+  entityToShortMap[uuid] = shortId;
+  shortToEntityMap[shortId] = uuid;
   return shortId;
 }
 
 function resolveShortId(shortId) {
-  return shortToProjectMap[shortId] || shortId;
+  return shortToEntityMap[shortId] || shortId;
 }
 
 // --- EJE 1: VENTANA DE MEMORIA CONTROLADA ---
@@ -43,12 +43,13 @@ const cohereApiKey = import.meta.env.VITE_COHERE_API_KEY;
 const SYSTEM_PROMPT = `Eres Dinamo, asistente IA de Kanban Global's. Eres profesional, directo y MUY BREVE.
 REGLAS:
 1. Respuestas CORTAS, DIRECTAS, AMIGABLES. Cero tecnicismos. Usa viñetas y emojis para organizar.
-2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, P2) al buscar proyectos. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA muestres ni le menciones estos códigos (P1, P2...) al usuario en tu respuesta de texto.
+2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, M1, C1) al buscar registros. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA muestres ni le menciones estos códigos al usuario en tu texto.
 3. ARCHIVADO/CANCELACIÓN: NUNCA pases un proyecto a "Archivado" o "Cancelado" de inmediato. Pide un motivo, agrega la etiqueta [WIDGET:INPUT_MOTIVO]. Cuando respondan, usa 'actualizar_estado_proyecto' con el motivo.
 4. COLUMNAS: "En Conversación", "Levantamiento", "Presupuesto enviado", "Aprobado - Esperando Anticipo", "Anticipo - En Producción", "Listo para instalar/entregar", "Entregado y cerrado", "Pausa", "Cancelado", "Archivado".
-5. ASIGNAR: Usa 'asignar_encargado'. NUNCA lo escribas en las notas.
-6. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
-   - Confirmar presupuesto/materiales/levantamiento: [WIDGET:CONFIRM_CHECKBOXES]
+5. GESTIÓN COMPLETA: Eres un administrador completo. Puedes consultar, crear, modificar y eliminar proyectos, materiales, columnas y consultar empleados. Usa las herramientas de "gestionar_*" correspondientes.
+6. ACCIONES DESTRUCTIVAS: Si el usuario te pide eliminar algo crítico (ej. columna), la herramienta te pedirá confirmación. Pregunta y usa [WIDGET:CONFIRM_CHECKBOXES]. Solo procede si te confirman.
+7. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
+   - Confirmar presupuesto/material/columna o eliminación: [WIDGET:CONFIRM_CHECKBOXES]
    - Faltan días estimados: [WIDGET:INPUT_DIAS]
    - Falta motivo: [WIDGET:INPUT_MOTIVO]`;
 
@@ -151,7 +152,61 @@ const tools = [
           },
           required: ['tipo'],
         },
-      }
+      },
+      {
+        name: 'leer_proyecto_detallado',
+        description: 'Obtiene todos los detalles de un proyecto, incluyendo sus materiales y comentarios. Usando su ID corto.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.STRING, description: 'ID corto (ej. P1)' }
+          },
+          required: ['id_proyecto'],
+        },
+      },
+      {
+        name: 'gestionar_materiales',
+        description: 'Crea, edita, elimina o lista materiales de un proyecto.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            accion: { type: SchemaType.STRING, description: '"crear", "editar", "eliminar", "listar"' },
+            id_proyecto: { type: SchemaType.STRING, description: 'ID corto del proyecto. Obligatorio para "crear" y "listar".' },
+            id_material: { type: SchemaType.STRING, description: 'ID corto del material (ej. M1). Obligatorio para "editar" y "eliminar".' },
+            nombre: { type: SchemaType.STRING, description: 'Nombre del material' },
+            cantidad: { type: SchemaType.NUMBER, description: 'Cantidad' },
+            costo_unitario: { type: SchemaType.NUMBER, description: 'Costo por unidad' }
+          },
+          required: ['accion'],
+        },
+      },
+      {
+        name: 'gestionar_columnas',
+        description: 'Crea, edita, elimina o lista las columnas (fases) del Kanban.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            accion: { type: SchemaType.STRING, description: '"crear", "editar", "eliminar", "listar"' },
+            id_columna: { type: SchemaType.STRING, description: 'ID corto de la columna (ej. C1). Obligatorio para "editar" y "eliminar".' },
+            nombre: { type: SchemaType.STRING, description: 'Nombre de la columna' },
+            orden: { type: SchemaType.NUMBER, description: 'Orden en el tablero' },
+            color: { type: SchemaType.STRING, description: 'Color en formato HEX, ej: #FF0000' },
+            confirmar_casillas: { type: SchemaType.BOOLEAN, description: 'Pon en true SOLO si el usuario confirmó la eliminación por widget explícitamente.' }
+          },
+          required: ['accion'],
+        },
+      },
+      {
+        name: 'interactuar_equipo',
+        description: 'Lista los empleados/usuarios del sistema.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            accion: { type: SchemaType.STRING, description: '"listar_empleados"' }
+          },
+          required: ['accion'],
+        },
+      },
     ],
   },
 ];
@@ -209,6 +264,117 @@ const executeTool = async (call) => {
   console.log(`[Dinamo Tool Exec] ${name}`, args);
   
   try {
+    if (name === 'leer_proyecto_detallado') {
+      const { id_proyecto } = args;
+      const { data: pData, error: pErr } = await supabase.from('proyectos').select('*').eq('id', id_proyecto).single();
+      if (pErr) throw pErr;
+      
+      const { data: cData } = await supabase.from('comentarios').select('*').eq('proyecto_id', id_proyecto).order('created_at', { ascending: false }).limit(10);
+      
+      let mats = pData.materiales || [];
+      mats = mats.map((m, i) => { if (!m.id) m.id = `mat-${i}`; return m; });
+      
+      return { 
+        success: true, 
+        proyecto: pData, 
+        materiales: mats.map(m => ({ ...m, id: getShortId(m.id, 'M') })), 
+        comentarios: cData 
+      };
+    }
+
+    if (name === 'gestionar_materiales') {
+      const { accion, id_proyecto, id_material, nombre, cantidad, costo_unitario } = args;
+      
+      if (!id_proyecto) throw new Error("Falta id_proyecto");
+      const { data: pData, error: pErr } = await supabase.from('proyectos').select('materiales').eq('id', id_proyecto).single();
+      if (pErr) throw pErr;
+      
+      let mats = pData.materiales || [];
+      // Assign fake UUIDs or incremental IDs so we can map them to Short-IDs
+      mats = mats.map((m, i) => { if (!m.id) m.id = `mat-${i}`; return m; });
+      
+      if (accion === 'crear') {
+        if (!nombre || !cantidad) throw new Error("Faltan campos para crear material (nombre, cantidad)");
+        const nuevoMat = { id: `mat-${Date.now()}`, nombre, cantidad, costo_unitario: costo_unitario || 0, comprado: false };
+        mats.push(nuevoMat);
+        const { error } = await supabase.from('proyectos').update({ materiales: mats }).eq('id', id_proyecto);
+        if (error) throw error;
+        return { success: true, message: 'Material añadido al proyecto', id_material: getShortId(nuevoMat.id, 'M') };
+      }
+      
+      if (accion === 'editar' || accion === 'eliminar') {
+        if (!id_material) throw new Error("Falta id_material");
+        const realId = resolveShortId(id_material);
+        
+        const index = mats.findIndex(m => m.id === realId);
+        if (index === -1) throw new Error("Material no encontrado");
+        
+        if (accion === 'eliminar') {
+           mats.splice(index, 1);
+           const { error } = await supabase.from('proyectos').update({ materiales: mats }).eq('id', id_proyecto);
+           if (error) throw error;
+           return { success: true, message: 'Material eliminado del proyecto' };
+        } else {
+           if (nombre) mats[index].nombre = nombre;
+           if (cantidad) mats[index].cantidad = cantidad;
+           if (costo_unitario !== undefined) mats[index].costo_unitario = costo_unitario;
+           const { error } = await supabase.from('proyectos').update({ materiales: mats }).eq('id', id_proyecto);
+           if (error) throw error;
+           return { success: true, message: 'Material editado en el proyecto' };
+        }
+      }
+      
+      if (accion === 'listar') {
+         return { success: true, materiales: mats.map(m => ({ ...m, id: getShortId(m.id, 'M') })) };
+      }
+      throw new Error("Acción no válida");
+    }
+
+    if (name === 'gestionar_columnas') {
+      const { accion, id_columna, nombre, orden, color, confirmar_casillas } = args;
+      
+      if (accion === 'crear') {
+        if (!nombre) throw new Error("Falta nombre");
+        const { data, error } = await supabase.from('columnas').insert([{ nombre, orden, color: color || '#808080' }]).select();
+        if (error) throw error;
+        return { success: true, message: 'Columna creada', id_columna: getShortId(data[0].id, 'C') };
+      }
+      
+      if (accion === 'editar' || accion === 'eliminar') {
+        if (!id_columna) throw new Error("Falta id_columna");
+        const realId = resolveShortId(id_columna);
+        
+        if (accion === 'eliminar') {
+           if (!confirmar_casillas) {
+              throw new Error("BLOQUEADO: Confirmación requerida. Pregunta al usuario si realmente desea eliminar la columna usando [WIDGET:CONFIRM_CHECKBOXES].");
+           }
+           const { error } = await supabase.from('columnas').delete().eq('id', realId);
+           if (error) throw error;
+           return { success: true, message: 'Columna eliminada' };
+        } else {
+           const { error } = await supabase.from('columnas').update({ nombre, orden, color }).eq('id', realId);
+           if (error) throw error;
+           return { success: true, message: 'Columna editada' };
+        }
+      }
+      
+      if (accion === 'listar') {
+         const { data, error } = await supabase.from('columnas').select('*').order('orden', { ascending: true });
+         if (error) throw error;
+         return { success: true, columnas: data.map(c => ({ ...c, id: getShortId(c.id, 'C') })) };
+      }
+      throw new Error("Acción no válida");
+    }
+
+    if (name === 'interactuar_equipo') {
+       if (args.accion === 'listar_empleados') {
+         const { data, error } = await supabase.rpc('get_empleados');
+         if (error) throw error;
+         return { success: true, empleados: data.map(e => ({ ...e, id: getShortId(e.id, 'E') })) };
+       }
+       throw new Error("Acción no válida");
+    }
+
     if (name === 'buscar_proyectos') {
       const isAsc = args.orden_antiguedad === 'mas_antiguos';
       let q = supabase.from('proyectos').select('id, titulo, cliente_nombre, estado, cliente_empresa, fecha_creacion').order('fecha_creacion', { ascending: isAsc, nullsFirst: false }).limit(20);

@@ -39,8 +39,7 @@ export default function DinamoAgent({ onClose }) {
 
     setIsSpeaking(true);
 
-    const sentences = cleanText.match(/[^.!?\n]+[.!?\n]*/g) || [cleanText];
-    const trimmedSentences = sentences.map(s => s.trim()).filter(Boolean);
+    const trimmedSentences = [cleanText];
 
     if (trimmedSentences.length === 0) {
       setIsSpeaking(false);
@@ -91,7 +90,7 @@ export default function DinamoAgent({ onClose }) {
     const fetchAudio = async (sentence) => {
       const reqBody = {
         contents: [{
-          parts: [{ text: `(Voz de hombre adulto profesional, tono seguro y amable): ${sentence}` }]
+          parts: [{ text: `(INSTRUCCIÓN ESTRICTA: Usa SIEMPRE la misma voz de locutor hombre adulto, profesional, cálido, tono grave y seguro, en español. No cambies la identidad vocal): ${sentence}` }]
         }]
       };
 
