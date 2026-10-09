@@ -128,10 +128,12 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     if (!nuevoComentario.trim()) return;
 
     const finalString = replyingTo ? `[REPLY_TO:${replyingTo.id}] ${nuevoComentario}` : nuevoComentario;
+    const autorNombre = session?.user?.user_metadata?.nombre || session?.user?.user_metadata?.full_name || session?.user?.email || 'Usuario';
     const { data, error } = await supabase.from('comentarios').insert([{
       proyecto_id: proyectoId,
       texto: finalString,
-      autor_email: autorEmail
+      autor_email: autorEmail,
+      autor_nombre: autorNombre
     }]).select();
 
     if (!error && data) {
