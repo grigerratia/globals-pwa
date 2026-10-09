@@ -11,11 +11,15 @@ export default function TopHeader({ session, currentView }) {
   const userRole = session?.user?.user_metadata?.rol || 'Usuario';
   const roleLower = userRole.toLowerCase();
   const userName = session?.user?.user_metadata?.nombre || session?.user?.email;
-  const canViewFinances = roleLower.includes('comercial') || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
   const isExecutiveRole = roleLower.includes('comercial') || roleLower.includes('operaciones');
   const isAdminRole = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  
+  // Administrators should not see the financial dashboard
+  const canViewFinances = roleLower.includes('comercial'); 
+  
   const vistaTexto = isAdminRole ? "Panel Admin" : "Vista Ejecutiva";
-  const isLider = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isLider = isExecutiveRole || isAdminRole;
+  const canViewCotizador = isLider && !isAdminRole;
 
   return (
     <header className={styles.topHeader}>
@@ -71,16 +75,17 @@ export default function TopHeader({ session, currentView }) {
                   <span className={styles.hideOnMobile}>Ejecutivo</span>
                 </button>
               )}
-              
-              <button 
-                className={styles.btnActionMobile} 
-                title="Cotizador"
-                style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
-                onClick={() => window.location.href = '/cotizador'}
-              >
-                <Calculator size={20} />
-                <span className={styles.hideOnMobile}>Cotizador</span>
-              </button>
+              {canViewCotizador && (
+                <button 
+                  className={styles.btnActionMobile} 
+                  title="Cotizador"
+                  style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
+                  onClick={() => window.location.href = '/cotizador'}
+                >
+                  <Calculator size={20} />
+                  <span className={styles.hideOnMobile}>Cotizador</span>
+                </button>
+              )}
             </>
           )}
 
@@ -134,13 +139,15 @@ export default function TopHeader({ session, currentView }) {
                 </button>
               )}
               
-              <button 
-                className={styles.mobileMenuItem}
-                onClick={() => window.location.href = '/cotizador'}
-              >
-                <Calculator size={18} />
-                <span>Cotizador</span>
-              </button>
+              {canViewCotizador && (
+                <button 
+                  className={styles.mobileMenuItem}
+                  onClick={() => window.location.href = '/cotizador'}
+                >
+                  <Calculator size={18} />
+                  <span>Cotizador</span>
+                </button>
+              )}
             </>
           )}
           

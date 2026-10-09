@@ -3,6 +3,10 @@
   max-width: 1200px;
   margin: 0 auto;
   font-family: 'Inter', system-ui, sans-serif;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 }
 
 .header {
@@ -11,10 +15,20 @@
   align-items: center;
   margin-bottom: 2rem;
   
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
   h1 {
     font-size: 1.8rem;
     color: #0f172a;
     margin: 0;
+
+    @media (max-width: 768px) {
+      font-size: 1.4rem;
+    }
   }
   
   p {
@@ -30,6 +44,11 @@
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 0.5rem;
   
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
   button {
     background: none;
     border: none;
@@ -43,6 +62,14 @@
     gap: 0.5rem;
     border-radius: 8px;
     transition: all 0.2s ease;
+
+    @media (max-width: 768px) {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      justify-content: center;
+      text-align: center;
+    }
     
     &:hover {
       background: #f1f5f9;
@@ -64,6 +91,7 @@
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 
