@@ -12,30 +12,30 @@ export default function AdminRRHHDashboard({ session }) {
   const [activeTab, setActiveTab] = useState('compras'); // compras, rrhh
 
   useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      // Fetch proyectos
+      const { data: proyData, error: proyError } = await supabase
+        .from('proyectos')
+        .select('*')
+        .neq('estado', 'Cancelado')
+        .neq('estado', 'Archivado');
+      
+      if (!proyError && proyData) {
+        setProyectos(proyData);
+      }
+
+      // Fetch empleados
+      const { data: empData, error: empError } = await supabase.rpc('get_empleados');
+      if (!empError && empData) {
+        setEmpleados(empData);
+      }
+
+      setLoading(false);
+    }
+
     fetchData();
   }, []);
-
-  async function fetchData() {
-    setLoading(true);
-    // Fetch proyectos
-    const { data: proyData, error: proyError } = await supabase
-      .from('proyectos')
-      .select('*')
-      .neq('estado', 'Cancelado')
-      .neq('estado', 'Archivado');
-    
-    if (!proyError && proyData) {
-      setProyectos(proyData);
-    }
-
-    // Fetch empleados
-    const { data: empData, error: empError } = await supabase.rpc('get_empleados');
-    if (!empError && empData) {
-      setEmpleados(empData);
-    }
-
-    setLoading(false);
-  };
 
   const handleUpdateMaterial = async (proyecto, matIndex, newValue) => {
     const updatedMats = [...(proyecto.materiales || [])];
