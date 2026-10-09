@@ -76,7 +76,7 @@ function App() {
     };
   }, []);
 
-  const setupFirebasePush = async (currentSession) => {
+  async function setupFirebasePush(currentSession) {
     try {
       const token = await requestFirebaseToken();
       if (token) {
@@ -122,9 +122,11 @@ function App() {
     return <Login onLogin={setSession} />;
   }
 
-  const userRole = session?.user?.user_metadata?.rol;
-  const isExecutive = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones' || userRole === 'Administrador';
-  const isAdminRRHH = userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos' || userRole === 'Administración';
+  const userRole = session?.user?.user_metadata?.rol || '';
+  const roleLower = userRole.toLowerCase();
+  
+  const isAdminRRHH = roleLower.includes('rrhh') || roleLower.includes('recursos humanos') || roleLower === 'administración';
+  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones') || (roleLower.includes('admin') && !isAdminRRHH);
 
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../../supabase';
 import { BarChart2, Activity, Calculator, QrCode, LogOut, Menu, X, Kanban } from 'lucide-react';
 import BellNotifications from '../KanbanBoard/BellNotifications';
@@ -9,9 +9,10 @@ export default function TopHeader({ session, currentView }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const userRole = session?.user?.user_metadata?.rol || 'Usuario';
+  const roleLower = userRole.toLowerCase();
   const userName = session?.user?.user_metadata?.nombre || session?.user?.email;
-  const canViewFinances = userRole === 'Líder Comercial' || userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos';
-  const isLider = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones' || userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos';
+  const canViewFinances = roleLower.includes('comercial') || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isLider = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
 
   return (
     <header className={styles.topHeader}>

@@ -111,7 +111,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
     if (currentText.includes('[DELETED] ')) {
       isDeleted = true;
-      currentText = currentText.replace('\[DELETED\] ', '').trim();
+      currentText = currentText.replace('[DELETED] ', '').trim();
     }
 
     const originalMatch = currentText.match(/\[ORIGINAL:([\s\S]*?)\]/);
@@ -160,12 +160,14 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
          return; // Revert select visual state (React state wasn't updated so it snaps back)
        }
 
-       const executeStateChange = async (motive = null, notasExtras = null) => {
+       const executeStateChange = async (motive = null, notasExtras = null, overrideNotas = null) => {
          const updates = { estado: value };
          if (motive) updates.motivo_cancelacion = motive;
          else if (validation.requiresMotive === null) updates.motivo_cancelacion = null;
          
-         if (notasExtras) {
+         if (overrideNotas !== null) {
+           updates.notas = overrideNotas;
+         } else if (notasExtras) {
            updates.notas = proyecto.notas ? proyecto.notas + '\n\n' + notasExtras : notasExtras;
          }
 
@@ -218,7 +220,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
              const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${dias}]`;
              let cleanNotas = proyecto.notas ? proyecto.notas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim() : '';
              const nuevasNotas = cleanNotas ? cleanNotas + '\n\n' + notaAnadida : notaAnadida;
-             executeStateChange(null, `${notaAnadida}`);
+             executeStateChange(null, null, nuevasNotas);
              setDiasEstimadosPrompt(null);
            },
            onCancel: () => setDiasEstimadosPrompt(null)
@@ -310,8 +312,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       const { error: insErr } = await supabase.from('columnas').insert([{ nombre: 'Cancelado', orden: 999 }]);
       if (insErr) {
         setMsg({ text: 'Error creando estado: ' + insErr.message, type: 'error' });
-        setConfirmDelete(false);
-        return;
+        setConfirmDelete(false);        return;
       }
     }
 

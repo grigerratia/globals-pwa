@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { ShoppingCart, DollarSign, Users, CheckCircle, Clock, Search, ChevronDown, CheckSquare, Trash2 } from 'lucide-react';
+import { ShoppingCart, DollarSign, Users } from 'lucide-react';
 import styles from './AdminRRHHDashboard.module.scss';
 import { logAudit } from '../../utils/audit';
 import TopHeader from '../TopHeader/TopHeader';
