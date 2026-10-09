@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Phone, AlertCircle, Clock } from 'lucide-react';
+import { Phone, AlertCircle, Clock, Building } from 'lucide-react';
 import styles from './KanbanCard.module.scss';
 
 export default function KanbanCard({ proyecto, isOverlay, onClick }) {
@@ -51,8 +51,8 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
     <>
       <h4 className={styles.titulo}>{proyecto.titulo}</h4>
       {proyecto.cliente_empresa && (
-        <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '8px', fontWeight: 500 }}>
-          🏢 {proyecto.cliente_empresa}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#64748b', marginBottom: '8px', fontWeight: 500 }}>
+          <Building size={12} /> {proyecto.cliente_empresa}
         </div>
       )}
       <div className={styles.detalles}>
