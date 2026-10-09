@@ -123,7 +123,7 @@ function App() {
   }
 
   const userRole = session?.user?.user_metadata?.rol;
-  const isExecutive = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+  const isExecutive = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones' || userRole === 'Administrador';
   const isAdminRRHH = userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos' || userRole === 'Administración';
 
   // Simple Router

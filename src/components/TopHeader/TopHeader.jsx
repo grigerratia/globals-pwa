@@ -10,8 +10,8 @@ export default function TopHeader({ session, currentView }) {
 
   const userRole = session?.user?.user_metadata?.rol || 'Usuario';
   const userName = session?.user?.user_metadata?.nombre || session?.user?.email;
-  const canViewFinances = userRole === 'Líder Comercial' || userRole === 'Administración';
-  const isLider = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+  const canViewFinances = userRole === 'Líder Comercial' || userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos';
+  const isLider = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones' || userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos';
 
   return (
     <header className={styles.topHeader}>

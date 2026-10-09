@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { ShoppingCart, DollarSign, Users, CheckCircle, Clock, Search, ChevronDown, CheckSquare, Trash2 } from 'lucide-react';
 import styles from './AdminRRHHDashboard.module.scss';
 import { logAudit } from '../../utils/audit';
+import TopHeader from '../TopHeader/TopHeader';
 
 export default function AdminRRHHDashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
@@ -78,12 +79,14 @@ export default function AdminRRHHDashboard({ session }) {
   }
 
   return (
-    <div className={styles.dashboardContainer}>
-      <header className={styles.header}>
-        <div>
-          <h1>Panel de Administración y RRHH</h1>
-          <p>Gestiona compras, presupuestos y personal corporativo.</p>
-        </div>
+    <>
+      <TopHeader session={session} currentView="ejecutivo" />
+      <div className={styles.dashboardContainer}>
+        <header className={styles.header}>
+          <div>
+            <h1>Panel de Administración y RRHH</h1>
+            <p>Gestiona compras, presupuestos y personal corporativo.</p>
+          </div>
       </header>
 
       <div className={styles.tabs}>
@@ -214,5 +217,7 @@ export default function AdminRRHHDashboard({ session }) {
         )}
       </div>
     </div>
+    </>
   );
 }
+
