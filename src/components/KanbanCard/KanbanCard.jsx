@@ -50,6 +50,11 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
   const renderCardContent = () => (
     <>
       <h4 className={styles.titulo}>{proyecto.titulo}</h4>
+      {proyecto.cliente_empresa && (
+        <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '8px', fontWeight: 500 }}>
+          🏢 {proyecto.cliente_empresa}
+        </div>
+      )}
       <div className={styles.detalles}>
         <div className={styles.infoGroup}>
           <Phone size={12} />
