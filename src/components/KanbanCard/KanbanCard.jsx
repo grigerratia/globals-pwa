@@ -11,7 +11,6 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
     setNodeRef,
     transform,
     transition,
-    isDragging,
   } = useSortable({
     id: proyecto.id,
     data: { type: 'Card', proyecto },
@@ -110,7 +109,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
       {...attributes}
       {...listeners}
       className={`${styles.card} ${isOverdue || isStalled ? styles.cardStalled : ''}`}
-      onClick={(e) => {
+      onClick={() => {
         // ...
         onClick(proyecto.id);
       }}
