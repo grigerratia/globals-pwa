@@ -285,10 +285,10 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     const dateStr = new Date().toLocaleDateString();
     const notasActualizadas = currentNotas ? currentNotas + `\n\n[ARCHIVADO el ${dateStr}]: ${archiveMotive}` : `[ARCHIVADO el ${dateStr}]: ${archiveMotive}`;
 
-    const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', notas: notasActualizadas, fecha_ultima_actualizacion: new Date().toISOString() }).eq('id', proyectoId);
+    const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', notas: notasActualizadas, motivo_cancelacion: archiveMotive, fecha_ultima_actualizacion: new Date().toISOString() }).eq('id', proyectoId);
     if (!error) {
       await logAudit(session, 'Archivó proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, motivo: archiveMotive });
-      onProjectUpdated({ ...proyecto, estado: 'Archivado', notas: notasActualizadas, fecha_ultima_actualizacion: new Date().toISOString() });
+      onProjectUpdated({ ...proyecto, estado: 'Archivado', notas: notasActualizadas, motivo_cancelacion: archiveMotive, fecha_ultima_actualizacion: new Date().toISOString() });
       setConfirmArchive(false);
       onClose();
     } else {
@@ -999,7 +999,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 <div key={idx} className={styles.encargadoTag}>
                   <span className={styles.encName}>{enc.nombre}</span>
                   <span className={styles.encRole}>{enc.rol}</span>
-                  {((userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones') || (proyecto.encargados || []).some(e => e.id === session?.user?.id)) && (
+                  {(userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones' || userRole === 'Líder Operativo') && (
                     <button onClick={async () => {
                       const encs = (proyecto.encargados || []).filter((_, i) => i !== idx);
                       setProyecto(prev => ({ ...prev, encargados: encs }));

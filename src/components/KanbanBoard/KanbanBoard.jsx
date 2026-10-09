@@ -554,7 +554,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
            onConfirm: (motive) => {
              const notaAnadida = `[RETROCESO] De "${pry.estado}" a "${destColumn}": ${motive}`;
              const nuevasNotas = pry.notas ? pry.notas + '\n\n' + notaAnadida : notaAnadida;
-             executeMove(null, nuevasNotas);
+             executeMove(motive, nuevasNotas);
              setMotivePrompt(null);
            },
            onCancel: () => {
