@@ -115,7 +115,7 @@ function App() {
     };
   }, []);
 
-  ;
+  
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif', color: '#64748b' }}>Cargando aplicación...</div>;
@@ -128,7 +128,7 @@ function App() {
   const userRole = session?.user?.user_metadata?.rol || '';
   const roleLower = userRole.toLowerCase();
   
-  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones');
+  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo');
   const isAdminRRHH = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
 
   // Simple Router
