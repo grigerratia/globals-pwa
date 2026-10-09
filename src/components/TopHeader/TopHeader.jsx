@@ -13,9 +13,10 @@ export default function TopHeader({ session, currentView }) {
   const userName = session?.user?.user_metadata?.nombre || session?.user?.email;
   const isExecutiveRole = roleLower.includes('comercial') || roleLower.includes('operaciones');
   const isAdminRole = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isComercial = roleLower.includes('comercial');
   
   // Administrators should not see the financial dashboard
-  const canViewFinances = roleLower.includes('comercial'); 
+  const canViewFinances = isComercial; // Only comercial should see it maybe? Or operations too? Let's leave it as roleLower.includes('comercial')
   
   const vistaTexto = isAdminRole ? "Panel Admin" : "Vista Ejecutiva";
   const isLider = isExecutiveRole || isAdminRole;
@@ -89,14 +90,16 @@ export default function TopHeader({ session, currentView }) {
             </>
           )}
 
-          <button 
-            className={styles.btnActionMobile} 
-            title="WhatsApp Admin"
-            style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-            onClick={() => window.location.href = '/admin/whatsapp'}
-          >
-            <QrCode size={20} />
-          </button>
+          {isComercial && (
+            <button 
+              className={styles.btnActionMobile} 
+              title="WhatsApp Admin"
+              style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              onClick={() => window.location.href = '/admin/whatsapp'}
+            >
+              <QrCode size={20} />
+            </button>
+          )}
           
           <button className={styles.btnLogout} onClick={() => supabase.auth.signOut()}>
             <LogOut size={18} /> <span className={styles.hideOnMobile}>Cerrar Sesión</span>
@@ -151,13 +154,15 @@ export default function TopHeader({ session, currentView }) {
             </>
           )}
           
-          <button 
-            className={styles.mobileMenuItem}
-            onClick={() => window.location.href = '/admin/whatsapp'}
-          >
-            <QrCode size={18} />
-            <span>WhatsApp Admin</span>
-          </button>
+          {isComercial && (
+            <button 
+              className={styles.mobileMenuItem}
+              onClick={() => window.location.href = '/admin/whatsapp'}
+            >
+              <QrCode size={18} />
+              <span>WhatsApp Admin</span>
+            </button>
+          )}
 
           <div className={styles.mobileDivider}></div>
 
