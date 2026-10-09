@@ -12,6 +12,9 @@ export default function TopHeader({ session, currentView }) {
   const roleLower = userRole.toLowerCase();
   const userName = session?.user?.user_metadata?.nombre || session?.user?.email;
   const canViewFinances = roleLower.includes('comercial') || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isExecutiveRole = roleLower.includes('comercial') || roleLower.includes('operaciones');
+  const isAdminRole = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const vistaTexto = isAdminRole ? "Panel Admin" : "Vista Ejecutiva";
   const isLider = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
 
   return (
@@ -60,7 +63,7 @@ export default function TopHeader({ session, currentView }) {
               ) : (
                 <button 
                   className={styles.btnActionMobile} 
-                  title="Vista Ejecutiva"
+                  title={vistaTexto}
                   style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }} 
                   onClick={() => window.location.href = '/'}
                 >
@@ -127,7 +130,7 @@ export default function TopHeader({ session, currentView }) {
                   onClick={() => window.location.href = '/'}
                 >
                   <Activity size={18} />
-                  <span>Vista Ejecutiva</span>
+                  <span>{vistaTexto}</span>
                 </button>
               )}
               

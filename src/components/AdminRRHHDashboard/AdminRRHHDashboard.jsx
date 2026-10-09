@@ -15,7 +15,7 @@ export default function AdminRRHHDashboard({ session }) {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     // Fetch proyectos
     const { data: proyData, error: proyError } = await supabase

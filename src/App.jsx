@@ -35,6 +35,45 @@ function App() {
   const [toastMessage, setToastMessage] = useState(null);
   const authLogDone = useRef(false);
 
+  
+  async function setupFirebasePush(currentSession) {
+    try {
+      const token = await requestFirebaseToken();
+      if (token) {
+        await supabase.from('fcm_tokens').upsert({ 
+          token: token, 
+          user_id: currentSession.user.id 
+        });
+      }
+      setupOnMessageListener((payload) => {
+        console.log('Mensaje FCM recibido en primer plano:', payload);
+        setToastMessage({
+          title: payload.notification?.title || payload.data?.title || "Notificación",
+          body: payload.notification?.body || payload.data?.body || "Tienes un nuevo mensaje"
+        });
+        setTimeout(() => setToastMessage(null), 5000);
+        
+        if (Notification.permission === 'granted') {
+           if ('serviceWorker' in navigator) {
+             navigator.serviceWorker.ready.then((registration) => {
+               registration.showNotification(payload.notification?.title || payload.data?.title || "Notificación", {
+                 body: payload.notification?.body || payload.data?.body,
+                 icon: '/vite.svg'
+               });
+             });
+           } else {
+             new Notification(payload.notification?.title || payload.data?.title || "Notificación", {
+                body: payload.notification?.body || payload.data?.body,
+                icon: '/vite.svg'
+             });
+           }
+        }
+      });
+    } catch (error) {
+      console.error('Error configurando Firebase Push:', error);
+    }
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -76,43 +115,7 @@ function App() {
     };
   }, []);
 
-  async function setupFirebasePush(currentSession) {
-    try {
-      const token = await requestFirebaseToken();
-      if (token) {
-        await supabase.from('fcm_tokens').upsert({ 
-          token: token, 
-          user_id: currentSession.user.id 
-        });
-      }
-      setupOnMessageListener((payload) => {
-        console.log('Mensaje FCM recibido en primer plano:', payload);
-        setToastMessage({
-          title: payload.notification?.title || payload.data?.title || "Notificación",
-          body: payload.notification?.body || payload.data?.body || "Tienes un nuevo mensaje"
-        });
-        setTimeout(() => setToastMessage(null), 5000);
-        
-        if (Notification.permission === 'granted') {
-           if ('serviceWorker' in navigator) {
-             navigator.serviceWorker.ready.then((registration) => {
-               registration.showNotification(payload.notification?.title || payload.data?.title || "Notificación", {
-                 body: payload.notification?.body || payload.data?.body,
-                 icon: '/vite.svg'
-               });
-             });
-           } else {
-             new Notification(payload.notification?.title || payload.data?.title || "Notificación", {
-                body: payload.notification?.body || payload.data?.body,
-                icon: '/vite.svg'
-             });
-           }
-        }
-      });
-    } catch (error) {
-      console.error('Error configurando Firebase Push:', error);
-    }
-  };
+  ;
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif', color: '#64748b' }}>Cargando aplicación...</div>;
@@ -125,8 +128,8 @@ function App() {
   const userRole = session?.user?.user_metadata?.rol || '';
   const roleLower = userRole.toLowerCase();
   
-  const isAdminRRHH = roleLower.includes('rrhh') || roleLower.includes('recursos humanos') || roleLower === 'administración';
-  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones') || (roleLower.includes('admin') && !isAdminRRHH);
+  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones');
+  const isAdminRRHH = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
 
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {
