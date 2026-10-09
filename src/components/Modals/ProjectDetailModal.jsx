@@ -484,11 +484,21 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
         <div className={styles.header}>
           <Layout className={styles.icon} size={24} />
           <div className={styles.titleWrapper}>
-            <input 
-              type="text" 
+            <textarea 
               className={styles.titleInput} 
               value={proyecto.titulo} 
-              onChange={(e) => setProyecto(prev => ({ ...prev, titulo: e.target.value }))}
+              rows={1}
+              ref={(el) => {
+                if (el) {
+                  el.style.height = 'auto';
+                  el.style.height = el.scrollHeight + 'px';
+                }
+              }}
+              onChange={(e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+                setProyecto(prev => ({ ...prev, titulo: e.target.value }));
+              }}
               onBlur={(e) => handleChange('titulo', e.target.value)}
             />
             <p className={styles.subtitle}>

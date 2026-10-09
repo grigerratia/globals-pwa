@@ -45,7 +45,7 @@
     max-height: 90vh !important; height: auto !important;
     margin: 0 auto !important;
     border-radius: 12px !important;
-    padding: 0.5rem !important;
+    padding: 1.25rem !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -131,13 +131,23 @@
     color: #ffffff;
     transform: scale(1.1);
   }
+
+  @media (max-width: 768px) {
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.5rem;
+  }
 }
 
 .header {
   display: flex;
   align-items: flex-start;
   gap: 1.25rem;
-  padding-right: 2rem;
+  padding-right: 2.5rem;
+
+  @media (max-width: 768px) {
+    padding-right: 2rem;
+  }
   
   .icon {
     margin-top: 0.4rem;
@@ -159,6 +169,10 @@
     border-radius: 8px;
     margin-left: -0.75rem;
     transition: all 0.2s ease;
+    resize: none;
+    overflow: hidden;
+    font-family: inherit;
+    line-height: 1.3;
     
     &:hover {
       background: rgba(59, 130, 246, 0.04);
@@ -168,6 +182,8 @@
       background: #ffffff;
       border-color: #cbd5e1;
       box-shadow: 0 0 0 3px rgba(226, 232, 240, 0.5);
+      color: #1e293b;
+      outline: none;
     }
   }
 
