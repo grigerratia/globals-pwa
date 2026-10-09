@@ -4,6 +4,7 @@ import { supabase } from '../../supabase';
 import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
 import AssignEmployeeSelect from './AssignEmployeeSelect';
+import CustomSelect from '../CustomSelect/CustomSelect';
 import imageCompression from 'browser-image-compression';
 import { logAudit } from '../../utils/audit';
 import LevantamientoFormModal from './LevantamientoFormModal';
