@@ -492,14 +492,11 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             />
             <p className={styles.subtitle}>
               en la lista 
-              <select 
+              <CustomSelect 
                 value={proyecto.estado} 
-                onChange={(e) => handleChange('estado', e.target.value)}
-              >
-                {estados.map(est => (
-                  <option key={est} value={est}>{est}</option>
-                ))}
-              </select>
+                options={estados}
+                onChange={(val) => handleChange('estado', val)}
+              />
             </p>
           </div>
         </div>

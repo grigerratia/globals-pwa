@@ -179,25 +179,7 @@
     align-items: center;
     gap: 0.5rem;
     
-    select {
-      background: #f1f5f9;
-      border: 1px solid transparent;
-      border-radius: 6px;
-      padding: 0.25rem 0.5rem;
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        background: #e2e8f0;
-      }
-      &:focus {
-        outline: none;
-        border-color: rgba(255, 255, 255, 0.8);
-      }
-    }
+    
   }
 }
 
