@@ -113,7 +113,19 @@ const tools = [
             cliente_empresa: { type: SchemaType.STRING },
             cliente_telefono: { type: SchemaType.STRING },
             estado: { type: SchemaType.STRING, description: 'Columna inicial. Por defecto "En Conversación".' },
-            dias_estimados: { type: SchemaType.NUMBER, description: 'Obligatorio preguntar.' }
+            dias_estimados: { type: SchemaType.NUMBER, description: 'Obligatorio preguntar.' },
+            materiales: { 
+              type: SchemaType.ARRAY, 
+              items: {
+                 type: SchemaType.OBJECT,
+                 properties: {
+                    nombre: { type: SchemaType.STRING },
+                    cantidad: { type: SchemaType.NUMBER },
+                    costo_unitario: { type: SchemaType.NUMBER }
+                 }
+              },
+              description: 'Lista opcional de materiales iniciales' 
+            }
           },
           required: ['titulo'],
         },
@@ -477,8 +489,19 @@ const executeTool = async (call) => {
         estado: args.estado || 'En Conversación',
         encargados: encargadosPorDefecto,
         notas: `[DINAMO - Proyecto Creado]\n[DÍAS ESTIMADOS FASE ACTUAL: ${args.dias_estimados}]`,
-        fecha_creacion: new Date().toISOString()
+        fecha_creacion: new Date().toISOString(),
+        materiales: []
       };
+
+      if (args.materiales && Array.isArray(args.materiales)) {
+         nuevoProy.materiales = args.materiales.map((m, i) => ({
+            id: `mat-${Date.now()}-${i}`,
+            nombre: m.nombre || 'Material',
+            cantidad: m.cantidad || 1,
+            costo_unitario: m.costo_unitario || 0,
+            comprado: false
+         }));
+      }
       
       const targetIdx = estadosList.indexOf(nuevoProy.estado);
       const levantamientoIdx = estadosList.indexOf('Levantamiento');

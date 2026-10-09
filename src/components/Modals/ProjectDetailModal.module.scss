@@ -133,9 +133,9 @@
   }
 
   @media (max-width: 768px) {
-    top: 0.75rem;
-    right: 0.75rem;
-    padding: 0.5rem;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.6rem;
   }
 }
 
@@ -173,16 +173,19 @@
     overflow: hidden;
     font-family: inherit;
     line-height: 1.3;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
     
     &:hover {
       background: rgba(59, 130, 246, 0.04);
     }
     
     &:focus {
-      background: #ffffff;
-      border-color: #cbd5e1;
-      box-shadow: 0 0 0 3px rgba(226, 232, 240, 0.5);
-      color: #1e293b;
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.4);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+      color: #ffffff;
       outline: none;
     }
   }
