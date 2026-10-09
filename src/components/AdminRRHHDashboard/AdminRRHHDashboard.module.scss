@@ -1,0 +1,300 @@
+.dashboardContainer {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  
+  h1 {
+    font-size: 1.8rem;
+    color: #0f172a;
+    margin: 0;
+  }
+  
+  p {
+    color: #64748b;
+    margin: 0.5rem 0 0 0;
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+  
+  button {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: #f1f5f9;
+      color: #3b82f6;
+    }
+    
+    &.activeTab {
+      background: #eff6ff;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+  }
+}
+
+.comprasGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.rrhhPanel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  padding: 1.5rem;
+}
+
+.panelHeader {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #1e293b;
+  }
+}
+
+.panelBody {
+  padding: 1.5rem;
+}
+
+.empty {
+  color: #64748b;
+  text-align: center;
+  font-style: italic;
+  padding: 2rem 0;
+}
+
+.projectCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #fafaf9;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.projectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+  }
+}
+
+.badge {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badgeWarning {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.projectDetails {
+  font-size: 0.85rem;
+  color: #475569;
+  margin-bottom: 1rem;
+  
+  p {
+    margin: 0.25rem 0;
+  }
+}
+
+.materialList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  
+  li {
+    margin-bottom: 0.5rem;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+/* Custom Checkbox */
+.checkContainer {
+  display: block;
+  position: relative;
+  padding-left: 28px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #334155;
+  user-select: none;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  .checkContainer:hover input ~ & {
+    background-color: #cbd5e1;
+  }
+
+  .checkContainer input:checked ~ & {
+    background-color: #3b82f6;
+  }
+
+  &:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .checkContainer input:checked ~ &:after {
+    display: block;
+  }
+}
+
+.actions {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+}
+
+/* Empleados Grid */
+.employeeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.employeeCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fafaf9;
+}
+
+.empAvatar {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.empInfo {
+  h4 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+  }
+  
+  .empRole {
+    margin: 0.25rem 0;
+    font-size: 0.8rem;
+    color: #3b82f6;
+    font-weight: 600;
+  }
+  
+  .empEmail {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .empTel {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.8rem;
+    color: #475569;
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: #64748b;
+  font-size: 1.1rem;
+}

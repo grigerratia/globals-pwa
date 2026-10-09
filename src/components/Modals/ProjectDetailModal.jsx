@@ -248,6 +248,19 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
   };
 
+  const handleMultipleChange = async (updates) => {
+    updates.fecha_ultima_actualizacion = new Date().toISOString();
+    setProyecto(prev => ({ ...prev, ...updates }));
+    const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
+    if (!error) {
+      onProjectUpdated({ ...proyecto, ...updates });
+      await logAudit(session, `Actualizó detalles de materiales`, { proyecto_id: proyectoId, titulo: proyecto.titulo });
+    } else {
+      setMsg({ text: `Error al actualizar: ` + error.message, type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 5000);
+    }
+  };
+
   const handleArchiveProject = async () => {
     if (!archiveMotive.trim()) {
       setMsg({ text: 'Debes ingresar un motivo de archivo', type: 'error' });

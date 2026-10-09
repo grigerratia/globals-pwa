@@ -12,6 +12,7 @@ import { requestFirebaseToken, setupOnMessageListener } from './firebase';
 
 
 import ExecutiveDashboard from "./components/ExecutiveDashboard/ExecutiveDashboard";
+import AdminRRHHDashboard from "./components/AdminRRHHDashboard/AdminRRHHDashboard";
 import DinamoAgent from "./components/Dinamo/DinamoAgent";
 import DebugConsole from "./components/DebugConsole";
 import { Bug } from "lucide-react";
@@ -122,7 +123,8 @@ function App() {
   }
 
   const userRole = session?.user?.user_metadata?.rol;
-  const isSuperuser = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+  const isExecutive = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+  const isAdminRRHH = userRole === 'Líder de Administración y RRHH' || userRole === 'Líder de administración y recursos humanos' || userRole === 'Administración';
 
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {
@@ -144,9 +146,15 @@ function App() {
 
   let ActiveComponent = null;
 
-  if (window.location.pathname === '/' && isSuperuser) {
-    ActiveComponent = <ExecutiveDashboard session={session} />;
-  } else if (window.location.pathname === '/' || window.location.pathname === '/kanban' || window.location.pathname === '/tablero') {
+  if (window.location.pathname === '/') {
+    if (isExecutive) {
+      ActiveComponent = <ExecutiveDashboard session={session} />;
+    } else if (isAdminRRHH) {
+      ActiveComponent = <AdminRRHHDashboard session={session} />;
+    } else {
+      ActiveComponent = <KanbanBoard session={session} />;
+    }
+  } else if (window.location.pathname === '/kanban' || window.location.pathname === '/tablero') {
     ActiveComponent = <KanbanBoard session={session} />;
   }
 
