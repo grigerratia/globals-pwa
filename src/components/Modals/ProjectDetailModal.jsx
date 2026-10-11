@@ -704,27 +704,60 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                 </div>
 
                 <div className={styles.checklist} style={{ marginTop: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                  <h4 style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Hitos Requeridos para Avanzar</h4>
+                  
                   <label className={styles.checkItem}>
-                    <input 
-                      type="checkbox" 
-                      checked={proyecto.presupuesto_aprobado} 
-                      onChange={(e) => handleChange('presupuesto_aprobado', e.target.checked)}
-                    />
-                    <span>Presupuesto aprobado por el cliente</span>
+                    <input type="checkbox" checked={!!proyecto.diseno_terminado} onChange={async (e) => {
+                      await handleChange('diseno_terminado', e.target.checked);
+                      if (e.target.checked && proyecto.estado === 'En Diseño' && window.confirm("¿Avanzar proyecto a 'Presupuesto enviado'?")) handleChange('estado', 'Presupuesto enviado');
+                    }}/> <span>Diseño terminado</span>
                   </label>
+                  
                   <label className={styles.checkItem}>
-                    <input 
-                      type="checkbox" 
-                      checked={proyecto.materiales_comprados} 
-                      onChange={(e) => handleChange('materiales_comprados', e.target.checked)}
-                    />
-                    <span>Material en almacén verificado / comprado</span>
+                    <input type="checkbox" checked={!!proyecto.presupuesto_aprobado} onChange={async (e) => {
+                      await handleChange('presupuesto_aprobado', e.target.checked);
+                      if (e.target.checked && proyecto.estado.includes('Presupuesto enviado') && window.confirm("¿Avanzar proyecto a 'Logística y compras'?")) handleChange('estado', 'Logística y compras');
+                    }}/> <span>Presupuesto aprobado por el cliente</span>
                   </label>
+
+                  <label className={styles.checkItem}>
+                    <input type="checkbox" checked={!!proyecto.materiales_comprados} onChange={async (e) => {
+                      await handleChange('materiales_comprados', e.target.checked);
+                      if (e.target.checked && proyecto.estado.includes('Logística') && window.confirm("¿Avanzar proyecto a 'En fabricación'?")) handleChange('estado', 'En fabricación');
+                    }}/> <span>Material en almacén / comprado</span>
+                  </label>
+
+                  <label className={styles.checkItem}>
+                    <input type="checkbox" checked={!!proyecto.fabricado_listo} onChange={async (e) => {
+                      await handleChange('fabricado_listo', e.target.checked);
+                      if (e.target.checked && proyecto.estado.includes('En fabricación') && window.confirm("¿Avanzar proyecto a 'Listo para instalación'?")) handleChange('estado', 'Listo para instalación');
+                    }}/> <span>Fabricado listo</span>
+                  </label>
+                  
+                  <div className={styles.checkItem} style={{ padding: '0.25rem 0' }}>
+                    <span style={{ marginRight: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>📅 Fecha de Instalación:</span>
+                    <input type="date" value={proyecto.fecha_instalacion || ''} onChange={async (e) => {
+                      await handleChange('fecha_instalacion', e.target.value);
+                    }} style={{ padding: '0.2rem', borderRadius: '4px', border: '1px solid #ccc' }} />
+                  </div>
+
+                  <label className={styles.checkItem}>
+                    <input type="checkbox" checked={!!proyecto.instalado} onChange={async (e) => {
+                      await handleChange('instalado', e.target.checked);
+                      if (e.target.checked && proyecto.estado.includes('En instalación') && window.confirm("¿Avanzar proyecto a 'Entregado'?")) handleChange('estado', 'Entregado');
+                    }}/> <span>Instalado correctamente</span>
+                  </label>
+
+                  <label className={styles.checkItem}>
+                    <input type="checkbox" checked={!!proyecto.pagado_completo} onChange={async (e) => {
+                      await handleChange('pagado_completo', e.target.checked);
+                      if (e.target.checked && proyecto.estado === 'Entregado' && window.confirm("¿Avanzar proyecto a 'Pagado y cerrado'?")) handleChange('estado', 'Pagado y cerrado');
+                    }}/> <span>Pago cancelado por completo</span>
+                  </label>
+                  
                 </div>
               </div>
-            </div>
-
-            
+            </div>            
 
                         {!['Nuevo', 'Contactado', 'Cotizando', 'En Conversación'].includes(proyecto.estado) && (
               <div className={styles.section} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>

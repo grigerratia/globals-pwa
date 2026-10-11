@@ -33,15 +33,44 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
       }
     }
 
-    // Reglas de Avance (Casillas)
+    // Reglas de Avance (Hitos requeridos para avanzar)
     if (isAvance) {
-      const presupIdx = estadosList.indexOf('Presupuesto enviado');
-      if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !proyecto.presupuesto_aprobado) {
-         return { isValid: false, error: "No puede ser movido: Falta aprobar el presupuesto.", rule: "PRESUPUESTO" };
+      const findIdx = (str) => estadosList.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
+
+      const disenoIdx = findIdx('diseño');
+      if (disenoIdx !== -1 && destinoGlobalIdx > disenoIdx && !proyecto.diseno_terminado) {
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Diseño terminado'.", rule: "DISENO" };
       }
-      const logisIdx = estadosList.indexOf('Logística y compras');
+
+      const presupIdx = findIdx('presupuesto enviado');
+      if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !proyecto.presupuesto_aprobado) {
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Presupuesto aprobado'.", rule: "PRESUPUESTO" };
+      }
+
+      const logisIdx = findIdx('logística');
       if (logisIdx !== -1 && destinoGlobalIdx > logisIdx && !proyecto.materiales_comprados) {
-         return { isValid: false, error: "No puede ser movido: Faltan materiales por comprar.", rule: "MATERIALES" };
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Materiales comprados o en inventario'.", rule: "MATERIALES" };
+      }
+
+      const fabIdx = findIdx('fabricación');
+      if (fabIdx !== -1 && destinoGlobalIdx > fabIdx && !proyecto.fabricado_listo) {
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Fabricado listo'.", rule: "FABRICACION" };
+      }
+
+      const listoInstIdx = findIdx('listo para instalación');
+      if (listoInstIdx !== -1 && destinoGlobalIdx > listoInstIdx && !proyecto.fecha_instalacion) {
+         return { isValid: false, error: "No puede ser movido: Falta asignar la fecha de instalación.", rule: "FECHA_INSTALACION" };
+      }
+
+      const enInstIdx = findIdx('en instalación');
+      if (enInstIdx !== -1 && destinoGlobalIdx > enInstIdx && !proyecto.instalado) {
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Instalado'.", rule: "INSTALACION" };
+      }
+
+      const entregadoIdx = findIdx('entregado');
+      // Asegurarse de que no sea 'entregado y cerrado', solo 'entregado'
+      if (entregadoIdx !== -1 && destinoGlobalIdx > entregadoIdx && !proyecto.pagado_completo) {
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Pago cancelado por completo'.", rule: "PAGADO" };
       }
     }
   }
