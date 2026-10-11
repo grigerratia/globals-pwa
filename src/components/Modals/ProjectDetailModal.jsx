@@ -49,6 +49,10 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [archiveMotive, setArchiveMotive] = useState('');
   const [cancelMotive, setCancelMotive] = useState('');
 
+  const [empleadosList, setEmpleadosList] = useState([]);
+  const [selectedMaterialEmpId, setSelectedMaterialEmpId] = useState('');
+  const [manualMaterialEmpName, setManualMaterialEmpName] = useState('');
+
   const promptAutoAdvance = (nextColName, milestoneName, extraProjectData = {}) => {
     const matchedCol = estados?.find(e => e.toLowerCase() === nextColName.toLowerCase()) || nextColName;
     setConfirmPrompt({
@@ -73,6 +77,12 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       if (!comError && comData) {
         setComentarios(comData);
       }
+
+      const { data: empData } = await supabase.rpc('get_empleados');
+      if (empData) {
+        setEmpleadosList(empData);
+      }
+
       setCargando(false);
     };
     fetchDatos();
@@ -316,6 +326,103 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
   };
 
+  const handleSaveMaterialEncargados = async (updatedList) => {
+    const currentProy = proyectoRef.current || proyecto;
+    const updatedFull = {
+      ...currentProy,
+      encargados_materiales: updatedList,
+      fecha_ultima_actualizacion: new Date().toISOString()
+    };
+    proyectoRef.current = updatedFull;
+    setProyecto(updatedFull);
+
+    // Intentamos actualizar directamente la columna encargados_materiales
+    let { error } = await supabase.from('proyectos').update({
+      encargados_materiales: updatedList,
+      fecha_ultima_actualizacion: new Date().toISOString()
+    }).eq('id', proyectoId);
+
+    // Fallback si la columna no existe en Supabase (PGRST204)
+    if (error && (error.code === 'PGRST204' || error.message?.includes('encargados_materiales'))) {
+      console.warn("Columna encargados_materiales no encontrada, usando fallback en columna encargados:", error);
+      const otherEncs = (currentProy.encargados || []).filter(e => !e.es_materiales && e.rol !== 'Materiales');
+      const mergedEncs = [
+        ...otherEncs,
+        ...updatedList.map(e => ({ ...e, es_materiales: true }))
+      ];
+      const fbRes = await supabase.from('proyectos').update({
+        encargados: mergedEncs,
+        fecha_ultima_actualizacion: new Date().toISOString()
+      }).eq('id', proyectoId);
+      error = fbRes.error;
+      if (!error) {
+        const withMergedEncs = { ...updatedFull, encargados: mergedEncs };
+        proyectoRef.current = withMergedEncs;
+        setProyecto(withMergedEncs);
+        onProjectUpdated(withMergedEncs);
+        await logAudit(session, 'Actualizó encargados de materiales', { proyecto_id: proyectoId, titulo: currentProy.titulo });
+        setMsg({ text: 'Encargados de materiales guardados', type: 'success' });
+        setTimeout(() => setMsg({ text: '', type: '' }), 3500);
+        return;
+      }
+    }
+
+    if (!error) {
+      onProjectUpdated(updatedFull);
+      await logAudit(session, 'Actualizó encargados de materiales', { proyecto_id: proyectoId, titulo: currentProy.titulo });
+      setMsg({ text: 'Encargados de materiales guardados', type: 'success' });
+    } else {
+      setMsg({ text: 'Error al guardar encargados: ' + error.message, type: 'error' });
+    }
+    setTimeout(() => setMsg({ text: '', type: '' }), 3500);
+  };
+
+  const handleAddMaterialEncargado = async () => {
+    if (!selectedMaterialEmpId) return;
+
+    let newEnc;
+    if (selectedMaterialEmpId === 'externo') {
+      if (!manualMaterialEmpName.trim()) {
+        setMsg({ text: 'Ingresa el nombre del encargado', type: 'error' });
+        setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+        return;
+      }
+      newEnc = { nombre: manualMaterialEmpName.trim(), rol: 'Externo' };
+      setManualMaterialEmpName('');
+    } else {
+      const emp = empleadosList.find(e => e.id === selectedMaterialEmpId);
+      if (!emp) return;
+      newEnc = {
+        id: emp.id,
+        user_id: emp.id,
+        nombre: emp.nombre || emp.email,
+        email: emp.email,
+        rol: emp.rol || 'Materiales',
+        telefono: emp.telefono
+      };
+    }
+
+    const currentList = (proyectoRef.current || proyecto)?.encargados_materiales || 
+      ((proyectoRef.current || proyecto)?.encargados || []).filter(e => e.es_materiales || e.rol === 'Materiales');
+    
+    if (newEnc.user_id && currentList.some(e => (e.user_id || e.id) === newEnc.user_id)) {
+      setMsg({ text: 'Esta persona ya está asignada como encargado de materiales', type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+      return;
+    }
+
+    const updated = [...currentList, newEnc];
+    setSelectedMaterialEmpId('');
+    await handleSaveMaterialEncargados(updated);
+  };
+
+  const handleRemoveMaterialEncargado = async (indexToRemove) => {
+    const currentList = (proyectoRef.current || proyecto)?.encargados_materiales || 
+      ((proyectoRef.current || proyecto)?.encargados || []).filter(e => e.es_materiales || e.rol === 'Materiales');
+    const updated = currentList.filter((_, idx) => idx !== indexToRemove);
+    await handleSaveMaterialEncargados(updated);
+  };
+
   const handleArchiveProject = async () => {
     if (!archiveMotive.trim()) {
       setMsg({ text: 'Debes ingresar un motivo de archivo', type: 'error' });
@@ -510,7 +617,29 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const gananciaNeta = presupuestoVendido - costoMateriales - costoOperativo;
   const margenRentabilidad = presupuestoVendido > 0 ? ((gananciaNeta / presupuestoVendido) * 100).toFixed(1) : 0;
   
+  const currentUserId = session?.user?.id;
+  const currentUserEmail = session?.user?.email?.toLowerCase();
   const userRole = session?.user?.user_metadata?.rol;
+
+  const isLiderAdmin = userRole === 'Administración' || 
+                       userRole === 'Administrador' || 
+                       userRole === 'Líder de Administración' || 
+                       (typeof userRole === 'string' && userRole.toLowerCase().includes('administra'));
+
+  const isSuperUser = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+
+  const encargadosMateriales = (proyecto.encargados_materiales && Array.isArray(proyecto.encargados_materiales))
+    ? proyecto.encargados_materiales
+    : (proyecto.encargados || []).filter(e => e.es_materiales || e.rol === 'Materiales');
+
+  const isEncargadoMat = encargadosMateriales.some(enc => 
+    (enc.user_id && enc.user_id === currentUserId) ||
+    (enc.id && enc.id === currentUserId) ||
+    (enc.email && currentUserEmail && enc.email.toLowerCase() === currentUserEmail)
+  );
+
+  const canCheckMateriales = isLiderAdmin || isEncargadoMat;
+  const canAssignEncargados = isLiderAdmin || isSuperUser || isEncargadoMat;
   const canViewFinances = userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder Comercial';
   if (showLevantamiento) {
     return (
@@ -690,7 +819,100 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             {/* CHECKLIST DE MATERIALES */}
             <div className={styles.section} style={{ flexGrow: 1 }}>
               <div className={styles.sectionContent} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <h3><CheckSquare className={styles.icon} size={20} /> Lista de Materiales y Tareas</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h3 style={{ margin: 0 }}><CheckSquare className={styles.icon} size={20} /> Lista de Materiales y Tareas</h3>
+                  
+                  {canCheckMateriales ? (
+                    <span style={{ fontSize: '0.75rem', color: '#16a34a', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Check size={12} /> Permiso para compras
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 500 }}>
+                      Solo lectura
+                    </span>
+                  )}
+                </div>
+
+                {/* ENCARGADOS DE MATERIALES */}
+                <div className={styles.materialsEncargadosBox}>
+                  <div className={styles.materialsEncargadosHeader}>
+                    <span className={styles.materialsEncargadosLabel}>
+                      <Users size={15} /> Encargado(s) de Materiales:
+                    </span>
+                  </div>
+
+                  <div className={styles.materialsEncargadosList}>
+                    {encargadosMateriales.map((enc, idx) => (
+                      <div key={idx} className={styles.materialsEncargadoChip}>
+                        <span className={styles.chipName}>{enc.nombre}</span>
+                        {enc.rol && <span className={styles.chipRole}>{enc.rol}</span>}
+                        {canAssignEncargados && (
+                          <button 
+                            type="button" 
+                            className={styles.chipRemoveBtn}
+                            title="Quitar de encargados de materiales"
+                            onClick={() => handleRemoveMaterialEncargado(idx)}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {encargadosMateriales.length === 0 && (
+                      <span className={styles.materialsNoEncargadosText}>
+                        Sin encargado asignado (Solo Líder de Administración puede marcar compras)
+                      </span>
+                    )}
+                  </div>
+
+                  {canAssignEncargados && (
+                    <div className={styles.materialsAssignRow}>
+                      <select
+                        value={selectedMaterialEmpId}
+                        onChange={(e) => setSelectedMaterialEmpId(e.target.value)}
+                        className={styles.materialsEmpSelect}
+                      >
+                        <option value="">+ Asignar encargado de materiales...</option>
+                        {empleadosList
+                          .filter(emp => !encargadosMateriales.some(enc => (enc.user_id || enc.id) === emp.id))
+                          .map(emp => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.nombre || emp.email} ({emp.rol || 'General'})
+                            </option>
+                          ))
+                        }
+                        <option value="externo">+ Persona externa o personalizada...</option>
+                      </select>
+
+                      {selectedMaterialEmpId === 'externo' && (
+                        <input 
+                          type="text"
+                          placeholder="Nombre del encargado..."
+                          value={manualMaterialEmpName}
+                          onChange={(e) => setManualMaterialEmpName(e.target.value)}
+                          className={styles.materialsManualInput}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddMaterialEncargado();
+                            }
+                          }}
+                        />
+                      )}
+
+                      {selectedMaterialEmpId && (
+                        <button
+                          type="button"
+                          className={styles.materialsAssignBtn}
+                          onClick={handleAddMaterialEncargado}
+                        >
+                          Asignar
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 
                 <div className={styles.progressBar}>
                   <div 
@@ -701,11 +923,27 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
                 <div className={styles.checklist}>
                   {(proyecto.materiales || []).map((mat, index) => (
-                    <label key={index} className={styles.checkItem}>
+                    <label 
+                      key={index} 
+                      className={`${styles.checkItem} ${!canCheckMateriales ? styles.disabledCheckItem : ''}`}
+                      onClick={(e) => {
+                        if (!canCheckMateriales) {
+                          e.preventDefault();
+                          setMsg({
+                            text: 'Solo el encargado de materiales asignado o el Líder de Administración pueden marcar o desmarcar compras.',
+                            type: 'error'
+                          });
+                          setTimeout(() => setMsg({ text: '', type: '' }), 4000);
+                        }
+                      }}
+                    >
                       <input 
                         type="checkbox" 
                         checked={mat.comprado || false} 
+                        disabled={!canCheckMateriales}
+                        title={!canCheckMateriales ? "Permiso requerido: Encargado de materiales o Líder de Administración" : ""}
                         onChange={async (e) => {
+                          if (!canCheckMateriales) return;
                           const mats = (proyecto.materiales || []).map(m => ({...m}));
                           mats[index].comprado = e.target.checked;
                           
@@ -718,17 +956,20 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         }}
                       />
                       <span className={mat.comprado ? styles.checkedText : ''}>{mat.nombre}</span>
-                      <button className={styles.btnDeleteMat} onClick={async (e) => {
-                        e.preventDefault();
-                        const mats = (proyecto.materiales || []).filter((_, i) => i !== index);
-                        
-                        let isAllBought = false;
-                        if (mats.length > 0 && mats.every(m => m.comprado)) {
-                          isAllBought = true;
-                        }
-                        
-                        await handleMultipleChange({ materiales: mats, materiales_comprados: isAllBought });
-                      }}><Trash2 size={14}/></button>
+                      {canCheckMateriales && (
+                        <button className={styles.btnDeleteMat} onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const mats = (proyecto.materiales || []).filter((_, i) => i !== index);
+                          
+                          let isAllBought = false;
+                          if (mats.length > 0 && mats.every(m => m.comprado)) {
+                            isAllBought = true;
+                          }
+                          
+                          await handleMultipleChange({ materiales: mats, materiales_comprados: isAllBought });
+                        }}><Trash2 size={14}/></button>
+                      )}
                     </label>
                   ))}
                 </div>
@@ -784,15 +1025,34 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     }}/> <span>Diseño terminado</span>
                   </label>
                   
-                  <label className={styles.checkItem}>
-                    <input type="checkbox" checked={!!proyecto.materiales_comprados} onChange={async (e) => {
-                      const checked = e.target.checked;
-                      await handleChange('materiales_comprados', checked);
-                      const current = proyectoRef.current || proyecto;
-                      if (checked && current?.estado?.toLowerCase().includes('logística')) {
-                        promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales_comprados: true });
+                  <label 
+                    className={`${styles.checkItem} ${!canCheckMateriales ? styles.disabledCheckItem : ''}`}
+                    onClick={(e) => {
+                      if (!canCheckMateriales) {
+                        e.preventDefault();
+                        setMsg({
+                          text: 'Solo el encargado de materiales asignado o el Líder de Administración pueden marcar materiales comprados.',
+                          type: 'error'
+                        });
+                        setTimeout(() => setMsg({ text: '', type: '' }), 4000);
                       }
-                    }}/> <span>Material en almacén / comprado</span>
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={!!proyecto.materiales_comprados} 
+                      disabled={!canCheckMateriales}
+                      title={!canCheckMateriales ? "Permiso requerido: Encargado de materiales o Líder de Administración" : ""}
+                      onChange={async (e) => {
+                        if (!canCheckMateriales) return;
+                        const checked = e.target.checked;
+                        await handleChange('materiales_comprados', checked);
+                        const current = proyectoRef.current || proyecto;
+                        if (checked && current?.estado?.toLowerCase().includes('logística')) {
+                          promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales_comprados: true });
+                        }
+                      }}
+                    /> <span>Material en almacén / comprado</span>
                   </label>
 
                   <label className={styles.checkItem}>
