@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Phone, AlertCircle, Clock, Building } from 'lucide-react';
 import styles from './KanbanCard.module.scss';
+import { formatDateVE } from '../../utils/kanbanRules';
 
 export default function KanbanCard({ proyecto, isOverlay, onClick }) {
   // 1. LLAMAMOS AL HOOK SIEMPRE AL PRINCIPIO
@@ -26,7 +27,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
     'En fabricación': 4,
     'Listo para instalación': 2,
     'En instalación': 2,
-    'Entregado': 2,
+    'Entregado': 999,
     'Pagado y cerrado': 999,
     'Entregado y cerrado': 999,
     'En pausa/espera': 999
@@ -38,7 +39,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
 
   let isOverdue = false;
   let daysOverdue = 0;
-  if (proyecto.fecha_entrega && !isArchivedOrCanceled && !['Entregado y cerrado', 'Pagado y cerrado'].includes(proyecto.estado)) {
+  if (proyecto.fecha_entrega && !isArchivedOrCanceled && !['Entregado', 'Entregado y cerrado', 'Pagado y cerrado'].includes(proyecto.estado)) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const entrega = new Date(proyecto.fecha_entrega + 'T00:00:00');
@@ -83,7 +84,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
         )}
       </div>
       <div className={styles.creadoLabel}>
-        Creado: {proyecto.fecha_creacion ? new Date(proyecto.fecha_creacion).toLocaleDateString() : 'N/A'}
+        Creado: {proyecto.fecha_creacion ? formatDateVE(proyecto.fecha_creacion) : 'N/A'}
       </div>
     </>
   );

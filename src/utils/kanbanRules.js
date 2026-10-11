@@ -77,12 +77,51 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
     }
   }
 
+  const entregadoIdx = estadosList.findIndex(e => {
+    const lower = e.toLowerCase();
+    return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
+  });
+  const isEntregadoOAdelante = (entregadoIdx !== -1 && destinoGlobalIdx >= entregadoIdx) ||
+    destColumn.toLowerCase() === 'entregado' ||
+    destColumn.toLowerCase().includes('pagado') ||
+    destColumn.toLowerCase().includes('cerrado') ||
+    destColumn === 'Archivado' ||
+    destColumn === 'Cancelado';
+
   return {
     isValid: true,
     requiresMotive: (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Cancelado' || (destColumn === 'Archivado' && !isRoutineArchive)) 
                     ? (destColumn === 'Archivado' ? 'Archivo' : (destColumn === 'Cancelado' ? 'Cancelación' : 'Pausa')) 
                     : null,
     isRetroceso,
-    requiresDias: isAvance
+    requiresDias: isAvance && !isEntregadoOAdelante
   };
+};
+
+export const formatDateVE = (dateStrOrObj) => {
+  if (!dateStrOrObj) return '';
+  if (typeof dateStrOrObj === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStrOrObj)) {
+    const [y, m, d] = dateStrOrObj.split('T')[0].split('-');
+    return `${d}/${m}/${y}`;
+  }
+  const d = dateStrOrObj instanceof Date ? dateStrOrObj : new Date(dateStrOrObj);
+  if (isNaN(d.getTime())) return String(dateStrOrObj);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+export const formatDateTimeVE = (dateStrOrObj) => {
+  if (!dateStrOrObj) return '';
+  const d = dateStrOrObj instanceof Date ? dateStrOrObj : new Date(dateStrOrObj);
+  if (isNaN(d.getTime())) return String(dateStrOrObj);
+  return d.toLocaleString('es-VE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 };

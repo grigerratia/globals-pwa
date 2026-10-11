@@ -7,6 +7,7 @@ import CanceladosModal from '../Modals/CanceladosModal';
 import { Archive, Trash2, MoreVertical } from 'lucide-react';
 import TopHeader from '../TopHeader/TopHeader';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
+import { formatDateTimeVE } from '../../utils/kanbanRules';
 
 export default function ExecutiveDashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
@@ -310,7 +311,7 @@ export default function ExecutiveDashboard({ session }) {
                     {log.detalles?.motivo && <span> (Motivo: {log.detalles.motivo})</span>}
                   </div>
                   <div className={styles.activityMeta} style={{ marginTop: '0.25rem' }}>
-                    <span>{new Date(log.created_at).toLocaleString()}</span>
+                    <span>{formatDateTimeVE(log.created_at)}</span>
                     <span>• {log.usuario_nombre}</span>
                   </div>
                 </div>

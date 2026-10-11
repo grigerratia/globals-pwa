@@ -1,14 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import styles from './BellNotifications.module.scss';
 import { Bell, Trash2 } from 'lucide-react';
+import { formatDateTimeVE } from '../../utils/kanbanRules';
 
 export default function BellNotifications({ session }) {
   const [notificaciones, setNotificaciones] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    const fetchNotificaciones = async () => {
+      if (!session?.user?.id) return;
+      const { data } = await supabase
+        .from('notificaciones')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (data) setNotificaciones(data);
+    };
+
     fetchNotificaciones();
+    if (!session?.user?.id) return;
     const channel = supabase
       .channel('notificaciones-updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `user_id=eq.${session.user.id}` }, (payload) => {
@@ -16,17 +29,7 @@ export default function BellNotifications({ session }) {
       })
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, []);
-
-  const fetchNotificaciones = async () => {
-    const { data } = await supabase
-      .from('notificaciones')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(30);
-    if (data) setNotificaciones(data);
-  };
+  }, [session?.user?.id]);
 
   const unreadCount = notificaciones.filter(n => !n.leida).length;
 
@@ -81,7 +84,7 @@ export default function BellNotifications({ session }) {
                   <div className={styles.itemContent}>
                     <strong>{n.titulo}</strong>
                     <p>{n.mensaje}</p>
-                    <small>{new Date(n.created_at).toLocaleString()}</small>
+                    <small>{formatDateTimeVE(n.created_at)}</small>
                   </div>
                   <button className={styles.deleteBtn} onClick={(e) => deleteOne(n.id, e)}>
                     <Trash2 size={14} />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { validateProjectMove } from '../../utils/kanbanRules';
+import { validateProjectMove, formatDateVE, formatDateTimeVE } from '../../utils/kanbanRules';
 import { supabase } from '../../supabase';
 import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
@@ -226,6 +226,18 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
            updates.notas = overrideNotas;
          } else if (notasExtras) {
            updates.notas = currentProy.notas ? currentProy.notas + '\n\n' + notasExtras : notasExtras;
+         } else {
+           const isEntregadoOAdelante = value.toLowerCase() === 'entregado' ||
+             value.toLowerCase().includes('pagado') ||
+             value.toLowerCase().includes('cerrado') ||
+             value === 'Archivado' ||
+             value === 'Cancelado';
+           if (isEntregadoOAdelante && currentProy.notas) {
+             const clean = currentProy.notas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+             if (clean !== currentProy.notas) {
+               updates.notas = clean;
+             }
+           }
          }
 
          updates.fecha_ultima_actualizacion = new Date().toISOString();
@@ -295,7 +307,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                if (estimadoDate > entrega) {
                  setDiasEstimadosPrompt(prev => ({ 
                    ...prev, 
-                   error: `Los días totales (${totalDias} días) superan la fecha de entrega final (${currentProy.fecha_entrega}). Introduce un número menor.` 
+                   error: `Los días totales (${totalDias} días) superan la fecha de entrega final (${formatDateVE(currentProy.fecha_entrega)}). Introduce un número menor.` 
                  }));
                  return;
                }
@@ -466,7 +478,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
 
     const currentNotas = proyecto.notas || '';
-    const dateStr = new Date().toLocaleDateString();
+    const dateStr = formatDateVE(new Date());
     const notasActualizadas = currentNotas ? currentNotas + `\n\n[ARCHIVADO el ${dateStr}]: ${archiveMotive}` : `[ARCHIVADO el ${dateStr}]: ${archiveMotive}`;
 
     const { error } = await supabase.from('proyectos').update({ estado: 'Archivado', notas: notasActualizadas, motivo_cancelacion: archiveMotive, fecha_ultima_actualizacion: new Date().toISOString() }).eq('id', proyectoId);
@@ -690,7 +702,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   }
 
   let diasEstimadosNota = null;
-  if (proyecto && proyecto.notas) {
+  const isPostEntregado = ['entregado', 'pagado y cerrado', 'entregado y cerrado', 'archivado', 'cancelado'].some(s => (proyecto?.estado || '').toLowerCase().includes(s));
+  if (proyecto && proyecto.notas && !isPostEntregado) {
     const match = proyecto.notas.match(/\[DÍAS ESTIMADOS FASE ACTUAL: (\d+)\]/);
     if (match) {
       const diasTotales = parseInt(match[1], 10);
@@ -825,6 +838,12 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Teléfono</span>
                       <span style={{ color: '#0f172a' }}>{proyecto.cliente_telefono || '—'}</span>
                     </div>
+                    {proyecto.fecha_entrega && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Fecha de Entrega</span>
+                        <span style={{ color: '#0f172a', fontWeight: 600 }}>{formatDateVE(proyecto.fecha_entrega)}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1117,6 +1136,11 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         promptAutoAdvance('En instalación', 'Fecha de instalación asignada', { fecha_instalacion: val });
                       }
                     }} style={{ padding: '0.2rem', borderRadius: '4px', border: '1px solid #ccc' }} />
+                    {proyecto.fecha_instalacion && (
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                        ({formatDateVE(proyecto.fecha_instalacion)})
+                      </span>
+                    )}
                   </div>
 
                   <label className={styles.checkItem}>
@@ -1348,7 +1372,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                                     </span>
                                   )}
                                 </div>
-                                <span>{new Date(c.fecha_creacion).toLocaleString()}</span>
+                                <span>{formatDateTimeVE(c.fecha_creacion)}</span>
                               </div>
                               <p className={styles.commentText} style={{ fontStyle: 'italic', color: '#94a3b8' }}>
                                 (Mensaje eliminado)
@@ -1372,7 +1396,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                                 )}
                               </div>
                               <span>
-                                {new Date(c.fecha_creacion).toLocaleString()}
+                                {formatDateTimeVE(c.fecha_creacion)}
                                 {!parsed.isDeleted && (
                                   <span style={{ marginLeft: '10px' }}>
                                     <button onClick={() => { setReplyingTo({ id: c.id, email: authorName }); setTimeout(() => textareaRef.current?.focus(), 100); }} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'0.8rem' }}>Responder</button>
@@ -1508,7 +1532,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
             {diasEstimadosPrompt.isInstalacion && (
               <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#93c5fd', lineHeight: '1.4' }}>
-                📅 <strong>Fecha de instalación:</strong> {diasEstimadosPrompt.fechaInstalacion || 'Hoy'} ({diasEstimadosPrompt.diasEspera} días de espera hasta la fecha).
+                📅 <strong>Fecha de instalación:</strong> {formatDateVE(diasEstimadosPrompt.fechaInstalacion) || 'Hoy'} ({diasEstimadosPrompt.diasEspera} días de espera hasta la fecha).
                 <br />
                 ⏱️ El tiempo total en esta columna será la suma de los <strong>{diasEstimadosPrompt.diasEspera} días de espera</strong> más los días que durará la instalación.
               </div>

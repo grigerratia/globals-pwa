@@ -6,6 +6,7 @@ import styles from './Modals.module.scss';
 import jsPDF from 'jspdf';
 import imageCompression from 'browser-image-compression';
 import { logAudit } from '../../utils/audit';
+import { formatDateVE, formatDateTimeVE } from '../../utils/kanbanRules';
 
 export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpdated, session }) {
   const [formData, setFormData] = useState({
@@ -139,7 +140,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
     addLine("Teléfono", formData.telefono);
     addLine("Responsable Global's", formData.responsableGlobals);
     addLine("Responsable Medidas", formData.responsableMedidas);
-    addLine("Fecha de Entrega", formData.fechaEntrega);
+    addLine("Fecha de Entrega", formatDateVE(formData.fechaEntrega));
     addLine("Motivo del Trabajo", formData.motivo);
     
     yPos += 5;
@@ -235,7 +236,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
         
         {proyecto.levantamiento_fecha && (
           <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: 500, fontSize: '0.9rem' }}>
-            ✅ Llenada el: {new Date(proyecto.levantamiento_fecha).toLocaleString()}
+            ✅ Llenada el: {formatDateTimeVE(proyecto.levantamiento_fecha)}
           </div>
         )}
 
@@ -277,7 +278,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
             </select>
           </div>
           <div className={styles.formGroup}>
-            <label>Fecha de Entrega (Aprox)</label>
+            <label>Fecha de Entrega (Aprox) {formData.fechaEntrega ? `(${formatDateVE(formData.fechaEntrega)})` : ''}</label>
             <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} min={new Date(new Date().setDate(new Date().getDate() + 6)).toISOString().split('T')[0]} />
           </div>
 

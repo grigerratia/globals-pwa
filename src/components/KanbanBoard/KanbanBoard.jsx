@@ -11,7 +11,7 @@ import {
   useSensors,
   closestCorners 
 } from '@dnd-kit/core';
-import { validateProjectMove } from '../../utils/kanbanRules';
+import { validateProjectMove, formatDateVE } from '../../utils/kanbanRules';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { Plus, X } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
@@ -491,13 +491,26 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
         const colIndex = columnasRef.current.findIndex(c => c.estadoOriginal === destColumn);
         if (colIndex === -1) return;
         
+        const isEntregadoOAdelante = destColumn.toLowerCase() === 'entregado' ||
+          destColumn.toLowerCase().includes('pagado') ||
+          destColumn.toLowerCase().includes('cerrado') ||
+          destColumn === 'Archivado' ||
+          destColumn === 'Cancelado';
+
         const proyectosFinales = columnasRef.current[colIndex].proyectos.map((p, i) => {
           let updated = { ...p, orden: i, estado: destColumn };
           if (p.id === active.id && cambioDeFase) {
             updated.dias = 0;
             updated.fecha_ultima_actualizacion = new Date().toISOString();
             if (motive) updated.motivo_cancelacion = motive;
-            if (nuevasNotas) updated.notas = nuevasNotas;
+            if (nuevasNotas) {
+              updated.notas = nuevasNotas;
+            } else if (isEntregadoOAdelante && p.notas) {
+              const clean = p.notas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+              if (clean !== p.notas) {
+                updated.notas = clean;
+              }
+            }
           }
           return updated;
         });
@@ -516,7 +529,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             if (p.id === active.id && cambioDeFase) {
               updateData.fecha_ultima_actualizacion = p.fecha_ultima_actualizacion;
               if (motive) updateData.motivo_cancelacion = motive;
-              if (nuevasNotas) updateData.notas = nuevasNotas;
+              if (p.notas !== undefined) updateData.notas = p.notas;
 
               await logAudit(session, 'Movió proyecto de fase', { 
                 proyecto_id: p.id, 
@@ -593,7 +606,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
                if (estimadoDate > entrega) {
                  setDiasEstimadosPrompt(prev => ({ 
                    ...prev, 
-                   error: `Los días estimados totales (${totalDias} días) superan la fecha de entrega final (${pry.fecha_entrega}). Introduce un número menor.` 
+                   error: `Los días estimados totales (${totalDias} días) superan la fecha de entrega final (${formatDateVE(pry.fecha_entrega)}). Introduce un número menor.` 
                  }));
                  return;
                }
@@ -796,7 +809,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
 
             {diasEstimadosPrompt.isInstalacion && (
               <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#93c5fd', lineHeight: '1.4' }}>
-                📅 <strong>Fecha de instalación:</strong> {diasEstimadosPrompt.fechaInstalacion || 'No asignada'} ({diasEstimadosPrompt.diasEspera} días de espera hasta la fecha).
+                📅 <strong>Fecha de instalación:</strong> {formatDateVE(diasEstimadosPrompt.fechaInstalacion) || 'No asignada'} ({diasEstimadosPrompt.diasEspera} días de espera hasta la fecha).
                 <br />
                 ⏱️ El tiempo total en esta columna será la suma de los <strong>{diasEstimadosPrompt.diasEspera} días de espera</strong> más los días que durará la instalación.
               </div>
