@@ -36,8 +36,20 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [motivePrompt, setMotivePrompt] = useState(null);
   const [diasEstimadosPrompt, setDiasEstimadosPrompt] = useState(null);
+  const [confirmPrompt, setConfirmPrompt] = useState(null);
   const [archiveMotive, setArchiveMotive] = useState('');
   const [cancelMotive, setCancelMotive] = useState('');
+
+  const promptAutoAdvance = (nextColName, milestoneName) => {
+    setConfirmPrompt({
+      title: 'Hito Completado',
+      message: `Has completado "${milestoneName}". ¿Deseas avanzar automáticamente este proyecto a la etapa "${nextColName}"?`,
+      confirmText: `Avanzar a ${nextColName}`,
+      cancelText: 'Mantener en fase actual',
+      variant: 'primary',
+      onConfirm: () => handleChange('estado', nextColName)
+    });
+  };
 
   useEffect(() => {
     const fetchDatos = async () => {
@@ -90,10 +102,18 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   };
 
   const handleDeleteComment = async (cId, oldRawText) => {
-    if (!confirm('¿Seguro que deseas eliminar este comentario?')) return;
-    const finalTexto = `[DELETED] ${oldRawText}`;
-    const { error } = await supabase.from('comentarios').update({ texto: finalTexto }).eq('id', cId);
-    if (!error) setComentarios(prev => prev.map(c => c.id === cId ? { ...c, texto: finalTexto } : c));
+    setConfirmPrompt({
+      title: 'Eliminar Comentario',
+      message: '¿Estás seguro de que deseas eliminar este comentario?',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+      onConfirm: async () => {
+        const finalTexto = `[DELETED] ${oldRawText}`;
+        const { error } = await supabase.from('comentarios').update({ texto: finalTexto }).eq('id', cId);
+        if (!error) setComentarios(prev => prev.map(c => c.id === cId ? { ...c, texto: finalTexto } : c));
+      }
+    });
   };
 
   const parseComment = (rawText) => {
@@ -722,28 +742,36 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.diseno_terminado} onChange={async (e) => {
                       await handleChange('diseno_terminado', e.target.checked);
-                      if (e.target.checked && proyecto.estado === 'En Diseño' && window.confirm("¿Avanzar proyecto a 'Presupuesto enviado'?")) handleChange('estado', 'Presupuesto enviado');
+                      if (e.target.checked && proyecto.estado === 'En Diseño') {
+                        promptAutoAdvance('Presupuesto enviado', 'Diseño terminado');
+                      }
                     }}/> <span>Diseño terminado</span>
                   </label>
                   
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.presupuesto_aprobado} onChange={async (e) => {
                       await handleChange('presupuesto_aprobado', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('Presupuesto enviado') && window.confirm("¿Avanzar proyecto a 'Logística y compras'?")) handleChange('estado', 'Logística y compras');
+                      if (e.target.checked && proyecto.estado.includes('Presupuesto enviado')) {
+                        promptAutoAdvance('Logística y compras', 'Presupuesto aprobado por el cliente');
+                      }
                     }}/> <span>Presupuesto aprobado por el cliente</span>
                   </label>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.materiales_comprados} onChange={async (e) => {
                       await handleChange('materiales_comprados', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('Logística') && window.confirm("¿Avanzar proyecto a 'En fabricación'?")) handleChange('estado', 'En fabricación');
+                      if (e.target.checked && proyecto.estado.includes('Logística')) {
+                        promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados');
+                      }
                     }}/> <span>Material en almacén / comprado</span>
                   </label>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.fabricado_listo} onChange={async (e) => {
                       await handleChange('fabricado_listo', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('En fabricación') && window.confirm("¿Avanzar proyecto a 'Listo para instalación'?")) handleChange('estado', 'Listo para instalación');
+                      if (e.target.checked && proyecto.estado.includes('En fabricación')) {
+                        promptAutoAdvance('Listo para instalación', 'Fabricado listo');
+                      }
                     }}/> <span>Fabricado listo</span>
                   </label>
                   
@@ -751,20 +779,27 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     <span style={{ marginRight: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>📅 Fecha de Instalación:</span>
                     <input type="date" value={proyecto.fecha_instalacion || ''} onChange={async (e) => {
                       await handleChange('fecha_instalacion', e.target.value);
+                      if (e.target.value && proyecto.estado.includes('Listo para instalación')) {
+                        promptAutoAdvance('En instalación', 'Fecha de instalación asignada');
+                      }
                     }} style={{ padding: '0.2rem', borderRadius: '4px', border: '1px solid #ccc' }} />
                   </div>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.instalado} onChange={async (e) => {
                       await handleChange('instalado', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('En instalación') && window.confirm("¿Avanzar proyecto a 'Entregado'?")) handleChange('estado', 'Entregado');
+                      if (e.target.checked && proyecto.estado.includes('En instalación')) {
+                        promptAutoAdvance('Entregado', 'Instalación completada');
+                      }
                     }}/> <span>Instalado correctamente</span>
                   </label>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.pagado_completo} onChange={async (e) => {
                       await handleChange('pagado_completo', e.target.checked);
-                      if (e.target.checked && proyecto.estado === 'Entregado' && window.confirm("¿Avanzar proyecto a 'Pagado y cerrado'?")) handleChange('estado', 'Pagado y cerrado');
+                      if (e.target.checked && proyecto.estado === 'Entregado') {
+                        promptAutoAdvance('Pagado y cerrado', 'Pago cancelado por completo');
+                      }
                     }}/> <span>Pago cancelado por completo</span>
                   </label>
                   
@@ -1138,7 +1173,10 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
               <button 
                 onClick={() => {
                   const val = document.getElementById('dropdownDiasInput').value;
-                  if (!val || Number(val) < 1) return alert('Por favor ingresa un número válido mayor a 0');
+                  if (!val || Number(val) < 1) {
+                    setDiasEstimadosPrompt(prev => ({ ...prev, error: 'Por favor ingresa un número válido mayor a 0' }));
+                    return;
+                  }
                   diasEstimadosPrompt.onConfirm(Number(val));
                 }}
                 style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
@@ -1214,6 +1252,62 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button onClick={() => setConfirmDelete(false)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Volver</button>
               <button onClick={handleCancelProject} disabled={!cancelMotive.trim()} style={{ padding: '0.5rem 1rem', background: cancelMotive.trim() ? '#ef4444' : '#7f1d1d', color: 'white', border: 'none', borderRadius: '6px', cursor: cancelMotive.trim() ? 'pointer' : 'not-allowed', fontWeight: 500, transition: 'background 0.2s' }}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPrompt && (
+        <div onClick={(e) => { e.stopPropagation(); if (confirmPrompt.onCancel) confirmPrompt.onCancel(); setConfirmPrompt(null); }} style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', padding: '1.75rem', borderRadius: '16px', width: '90%', maxWidth: '420px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ 
+                width: '42px', 
+                height: '42px', 
+                borderRadius: '10px', 
+                background: confirmPrompt.variant === 'danger' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: confirmPrompt.variant === 'danger' ? '#ef4444' : '#3b82f6',
+                flexShrink: 0
+              }}>
+                {confirmPrompt.variant === 'danger' ? <AlertTriangle size={22} /> : <CheckSquare size={22} />}
+              </div>
+              <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.15rem', fontWeight: 600 }}>{confirmPrompt.title}</h3>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              {confirmPrompt.message}
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => {
+                  if (confirmPrompt.onCancel) confirmPrompt.onCancel();
+                  setConfirmPrompt(null);
+                }} 
+                style={{ padding: '0.6rem 1.1rem', background: 'transparent', color: '#94a3b8', border: '1px solid #334155', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }}
+              >
+                {confirmPrompt.cancelText || 'Cancelar'}
+              </button>
+              <button 
+                onClick={() => {
+                  confirmPrompt.onConfirm();
+                  setConfirmPrompt(null);
+                }} 
+                style={{ 
+                  padding: '0.6rem 1.25rem', 
+                  background: confirmPrompt.variant === 'danger' ? '#ef4444' : '#2563eb', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px', 
+                  cursor: 'pointer', 
+                  fontWeight: 600, 
+                  fontSize: '0.9rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)'
+                }}
+              >
+                {confirmPrompt.confirmText || 'Aceptar'}
+              </button>
             </div>
           </div>
         </div>
