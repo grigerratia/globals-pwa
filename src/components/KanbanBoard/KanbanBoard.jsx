@@ -561,22 +561,46 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
            }
         });
       } else if (validation.requiresDias && cambioDeFase) {
+        const isInstalacion = destColumn.toLowerCase().includes('instalación') || destColumn.toLowerCase().includes('instalacion');
+        const fechaInstalacionStr = pry.fecha_instalacion;
+
+        let diasEsperaInstalacion = 0;
+        if (isInstalacion && fechaInstalacionStr) {
+          const hoy = new Date();
+          hoy.setHours(0, 0, 0, 0);
+          const parts = fechaInstalacionStr.split('-');
+          if (parts.length === 3) {
+            const fInst = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            fInst.setHours(0, 0, 0, 0);
+            const diffTime = fInst.getTime() - hoy.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            diasEsperaInstalacion = diffDays > 0 ? diffDays : 0;
+          }
+        }
+
         setDiasEstimadosPrompt({
            columna: destColumn,
+           isInstalacion,
+           fechaInstalacion: fechaInstalacionStr,
+           diasEspera: diasEsperaInstalacion,
            error: null,
-           onConfirm: (dias) => {
+           onConfirm: (diasIngresados) => {
+             const totalDias = isInstalacion ? (diasEsperaInstalacion + diasIngresados) : diasIngresados;
              if (pry.fecha_entrega) {
                const entrega = new Date(pry.fecha_entrega + 'T00:00:00');
                const estimadoDate = new Date();
-               estimadoDate.setDate(estimadoDate.getDate() + dias);
+               estimadoDate.setDate(estimadoDate.getDate() + totalDias);
                if (estimadoDate > entrega) {
-                 setDiasEstimadosPrompt(prev => ({ ...prev, error: `Los días estimados superan la fecha de entrega final (${pry.fecha_entrega}). Introduce un número menor.` }));
+                 setDiasEstimadosPrompt(prev => ({ 
+                   ...prev, 
+                   error: `Los días estimados totales (${totalDias} días) superan la fecha de entrega final (${pry.fecha_entrega}). Introduce un número menor.` 
+                 }));
                  return;
                }
              }
              let currentNotas = pry.notas || '';
              currentNotas = currentNotas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
-             const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${dias}]`;
+             const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${totalDias}]`;
              const nuevasNotas = currentNotas ? currentNotas + '\n\n' + notaAnadida : notaAnadida;
              executeMove(null, nuevasNotas);
              setDiasEstimadosPrompt(null);
@@ -759,11 +783,25 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
 
       {diasEstimadosPrompt && (
         <div style={{ position: 'fixed', top: 0, left: 0, inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '1rem' }}>Días Estimados para la Fase</h3>
+          <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '420px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.2rem', marginBottom: '0.75rem' }}>
+              {diasEstimadosPrompt.isInstalacion ? 'Duración de la Instalación' : 'Días Estimados para la Fase'}
+            </h3>
+            
             <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: '1.4' }}>
-              ¿Cuántos días estimas que tomará esta tarjeta en la columna <strong>{diasEstimadosPrompt.columna}</strong>?
+              {diasEstimadosPrompt.isInstalacion 
+                ? '¿Cuántos días aproximados durará la instalación?'
+                : <>¿Cuántos días estimas que tomará esta tarjeta en la columna <strong>{diasEstimadosPrompt.columna}</strong>?</>}
             </p>
+
+            {diasEstimadosPrompt.isInstalacion && (
+              <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#93c5fd', lineHeight: '1.4' }}>
+                📅 <strong>Fecha de instalación:</strong> {diasEstimadosPrompt.fechaInstalacion || 'No asignada'} ({diasEstimadosPrompt.diasEspera} días de espera hasta la fecha).
+                <br />
+                ⏱️ El tiempo total en esta columna será la suma de los <strong>{diasEstimadosPrompt.diasEspera} días de espera</strong> más los días que durará la instalación.
+              </div>
+            )}
+
             {diasEstimadosPrompt.error && (
               <div style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.85rem' }}>{diasEstimadosPrompt.error}</div>
             )}
@@ -772,7 +810,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               id="diasEstimadosInput"
               autoFocus
               min="1"
-              placeholder="Ej. 3"
+              defaultValue="1"
+              placeholder="Ej. 2"
               style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', marginBottom: '1.5rem', background: '#0f172a', color: 'white', fontFamily: 'inherit' }}
             />
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
@@ -780,7 +819,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               <button 
                 onClick={() => {
                   const val = parseInt(document.getElementById('diasEstimadosInput').value, 10);
-                  if (!val || isNaN(val)) { return; }
+                  if (!val || isNaN(val) || val < 1) { return; }
                   diasEstimadosPrompt.onConfirm(val);
                 }} 
                 style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
