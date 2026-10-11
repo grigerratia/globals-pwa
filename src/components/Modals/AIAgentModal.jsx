@@ -85,7 +85,7 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
   "cliente_empresa": "Nombre de la empresa si la menciona",
   "cliente_telefono": "El número de teléfono (solo números y + si aplica), si no hay deja cadena vacía",
   "notas": "Descripción detallada del pedido completo tal cual lo pide el cliente",
-  "estado": "Selecciona SOLO UNA de estas opciones que más se ajuste (por defecto \"${defaultEstado}\"): ${columnasDisponibles}",
+  "estado": "Selecciona SOLO UNA de estas opciones que más se ajuste (por defecto '${defaultEstado}'): ${columnasDisponibles}",
   "presupuesto_vendido": "Si menciona el precio de venta acordado, pon el número, sino 0",
   "costo_materiales": "Si menciona costos de materiales, pon el número, sino 0",
   "costo_operativo": "Si menciona costos operativos, pon el número, sino 0",
