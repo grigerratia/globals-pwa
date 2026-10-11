@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { LogOut, Archive, Trash2, Activity , MoreVertical} from 'lucide-react';
+import { Archive, Trash2, MoreVertical } from 'lucide-react';
 // removed firebase import
 import { 
   DndContext, 
@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { validateProjectMove } from '../../utils/kanbanRules';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { BarChart2, Plus, X, QrCode, Menu, Calculator } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import styles from './KanbanBoard.module.scss';
 import KanbanColumn from '../KanbanColumn/KanbanColumn';
 import KanbanCard from '../KanbanCard/KanbanCard';
@@ -24,7 +24,6 @@ import CanceladosModal from '../Modals/CanceladosModal';
 import ColumnSettingsModal from '../Modals/ColumnSettingsModal';
 import AIAgentModal from '../Modals/AIAgentModal';
 import { logAudit } from '../../utils/audit';
-import logo from '../../assets/logo.png';
 
 const defaultEstados = [
   'Levantamiento', 
@@ -38,7 +37,6 @@ const defaultEstados = [
   'En pausa/espera'
 ];
 
-import BellNotifications from './BellNotifications';
 import TopHeader from '../TopHeader/TopHeader';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
 
@@ -67,8 +65,6 @@ const getTextForBg = (bg) => {
 };
 
 export default function KanbanBoard({ session }) {
-  const userRole = session?.user?.user_metadata?.rol;
-  const canViewFinances = userRole === "Administración" || userRole === "Administrador" || userRole === "Líder Comercial";
   const [estados, setEstados] = useState([]);
   const [columnas, setColumnas] = useState([]);
   const [cargando, setCargando] = useState(true);
