@@ -129,20 +129,26 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
     const finalString = replyingTo ? `[REPLY_TO:${replyingTo.id}] ${nuevoComentario}` : nuevoComentario;
     const autorNombre = session?.user?.user_metadata?.nombre || session?.user?.user_metadata?.full_name || session?.user?.email || 'Usuario';
+    const autorRol = session?.user?.user_metadata?.rol || '';
     
     let insertPayload = {
       proyecto_id: proyectoId,
       texto: finalString,
       autor_email: autorEmail,
-      autor_nombre: autorNombre
+      autor_nombre: autorNombre,
+      autor_rol: autorRol
     };
 
     let { data, error } = await supabase.from('comentarios').insert([insertPayload]).select();
 
-    // Fallback en caso de que la columna autor_nombre no exista aún en Supabase
-    if (error && (error.code === 'PGRST204' || error.message?.includes('autor_nombre'))) {
-      delete insertPayload.autor_nombre;
-      const retry = await supabase.from('comentarios').insert([insertPayload]).select();
+    // Fallback escalonado si autor_rol o autor_nombre no existen aún en Supabase
+    if (error && (error.code === 'PGRST204' || error.message?.includes('column') || error.message?.includes('autor_'))) {
+      delete insertPayload.autor_rol;
+      let retry = await supabase.from('comentarios').insert([insertPayload]).select();
+      if (retry.error && (retry.error.code === 'PGRST204' || retry.error.message?.includes('column') || retry.error.message?.includes('autor_'))) {
+        delete insertPayload.autor_nombre;
+        retry = await supabase.from('comentarios').insert([insertPayload]).select();
+      }
       data = retry.data;
       error = retry.error;
     }
@@ -951,12 +957,23 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       const replies = childrenMap.get(c.id) || [];
                       replies.sort((a, b) => new Date(a.fecha_creacion) - new Date(b.fecha_creacion));
 
+                      const enc = (proyecto.encargados || []).find(e => (e.email && e.email === c.autor_email) || (e.nombre && e.nombre === c.autor_nombre));
+                      const authorName = c.autor_nombre || enc?.nombre || (c.autor_email?.includes('@') ? c.autor_email.split('@')[0] : c.autor_email) || 'Usuario';
+                      const authorRole = c.autor_rol || enc?.rol || (c.autor_email === session?.user?.email ? session?.user?.user_metadata?.rol : '') || (c.autor_email === 'Dinamo AI ✨' ? 'Asistente IA' : '');
+
                       if (parsed.isDeleted && !isSuperUser) {
                         return (
                           <div key={c.id}>
                             <div className={styles.commentItem} style={{ opacity: 0.6, marginLeft, borderLeft }}>
                               <div className={styles.commentHeader}>
-                                <strong>{c.autor_nombre || c.autor_email || 'Usuario'}</strong>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <strong>{authorName}</strong>
+                                  {authorRole && (
+                                    <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: '#e2e8f0', color: '#475569', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                                      {authorRole}
+                                    </span>
+                                  )}
+                                </div>
                                 <span>{new Date(c.fecha_creacion).toLocaleString()}</span>
                               </div>
                               <p className={styles.commentText} style={{ fontStyle: 'italic', color: '#94a3b8' }}>
@@ -972,12 +989,19 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         <div key={c.id}>
                           <div className={styles.commentItem} style={{ marginLeft, borderLeft, opacity: parsed.isDeleted ? 0.6 : 1, ...(parsed.isDeleted && depth === 0 ? { borderLeft: '3px solid #ef4444' } : {}) }}>
                             <div className={styles.commentHeader}>
-                              <strong>{c.autor_nombre || c.autor_email || 'Usuario'}</strong>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <strong>{authorName}</strong>
+                                {authorRole && (
+                                  <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: '#e2e8f0', color: '#475569', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                                    {authorRole}
+                                  </span>
+                                )}
+                              </div>
                               <span>
                                 {new Date(c.fecha_creacion).toLocaleString()}
                                 {!parsed.isDeleted && (
                                   <span style={{ marginLeft: '10px' }}>
-                                    <button onClick={() => { setReplyingTo({ id: c.id, email: c.autor_email }); setTimeout(() => textareaRef.current?.focus(), 100); }} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'0.8rem' }}>Responder</button>
+                                    <button onClick={() => { setReplyingTo({ id: c.id, email: authorName }); setTimeout(() => textareaRef.current?.focus(), 100); }} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'0.8rem' }}>Responder</button>
                                     {canEdit && <button onClick={() => { setEditingCommentId(c.id); setEditingCommentText(parsed.currentText); }} style={{ background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Editar</button>}
                                     {canDelete && <button onClick={() => handleDeleteComment(c.id, c.texto)} style={{ background:'transparent', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'0.8rem', marginLeft: '5px' }}>Eliminar</button>}
                                   </span>
