@@ -962,6 +962,10 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           }
 
                           await handleMultipleChange({ materiales: mats, materiales_comprados: isAllBought });
+                          const current = proyectoRef.current || proyecto;
+                          if (isAllBought && current?.estado?.toLowerCase().includes('logística')) {
+                            promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales: mats, materiales_comprados: true });
+                          }
                         }}
                       />
                       <span className={mat.comprado ? styles.checkedText : ''}>{mat.nombre}</span>
@@ -977,6 +981,10 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           }
                           
                           await handleMultipleChange({ materiales: mats, materiales_comprados: isAllBought });
+                          const current = proyectoRef.current || proyecto;
+                          if (isAllBought && current?.estado?.toLowerCase().includes('logística')) {
+                            promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales: mats, materiales_comprados: true });
+                          }
                         }}><Trash2 size={14}/></button>
                       )}
                     </label>
