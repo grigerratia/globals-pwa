@@ -16,6 +16,10 @@ const generateStorageFileName = (originalName) => {
 
 export default function ProjectDetailModal({ proyectoId, estados, onClose, onProjectUpdated, onProjectDeleted, session }) {
   const [proyecto, setProyecto] = useState(null);
+  const proyectoRef = useRef(null);
+  useEffect(() => {
+    proyectoRef.current = proyecto;
+  }, [proyecto]);
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
   const textareaRef = useRef(null);
@@ -45,7 +49,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [archiveMotive, setArchiveMotive] = useState('');
   const [cancelMotive, setCancelMotive] = useState('');
 
-  const promptAutoAdvance = (nextColName, milestoneName) => {
+  const promptAutoAdvance = (nextColName, milestoneName, extraProjectData = {}) => {
     const matchedCol = estados?.find(e => e.toLowerCase() === nextColName.toLowerCase()) || nextColName;
     setConfirmPrompt({
       title: 'Hito Completado',
@@ -53,7 +57,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       confirmText: `Avanzar a ${matchedCol}`,
       cancelText: 'Mantener en fase actual',
       variant: 'primary',
-      onConfirm: () => handleChange('estado', matchedCol)
+      onConfirm: () => handleChange('estado', matchedCol, extraProjectData)
     });
   };
 
@@ -62,6 +66,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       const { data: proyData, error: proyError } = await supabase.from('proyectos').select('*').eq('id', proyectoId).single();
       if (!proyError && proyData) {
         setProyecto(proyData);
+        proyectoRef.current = proyData;
       }
       
       const { data: comData, error: comError } = await supabase.from('comentarios').select('*').eq('proyecto_id', proyectoId).order('fecha_creacion', { ascending: false });
@@ -191,9 +196,10 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     }
   };
 
-  const handleChange = async (field, value) => {
+  const handleChange = async (field, value, extraCurrentProject = {}) => {
+    const currentProy = { ...(proyectoRef.current || proyecto), ...extraCurrentProject };
     if (field === 'estado') {
-       const validation = validateProjectMove(proyecto, value, estados, session);
+       const validation = validateProjectMove(currentProy, value, estados, session);
        
        if (!validation.isValid) {
          setMsg({ text: validation.error, type: 'error' });
@@ -209,17 +215,19 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
          if (overrideNotas !== null) {
            updates.notas = overrideNotas;
          } else if (notasExtras) {
-           updates.notas = proyecto.notas ? proyecto.notas + '\n\n' + notasExtras : notasExtras;
+           updates.notas = currentProy.notas ? currentProy.notas + '\n\n' + notasExtras : notasExtras;
          }
 
          updates.fecha_ultima_actualizacion = new Date().toISOString();
          updates.dias_estancado = 0;
 
-         setProyecto(prev => ({ ...prev, ...updates }));
+         const updatedFull = { ...currentProy, ...updates };
+         proyectoRef.current = updatedFull;
+         setProyecto(updatedFull);
          const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
          if (!error) {
-           onProjectUpdated({ ...proyecto, ...updates });
-           await logAudit(session, 'Cambió estado de proyecto', { proyecto_id: proyectoId, titulo: proyecto.titulo, nuevo_estado: value });
+           onProjectUpdated(updatedFull);
+           await logAudit(session, 'Cambió estado de proyecto', { proyecto_id: proyectoId, titulo: currentProy.titulo, nuevo_estado: value });
            setMsg({ text: 'Estado actualizado', type: 'success' });
            setTimeout(() => setMsg({ text: '', type: '' }), 3000);
          }
@@ -238,7 +246,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
          setMotivePrompt({
            title: 'Motivo de Retroceso',
            onConfirm: (motive) => {
-             const notaAnadida = `[RETROCESO] De "${proyecto.estado}" a "${value}": ${motive}`;
+             const notaAnadida = `[RETROCESO] De "${currentProy.estado}" a "${value}": ${motive}`;
              executeStateChange(null, notaAnadida);
              setMotivePrompt(null);
            },
@@ -249,17 +257,17 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
            columna: value,
            error: null,
            onConfirm: (dias) => {
-             if (proyecto.fecha_entrega) {
-               const entrega = new Date(proyecto.fecha_entrega + 'T00:00:00');
+             if (currentProy.fecha_entrega) {
+               const entrega = new Date(currentProy.fecha_entrega + 'T00:00:00');
                const estimadoDate = new Date();
                estimadoDate.setDate(estimadoDate.getDate() + dias);
                if (estimadoDate > entrega) {
-                 setDiasEstimadosPrompt(prev => ({ ...prev, error: `Los días superan la fecha de entrega final (${proyecto.fecha_entrega}). Introduce un número menor.` }));
+                 setDiasEstimadosPrompt(prev => ({ ...prev, error: `Los días superan la fecha de entrega final (${currentProy.fecha_entrega}). Introduce un número menor.` }));
                  return;
                }
              }
              const notaAnadida = `[DÍAS ESTIMADOS FASE ACTUAL: ${dias}]`;
-             let cleanNotas = proyecto.notas ? proyecto.notas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim() : '';
+             let cleanNotas = currentProy.notas ? currentProy.notas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim() : '';
              const nuevasNotas = cleanNotas ? cleanNotas + '\n\n' + notaAnadida : notaAnadida;
              executeStateChange(null, null, nuevasNotas);
              setDiasEstimadosPrompt(null);
@@ -271,10 +279,12 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
        }
     } else {
       const updates = { [field]: value, fecha_ultima_actualizacion: new Date().toISOString() };
-      setProyecto(prev => ({ ...prev, ...updates }));
+      const updatedFull = { ...currentProy, ...updates };
+      proyectoRef.current = updatedFull;
+      setProyecto(updatedFull);
       const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
       if (!error) {
-        onProjectUpdated({ ...proyecto, ...updates });
+        onProjectUpdated(updatedFull);
         const fname = {
           titulo: 'título', cliente_nombre: 'persona de contacto', cliente_empresa: 'empresa/cliente',
           cliente_telefono: 'teléfono', notas: 'notas/descripción', presupuesto_aprobado: 'estado de presupuesto',
@@ -282,7 +292,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
           costo_materiales: 'costo de materiales', costo_operativo: 'costo operativo', encargados: 'encargados'
         }[field] || field;
         if (field !== 'presupuesto_aprobado' && field !== 'materiales_comprados') {
-          await logAudit(session, `Actualizó ${fname} de proyecto`, { proyecto_id: proyectoId, titulo: proyecto.titulo });
+          await logAudit(session, `Actualizó ${fname} de proyecto`, { proyecto_id: proyectoId, titulo: currentProy.titulo });
         }
       } else {
         setMsg({ text: `Error al actualizar ${field}: ` + error.message, type: 'error' });
@@ -293,11 +303,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
   const handleMultipleChange = async (updates) => {
     updates.fecha_ultima_actualizacion = new Date().toISOString();
-    setProyecto(prev => ({ ...prev, ...updates }));
+    const updatedFull = { ...(proyectoRef.current || proyecto), ...updates };
+    proyectoRef.current = updatedFull;
+    setProyecto(updatedFull);
     const { error } = await supabase.from('proyectos').update(updates).eq('id', proyectoId);
     if (!error) {
-      onProjectUpdated({ ...proyecto, ...updates });
-      await logAudit(session, `Actualizó detalles de materiales`, { proyecto_id: proyectoId, titulo: proyecto.titulo });
+      onProjectUpdated(updatedFull);
+      await logAudit(session, `Actualizó detalles de materiales`, { proyecto_id: proyectoId, titulo: updatedFull.titulo });
     } else {
       setMsg({ text: `Error al actualizar: ` + error.message, type: 'error' });
       setTimeout(() => setMsg({ text: '', type: '' }), 5000);
@@ -506,12 +518,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
         proyecto={proyecto} 
         session={session}
         onProjectUpdated={(updatedProject) => {
-          const wasInLevantamiento = proyecto.estado === 'Levantamiento';
-          const hadNoLevantamiento = !proyecto.levantamiento_fecha;
+          const wasInLevantamiento = (proyectoRef.current || proyecto)?.estado === 'Levantamiento';
+          const hadNoLevantamiento = !(proyectoRef.current || proyecto)?.levantamiento_fecha;
+          proyectoRef.current = updatedProject;
           setProyecto(updatedProject);
           onProjectUpdated(updatedProject);
           if (wasInLevantamiento && hadNoLevantamiento && updatedProject.levantamiento_fecha) {
-            promptAutoAdvance('Presupuesto enviado', 'Hoja de Levantamiento guardada');
+            promptAutoAdvance('Presupuesto enviado', 'Hoja de Levantamiento guardada', { levantamiento_fecha: updatedProject.levantamiento_fecha });
           }
         }}
         onClose={() => setShowLevantamiento(false)} 
@@ -751,36 +764,44 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.presupuesto_aprobado} onChange={async (e) => {
-                      await handleChange('presupuesto_aprobado', e.target.checked);
-                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('presupuesto')) {
-                        promptAutoAdvance('En Diseño', 'Presupuesto aprobado por el cliente');
+                      const checked = e.target.checked;
+                      await handleChange('presupuesto_aprobado', checked);
+                      const current = proyectoRef.current || proyecto;
+                      if (checked && current?.estado?.toLowerCase().includes('presupuesto')) {
+                        promptAutoAdvance('En Diseño', 'Presupuesto aprobado por el cliente', { presupuesto_aprobado: true });
                       }
                     }}/> <span>Presupuesto aprobado por el cliente</span>
                   </label>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.diseno_terminado} onChange={async (e) => {
-                      await handleChange('diseno_terminado', e.target.checked);
-                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('diseño')) {
-                        promptAutoAdvance('Logística y compras', 'Diseño terminado');
+                      const checked = e.target.checked;
+                      await handleChange('diseno_terminado', checked);
+                      const current = proyectoRef.current || proyecto;
+                      if (checked && current?.estado?.toLowerCase().includes('diseño')) {
+                        promptAutoAdvance('Logística y compras', 'Diseño terminado', { diseno_terminado: true });
                       }
                     }}/> <span>Diseño terminado</span>
                   </label>
                   
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.materiales_comprados} onChange={async (e) => {
-                      await handleChange('materiales_comprados', e.target.checked);
-                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('logística')) {
-                        promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados');
+                      const checked = e.target.checked;
+                      await handleChange('materiales_comprados', checked);
+                      const current = proyectoRef.current || proyecto;
+                      if (checked && current?.estado?.toLowerCase().includes('logística')) {
+                        promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales_comprados: true });
                       }
                     }}/> <span>Material en almacén / comprado</span>
                   </label>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.fabricado_listo} onChange={async (e) => {
-                      await handleChange('fabricado_listo', e.target.checked);
-                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('fabricación')) {
-                        promptAutoAdvance('Listo para instalación', 'Fabricado listo');
+                      const checked = e.target.checked;
+                      await handleChange('fabricado_listo', checked);
+                      const current = proyectoRef.current || proyecto;
+                      if (checked && current?.estado?.toLowerCase().includes('fabricación')) {
+                        promptAutoAdvance('Listo para instalación', 'Fabricado listo', { fabricado_listo: true });
                       }
                     }}/> <span>Fabricado listo</span>
                   </label>
@@ -788,27 +809,34 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   <div className={styles.checkItem} style={{ padding: '0.25rem 0' }}>
                     <span style={{ marginRight: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>📅 Fecha de Instalación:</span>
                     <input type="date" value={proyecto.fecha_instalacion || ''} onChange={async (e) => {
-                      await handleChange('fecha_instalacion', e.target.value);
-                      if (e.target.value && proyecto.estado?.toLowerCase().includes('listo para instalación')) {
-                        promptAutoAdvance('En instalación', 'Fecha de instalación asignada');
+                      const val = e.target.value;
+                      await handleChange('fecha_instalacion', val);
+                      const current = proyectoRef.current || proyecto;
+                      if (val && current?.estado?.toLowerCase().includes('listo para instalación')) {
+                        promptAutoAdvance('En instalación', 'Fecha de instalación asignada', { fecha_instalacion: val });
                       }
                     }} style={{ padding: '0.2rem', borderRadius: '4px', border: '1px solid #ccc' }} />
                   </div>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.instalado} onChange={async (e) => {
-                      await handleChange('instalado', e.target.checked);
-                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('en instalación')) {
-                        promptAutoAdvance('Entregado', 'Instalación completada');
+                      const checked = e.target.checked;
+                      await handleChange('instalado', checked);
+                      const current = proyectoRef.current || proyecto;
+                      if (checked && current?.estado?.toLowerCase().includes('en instalación')) {
+                        promptAutoAdvance('Entregado', 'Instalación completada', { instalado: true });
                       }
                     }}/> <span>Instalado correctamente</span>
                   </label>
 
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.pagado_completo} onChange={async (e) => {
-                      await handleChange('pagado_completo', e.target.checked);
-                      if (e.target.checked && (proyecto.estado === 'Entregado' || (proyecto.estado?.toLowerCase().includes('entregado') && !proyecto.estado?.toLowerCase().includes('cerrado')))) {
-                        promptAutoAdvance('Pagado y cerrado', 'Pago cancelado por completo');
+                      const checked = e.target.checked;
+                      await handleChange('pagado_completo', checked);
+                      const current = proyectoRef.current || proyecto;
+                      const est = current?.estado || '';
+                      if (checked && (est === 'Entregado' || (est.toLowerCase().includes('entregado') && !est.toLowerCase().includes('cerrado')))) {
+                        promptAutoAdvance('Pagado y cerrado', 'Pago cancelado por completo', { pagado_completo: true });
                       }
                     }}/> <span>Pago cancelado por completo</span>
                   </label>
