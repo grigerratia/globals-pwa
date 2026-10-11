@@ -249,6 +249,25 @@ const groqTools = tools[0].functionDeclarations.map(decl => ({
   }
 }));
 
+const cohereTools = tools[0].functionDeclarations.map(decl => ({
+  name: decl.name,
+  description: decl.description,
+  parameter_definitions: Object.keys(decl.parameters?.properties || {}).reduce((acc, key) => {
+    let pType = decl.parameters.properties[key].type.toLowerCase();
+    if (pType.includes('string')) pType = 'str';
+    else if (pType.includes('number') || pType.includes('integer')) pType = 'float';
+    else if (pType.includes('boolean')) pType = 'bool';
+    else pType = 'str';
+
+    acc[key] = {
+      type: pType,
+      description: decl.parameters.properties[key].description || '',
+      required: (decl.parameters?.required || []).includes(key)
+    };
+    return acc;
+  }, {})
+}));
+
 const modelosDisponibles = [
   { id: 'gemini-3.5-flash-lite', provider: 'google' },
   { id: 'gemini-3.1-flash-lite', provider: 'google' },

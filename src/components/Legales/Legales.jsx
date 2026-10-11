@@ -1,5 +1,3 @@
-import React from 'react';
-
 const textos = {
   'terminos-y-condiciones': {
     titulo: 'Términos y Condiciones de Uso',

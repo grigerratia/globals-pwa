@@ -51,12 +51,15 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
     if (!file) return;
 
     if (file.type.startsWith('image/')) {
+      setUploadingImage(true);
       const options = { maxSizeMB: 0.5, maxWidthOrHeight: 800, useWebWorker: true };
       try {
         const compressedBlob = await imageCompression(file, options);
         file = new File([compressedBlob], file.name, { type: compressedBlob.type });
       } catch (err) {
         console.error("Error comprimiendo:", err);
+      } finally {
+        setUploadingImage(false);
       }
       setFormData(prev => ({ 
         ...prev, 

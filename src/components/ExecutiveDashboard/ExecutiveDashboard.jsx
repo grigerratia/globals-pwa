@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Kanban, Activity, TrendingUp, CheckCircle, Briefcase, AlertCircle, Wrench, BarChart2, X } from 'lucide-react';
+import { Activity, TrendingUp, CheckCircle, Briefcase, AlertCircle, Wrench, X } from 'lucide-react';
 import { supabase } from '../../supabase';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
@@ -73,10 +73,6 @@ export default function ExecutiveDashboard({ session }) {
       
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  const goToKanban = () => {
-    window.location.href = '/kanban';
-  };
 
   if (cargando) {
     return (
@@ -301,7 +297,6 @@ export default function ExecutiveDashboard({ session }) {
           <div className={styles.activityList}>
             {auditLogs.length === 0 ? <p style={{ padding: "1rem", color: "#64748b", textAlign: "center", fontSize: "0.9rem" }}>No hay actividad reciente para mostrar.</p> : auditLogs.map(log => {
               const projectId = log.detalles?.proyecto_id || log.detalles?.id;
-              const title = log.detalles?.titulo || log.detalles?.nuevo_estado || '';
               return (
                 <div key={log.id} className={styles.activityItem} onClick={() => projectId && setProyectoDetalleId(projectId)} style={{ cursor: projectId ? 'pointer' : 'default' }}>
                   <div className={styles.activityMain}>

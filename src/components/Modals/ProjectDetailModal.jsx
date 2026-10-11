@@ -9,6 +9,11 @@ import imageCompression from 'browser-image-compression';
 import { logAudit } from '../../utils/audit';
 import LevantamientoFormModal from './LevantamientoFormModal';
 
+const generateStorageFileName = (originalName) => {
+  const fileExt = originalName.split('.').pop();
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+};
+
 export default function ProjectDetailModal({ proyectoId, estados, onClose, onProjectUpdated, onProjectDeleted, session }) {
   const [proyecto, setProyecto] = useState(null);
   const [comentarios, setComentarios] = useState([]);
@@ -403,8 +408,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
     setMsg({ text: 'Subiendo...', type: 'info' });
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
+    const fileName = generateStorageFileName(file.name);
     const filePath = `${proyectoId}/${fileName}`;
 
     try {

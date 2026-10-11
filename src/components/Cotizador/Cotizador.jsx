@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { ArrowLeft, Calculator, Receipt, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calculator, Receipt, Trash2 } from 'lucide-react';
 import styles from './Cotizador.module.scss';
 
 // Fallback if DB is empty, adapted for Venezuela (Cumaná prices approx in USD)
@@ -34,7 +34,7 @@ export default function Cotizador() {
 
   useEffect(() => {
     async function fetchMateriales() {
-      const { data, error } = await supabase.from('materiales').select('*').order('categoria');
+      const { data } = await supabase.from('materiales').select('*').order('categoria');
       if (data && data.length > 0) {
         setMaterialesDb(data);
       } else {
