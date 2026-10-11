@@ -467,7 +467,7 @@ const executeTool = async (call) => {
 
     if (name === 'crear_proyecto') {
       const { data: _allEmps } = await supabase.rpc('get_empleados');
-      const superusers = (_allEmps || []).filter(e => ['Líder Comercial', 'Líder de Operaciones'].includes(e.rol));
+      const superusers = (_allEmps || []).filter(e => ['Líder Comercial', 'Líder de Operaciones', 'Líder de Producción'].includes(e.rol));
       
       if (!superusers || !superusers.some(su => su.rol === 'Líder Comercial')) {
          throw new Error("ERROR: No hay 'Líder Comercial' para asignar.");

@@ -235,7 +235,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
     let encargados = nuevoProyectoData.encargados || [];
     const { data: _allEmps } = await supabase.rpc('get_empleados');
-    const superusers = (_allEmps || []).filter(e => ['Líder Comercial', 'Líder de Operaciones'].includes(e.rol));
+    const superusers = (_allEmps || []).filter(e => ['Líder Comercial', 'Líder de Operaciones', 'Líder de Producción'].includes(e.rol));
     
     if (!superusers || !superusers.some(su => su.rol === 'Líder Comercial')) {
       showError("No se puede crear el proyecto: Debe existir al menos un usuario con el rol 'Líder Comercial' en el sistema.");

@@ -10,7 +10,7 @@ export default function AssignEmployeeSelect({ onSelect, defaultRole = 'Líder C
   const [manualName, setManualName] = useState('');
 
   const ROLES = [
-    "Líder Comercial", "Líder de Operaciones", "Ventas", "Diseño", "Producción", "Logística", "Instalación", "Administración", "Externo"
+    "Líder Comercial", "Líder de Operaciones", "Líder de Producción", "Ventas", "Diseño", "Logística", "Instalación", "Administración", "Externo"
   ];
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function AssignEmployeeSelect({ onSelect, defaultRole = 'Líder C
     fetchEmpleados();
   }, []);
 
-  const filteredEmpleados = empleados.filter(emp => emp.rol === selectedRole || (selectedRole === 'Producción' && emp.rol === 'Produccion') || (selectedRole === 'Logística' && emp.rol === 'Logistica') || (selectedRole === 'Instalación' && emp.rol === 'Instalacion') || (selectedRole === 'Administración' && emp.rol === 'Administracion') || (selectedRole === 'Ventas' && emp.rol === 'Ventas y Atención') || (selectedRole === 'Diseño' && emp.rol === 'Diseño Gráfico'));
+  const filteredEmpleados = empleados.filter(emp => emp.rol === selectedRole || (selectedRole === 'Logística' && emp.rol === 'Logistica') || (selectedRole === 'Instalación' && emp.rol === 'Instalacion') || (selectedRole === 'Administración' && emp.rol === 'Administracion') || (selectedRole === 'Ventas' && emp.rol === 'Ventas y Atención') || (selectedRole === 'Diseño' && emp.rol === 'Diseño Gráfico'));
 
   const handleAdd = () => {
     if (selectedRole === 'Externo') {

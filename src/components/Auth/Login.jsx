@@ -87,7 +87,7 @@ export default function Login({ onLogin }) {
                   <option value="Líder de Operaciones">Líder de Operaciones</option>
                   <option value="Ventas">Ventas y Atención</option>
                   <option value="Diseño">Diseño Gráfico</option>
-                  <option value="Produccion">Producción / Fabricación</option>
+                  <option value="Líder de Producción">Líder de Producción</option>
                   <option value="Logistica">Logística y Compras</option>
                   <option value="Instalacion">Instalación</option>
                   <option value="Administracion">Administración</option>

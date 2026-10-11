@@ -113,7 +113,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
         // ...
         onClick(proyecto.id);
       }}
-    >
+    >                                      
       {renderCardContent()}
     </div>
   );
