@@ -94,11 +94,12 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
 
       
       const modelosATestar = [
-        'gemini-3.8-flash',
         'gemini-3.5-flash-lite',
         'gemini-3.1-flash-lite',
+        'gemini-3.8-flash',
         'gemini-flash-latest',
-        'gemini-flash-lite-latest'
+        'gemini-flash-lite-latest',
+        'gemini-3.1-pro-preview',
       ];
       
       let parsed = null;
