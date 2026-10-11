@@ -626,7 +626,12 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                        userRole === 'Líder de Administración' || 
                        (typeof userRole === 'string' && userRole.toLowerCase().includes('administra'));
 
-  const isSuperUser = userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones';
+  const roleNormalized = (userRole || '').trim().toLowerCase();
+  const isLiderComercial = roleNormalized === 'líder comercial' || roleNormalized === 'lider comercial';
+  const isLiderOperativo = roleNormalized === 'líder de operaciones' || roleNormalized === 'lider de operaciones' || roleNormalized === 'líder operativo' || roleNormalized === 'lider operativo' || roleNormalized === 'operaciones';
+  const isLiderProduccion = roleNormalized === 'líder de producción' || roleNormalized === 'lider de produccion' || roleNormalized === 'producción' || roleNormalized === 'produccion';
+
+  const canAssignEncargados = isLiderComercial || isLiderOperativo || isLiderProduccion || isLiderAdmin;
 
   const encargadosMateriales = (proyecto.encargados_materiales && Array.isArray(proyecto.encargados_materiales))
     ? proyecto.encargados_materiales
@@ -639,7 +644,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   );
 
   const canCheckMateriales = isLiderAdmin || isEncargadoMat;
-  const canAssignEncargados = isLiderAdmin || isSuperUser || isEncargadoMat;
   const canViewFinances = userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder Comercial';
   if (showLevantamiento) {
     return (
@@ -833,20 +837,20 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   )}
                 </div>
 
-                {/* ENCARGADOS DE MATERIALES */}
-                <div className={styles.materialsEncargadosBox}>
-                  <div className={styles.materialsEncargadosHeader}>
-                    <span className={styles.materialsEncargadosLabel}>
-                      <Users size={15} /> Encargado(s) de Materiales:
-                    </span>
-                  </div>
+                {/* ENCARGADO(S) DE MATERIALES (Solo visible para Líder Comercial, Líder Operativo, Líder de Producción y Administración) */}
+                {canAssignEncargados ? (
+                  <div className={styles.materialsEncargadosBox}>
+                    <div className={styles.materialsEncargadosHeader}>
+                      <span className={styles.materialsEncargadosLabel}>
+                        <Users size={15} /> Encargado(s) de Compras / Materiales:
+                      </span>
+                    </div>
 
-                  <div className={styles.materialsEncargadosList}>
-                    {encargadosMateriales.map((enc, idx) => (
-                      <div key={idx} className={styles.materialsEncargadoChip}>
-                        <span className={styles.chipName}>{enc.nombre}</span>
-                        {enc.rol && <span className={styles.chipRole}>{enc.rol}</span>}
-                        {canAssignEncargados && (
+                    <div className={styles.materialsEncargadosList}>
+                      {encargadosMateriales.map((enc, idx) => (
+                        <div key={idx} className={styles.materialsEncargadoChip}>
+                          <span className={styles.chipName}>{enc.nombre}</span>
+                          {enc.rol && <span className={styles.chipRole}>{enc.rol}</span>}
                           <button 
                             type="button" 
                             className={styles.chipRemoveBtn}
@@ -855,25 +859,23 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           >
                             <X size={12} />
                           </button>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
 
-                    {encargadosMateriales.length === 0 && (
-                      <span className={styles.materialsNoEncargadosText}>
-                        Sin encargado asignado (Solo Líder de Administración puede marcar compras)
-                      </span>
-                    )}
-                  </div>
+                      {encargadosMateriales.length === 0 && (
+                        <span className={styles.materialsNoEncargadosText}>
+                          Sin comprador asignado aún.
+                        </span>
+                      )}
+                    </div>
 
-                  {canAssignEncargados && (
                     <div className={styles.materialsAssignRow}>
                       <select
                         value={selectedMaterialEmpId}
                         onChange={(e) => setSelectedMaterialEmpId(e.target.value)}
                         className={styles.materialsEmpSelect}
                       >
-                        <option value="">+ Asignar encargado de materiales...</option>
+                        <option value="">+ Asignar comprador / encargado...</option>
                         {empleadosList
                           .filter(emp => !encargadosMateriales.some(enc => (enc.user_id || enc.id) === emp.id))
                           .map(emp => (
@@ -888,7 +890,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       {selectedMaterialEmpId === 'externo' && (
                         <input 
                           type="text"
-                          placeholder="Nombre del encargado..."
+                          placeholder="Nombre del comprador..."
                           value={manualMaterialEmpName}
                           onChange={(e) => setManualMaterialEmpName(e.target.value)}
                           className={styles.materialsManualInput}
@@ -911,8 +913,15 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         </button>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  encargadosMateriales.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#475569', marginBottom: '0.75rem', background: '#f8fafc', padding: '0.35rem 0.65rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <Users size={14} color="#3b82f6" />
+                      <span>Encargado de compras: <strong style={{ color: '#0f172a' }}>{encargadosMateriales.map(e => e.nombre).join(', ')}</strong></span>
+                    </div>
+                  )
+                )}
                 
                 <div className={styles.progressBar}>
                   <div 
