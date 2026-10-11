@@ -47,10 +47,7 @@ export default function Cotizador() {
 
   const handleCalcularPrevia = (e) => {
     e.preventDefault();
-    if (!ancho || !alto) {
-      alert("Por favor ingresa ancho y alto.");
-      return;
-    }
+    if (!ancho || !alto) return;
 
     const a = parseFloat(ancho);
     const h = parseFloat(alto);

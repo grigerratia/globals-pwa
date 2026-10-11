@@ -22,33 +22,44 @@ export default function ExecutiveDashboard({ session }) {
   const [modalKpi, setModalKpi] = useState(null);
 
   const fetchLogs = async () => {
-    const { data: logs, error } = await supabase.from('audit_logs')
-      .select('*')
-      .neq('accion', 'Inició sesión')
-      .order('created_at', { ascending: false })
-      .limit(30);
-    if (error) {
-      alert("Error cargando actividad: " + error.message);
-    } else if (logs) {
-      setAuditLogs(logs);
+    try {
+      const { data: logs, error } = await supabase.from('audit_logs')
+        .select('*')
+        .neq('accion', 'Inició sesión')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error) {
+        console.warn("Error cargando actividad:", error.message);
+      } else if (logs) {
+        setAuditLogs(logs);
+      }
+    } catch (err) {
+      console.warn("Error en fetchLogs:", err);
     }
   };
 
   useEffect(() => {
-    
-  async function fetchData() {
-      const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
-      if (colsData) {
-        setEstados(colsData.map(c => c.nombre));
-      }
+    let isMounted = true;
+    async function fetchData() {
+      try {
+        const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
+        if (colsData && isMounted) {
+          setEstados(colsData.map(c => c.nombre));
+        }
 
-      const { data: proys } = await supabase.from('proyectos').select('*');
-      if (proys) {
-        setProyectos(proys);
-      }
+        const { data: proys } = await supabase.from('proyectos').select('*');
+        if (proys && isMounted) {
+          setProyectos(proys);
+        }
 
-      await fetchLogs();
-      setCargando(false);
+        await fetchLogs();
+      } catch (err) {
+        console.error("Error en fetchData de ExecutiveDashboard:", err);
+      } finally {
+        if (isMounted) {
+          setCargando(false);
+        }
+      }
     }
     fetchData();
     

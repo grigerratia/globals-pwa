@@ -525,7 +525,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
               });
             }
             const {error: err} = await supabase.from('proyectos').update(updateData).eq('id', p.id); 
-            if(err) { console.error("Error update proy:", err); alert("Error guardando proyecto: " + err.message); }
+            if(err) { console.error("Error update proy:", err); showError("Error guardando proyecto: " + err.message); }
           }
         } finally {
           setIsSaving(false);

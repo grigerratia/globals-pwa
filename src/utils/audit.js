@@ -14,10 +14,9 @@ export const logAudit = async (session, accion, detalles = {}) => {
     }]);
     
     if (logErr) {
-      console.error("AUDIT_LOG_ERROR:", logErr);
-      alert("Error en DB (audit_logs): " + logErr.message);
+      console.warn("AUDIT_LOG_ERROR (silenced):", logErr.message || logErr);
     }
   } catch (err) {
-    console.error('Error logging audit:', err); alert("Error de red guardando log: " + err.message);
+    console.warn('Error logging audit (silenced):', err.message || err);
   }
 };
