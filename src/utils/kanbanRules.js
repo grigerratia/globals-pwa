@@ -44,7 +44,11 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
 
       const disenoIdx = findIdx('diseño');
       if (disenoIdx !== -1 && destinoGlobalIdx > disenoIdx && !proyecto.diseno_terminado) {
-         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Diseño terminado'.", rule: "DISENO" };
+         // Solo es obligatorio si el proyecto está saliendo de 'En Diseño'.
+         // Si la tarjeta salta directamente desde una columna previa sin pasar por 'En Diseño', no se bloquea.
+         if (origenGlobalIdx === disenoIdx) {
+            return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Diseño terminado'.", rule: "DISENO" };
+         }
       }
 
       const logisIdx = findIdx('logística');

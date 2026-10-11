@@ -293,6 +293,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     }
     if (targetIdx > disenoIdx && disenoIdx !== -1 && nuevoProyectoData.diseno_terminado === undefined) {
       nuevoProyectoData.diseno_terminado = true;
+      nuevoProyectoData.diseno_aprobado_cliente = true;
     }
     if (targetIdx > logisIdx && logisIdx !== -1 && nuevoProyectoData.materiales_comprados === undefined) {
       nuevoProyectoData.materiales_comprados = true;
@@ -534,12 +535,21 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
           destColumn === 'Archivado' ||
           destColumn === 'Cancelado';
 
+        const disenoIdx = estados.findIndex(e => e.toLowerCase().includes('diseño'));
+        const destIdx = estados.indexOf(destColumn);
+        const origenIdx = estados.indexOf(estadoOrigenReal);
+        const saltoDiseno = disenoIdx !== -1 && destIdx > disenoIdx && origenIdx < disenoIdx;
+
         const proyectosFinales = columnasRef.current[colIndex].proyectos.map((p, i) => {
           let updated = { ...p, orden: i, estado: destColumn };
           if (p.id === active.id && cambioDeFase) {
             updated.dias = 0;
             updated.fecha_ultima_actualizacion = new Date().toISOString();
             if (motive) updated.motivo_cancelacion = motive;
+            if (saltoDiseno && !p.diseno_terminado) {
+              updated.diseno_terminado = true;
+              updated.diseno_aprobado_cliente = true;
+            }
             if (nuevasNotas) {
               updated.notas = nuevasNotas;
             } else if (isEntregadoOAdelante && p.notas) {
@@ -566,6 +576,10 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
             if (p.id === active.id && cambioDeFase) {
               updateData.fecha_ultima_actualizacion = p.fecha_ultima_actualizacion;
               if (motive) updateData.motivo_cancelacion = motive;
+              if (saltoDiseno && !p.diseno_terminado) {
+                updateData.diseno_terminado = true;
+                updateData.diseno_aprobado_cliente = true;
+              }
               if (p.notas !== undefined) updateData.notas = p.notas;
 
               await logAudit(session, 'Movió proyecto de fase', { 

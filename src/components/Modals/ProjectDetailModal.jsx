@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { validateProjectMove, formatDateVE, formatDateTimeVE } from '../../utils/kanbanRules';
 import { supabase } from '../../supabase';
-import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign } from 'lucide-react';
+import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign, Palette } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
 import AssignEmployeeSelect from './AssignEmployeeSelect';
 import CustomSelect from '../CustomSelect/CustomSelect';
@@ -52,6 +52,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [empleadosList, setEmpleadosList] = useState([]);
   const [selectedMaterialEmpId, setSelectedMaterialEmpId] = useState('');
   const [manualMaterialEmpName, setManualMaterialEmpName] = useState('');
+  const [selectedDisenoEmpId, setSelectedDisenoEmpId] = useState('');
+  const [manualDisenoEmpName, setManualDisenoEmpName] = useState('');
 
   const promptAutoAdvance = (nextColName, milestoneName, extraProjectData = {}) => {
     const matchedCol = estados?.find(e => e.toLowerCase() === nextColName.toLowerCase()) || nextColName;
@@ -238,6 +240,15 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                updates.notas = clean;
              }
            }
+         }
+
+         const findIdx = (str) => estados.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
+         const disenoIdx = findIdx('diseño');
+         const destIdx = estados.indexOf(value);
+         const origenIdx = estados.indexOf(currentProy.estado);
+         if (disenoIdx !== -1 && destIdx > disenoIdx && origenIdx < disenoIdx && !currentProy.diseno_terminado) {
+           updates.diseno_terminado = true;
+           updates.diseno_aprobado_cliente = true;
          }
 
          updates.fecha_ultima_actualizacion = new Date().toISOString();
@@ -457,6 +468,102 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       ((proyectoRef.current || proyecto)?.encargados || []).filter(e => e.es_materiales || e.rol === 'Materiales');
     const updated = currentList.filter((_, idx) => idx !== indexToRemove);
     await handleSaveMaterialEncargados(updated);
+  };
+
+  const handleSaveDisenoEncargados = async (updatedList) => {
+    const currentProy = proyectoRef.current || proyecto;
+    const updatedFull = {
+      ...currentProy,
+      encargados_diseno: updatedList,
+      fecha_ultima_actualizacion: new Date().toISOString()
+    };
+    proyectoRef.current = updatedFull;
+    setProyecto(updatedFull);
+
+    let { error } = await supabase.from('proyectos').update({
+      encargados_diseno: updatedList,
+      fecha_ultima_actualizacion: new Date().toISOString()
+    }).eq('id', proyectoId);
+
+    if (error && (error.code === 'PGRST204' || error.message?.includes('encargados_diseno'))) {
+      console.warn("Columna encargados_diseno no encontrada, usando fallback en columna encargados:", error);
+      const otherEncs = (currentProy.encargados || []).filter(e => !e.es_diseno && (!e.rol || !e.rol.toLowerCase().includes('diseñ')));
+      const mergedEncs = [
+        ...otherEncs,
+        ...updatedList.map(e => ({ ...e, es_diseno: true, rol: e.rol || 'Diseño' }))
+      ];
+      const fbRes = await supabase.from('proyectos').update({
+        encargados: mergedEncs,
+        fecha_ultima_actualizacion: new Date().toISOString()
+      }).eq('id', proyectoId);
+      error = fbRes.error;
+      if (!error) {
+        const withMergedEncs = { ...updatedFull, encargados: mergedEncs };
+        proyectoRef.current = withMergedEncs;
+        setProyecto(withMergedEncs);
+        onProjectUpdated(withMergedEncs);
+        await logAudit(session, 'Actualizó diseñador de proyecto', { proyecto_id: proyectoId, titulo: currentProy.titulo });
+        setMsg({ text: 'Diseñador guardado', type: 'success' });
+        setTimeout(() => setMsg({ text: '', type: '' }), 3500);
+        return;
+      }
+    }
+
+    if (!error) {
+      onProjectUpdated(updatedFull);
+      await logAudit(session, 'Actualizó diseñador de proyecto', { proyecto_id: proyectoId, titulo: currentProy.titulo });
+      setMsg({ text: 'Diseñador guardado', type: 'success' });
+    } else {
+      setMsg({ text: 'Error al guardar diseñador: ' + error.message, type: 'error' });
+    }
+    setTimeout(() => setMsg({ text: '', type: '' }), 3500);
+  };
+
+  const handleAddDisenoEncargado = async () => {
+    if (!selectedDisenoEmpId) return;
+
+    let newEnc;
+    if (selectedDisenoEmpId === 'externo') {
+      if (!manualDisenoEmpName.trim()) {
+        setMsg({ text: 'Ingresa el nombre del diseñador', type: 'error' });
+        setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+        return;
+      }
+      newEnc = { nombre: manualDisenoEmpName.trim(), rol: 'Diseñador Externo', es_diseno: true };
+      setManualDisenoEmpName('');
+    } else {
+      const emp = empleadosList.find(e => e.id === selectedDisenoEmpId);
+      if (!emp) return;
+      newEnc = {
+        id: emp.id,
+        user_id: emp.id,
+        nombre: emp.nombre || emp.email,
+        email: emp.email,
+        rol: emp.rol || 'Diseño',
+        telefono: emp.telefono,
+        es_diseno: true
+      };
+    }
+
+    const currentList = (proyectoRef.current || proyecto)?.encargados_diseno || 
+      ((proyectoRef.current || proyecto)?.encargados || []).filter(e => e.es_diseno || (e.rol && e.rol.toLowerCase().includes('diseñ')));
+    
+    if (newEnc.user_id && currentList.some(e => (e.user_id || e.id) === newEnc.user_id)) {
+      setMsg({ text: 'Esta persona ya está asignada como diseñador', type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+      return;
+    }
+
+    const updated = [...currentList, newEnc];
+    setSelectedDisenoEmpId('');
+    await handleSaveDisenoEncargados(updated);
+  };
+
+  const handleRemoveDisenoEncargado = async (indexToRemove) => {
+    const currentList = (proyectoRef.current || proyecto)?.encargados_diseno || 
+      ((proyectoRef.current || proyecto)?.encargados || []).filter(e => e.es_diseno || (e.rol && e.rol.toLowerCase().includes('diseñ')));
+    const updated = currentList.filter((_, idx) => idx !== indexToRemove);
+    await handleSaveDisenoEncargados(updated);
   };
 
   const handleArchiveProject = async () => {
@@ -680,6 +787,19 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   );
 
   const canCheckMateriales = isLiderAdmin || isEncargadoMat;
+
+  const isLiderTriada = isLiderComercial || isLiderOperativo || isLiderProduccion;
+  const encargadosDiseno = (proyecto.encargados_diseno && Array.isArray(proyecto.encargados_diseno))
+    ? proyecto.encargados_diseno
+    : (proyecto.encargados || []).filter(e => e.es_diseno || (e.rol && e.rol.toLowerCase().includes('diseñ')));
+
+  const isDisenadorAsignado = encargadosDiseno.some(enc => 
+    (enc.user_id && enc.user_id === currentUserId) ||
+    (enc.id && enc.id === currentUserId) ||
+    (enc.email && currentUserEmail && enc.email.toLowerCase() === currentUserEmail)
+  );
+
+  const canCheckDiseno = isLiderTriada || isDisenadorAsignado;
   const canViewFinances = userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder Comercial';
   if (showLevantamiento) {
     return (
@@ -1074,16 +1194,172 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     }}/> <span>Presupuesto aprobado por el cliente</span>
                   </label>
 
-                  <label className={styles.checkItem}>
-                    <input type="checkbox" checked={!!proyecto.diseno_terminado} onChange={async (e) => {
-                      const checked = e.target.checked;
-                      await handleChange('diseno_terminado', checked);
-                      const current = proyectoRef.current || proyecto;
-                      if (checked && current?.estado?.toLowerCase().includes('diseño')) {
-                        promptAutoAdvance('Logística y compras', 'Diseño terminado', { diseno_terminado: true });
-                      }
-                    }}/> <span>Diseño terminado</span>
-                  </label>
+                  {/* SECCIÓN Y ENCARGADO DE DISEÑO */}
+                  <div className={styles.disenoMilestoneBox}>
+                    <div className={styles.disenoHeaderRow}>
+                      <span className={styles.disenoHeaderLabel}>
+                        <Palette size={15} /> Encargado(s) de Diseño:
+                      </span>
+                      {encargadosDiseno.length > 0 ? (
+                        <div className={styles.disenoChipsList}>
+                          {encargadosDiseno.map((enc, idx) => (
+                            <div key={idx} className={styles.disenoChip}>
+                              <span className={styles.chipName}>{enc.nombre}</span>
+                              {enc.rol && <span className={styles.chipRole}>{enc.rol}</span>}
+                              {canAssignEncargados && (
+                                <button 
+                                  type="button" 
+                                  className={styles.chipRemoveBtn}
+                                  title="Quitar diseñador"
+                                  onClick={() => handleRemoveDisenoEncargado(idx)}
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: '#a21caf', fontStyle: 'italic' }}>
+                          Sin diseñador asignado aún
+                        </span>
+                      )}
+                    </div>
+
+                    {canAssignEncargados && (
+                      <div className={styles.disenoAssignRow}>
+                        <select
+                          value={selectedDisenoEmpId}
+                          onChange={(e) => setSelectedDisenoEmpId(e.target.value)}
+                          className={styles.disenoEmpSelect}
+                        >
+                          <option value="">+ Asignar Diseñador...</option>
+                          {empleadosList
+                            .filter(emp => !encargadosDiseno.some(enc => (enc.user_id || enc.id) === emp.id))
+                            .map(emp => (
+                              <option key={emp.id} value={emp.id}>
+                                {emp.nombre || emp.email} ({emp.rol || 'General'})
+                              </option>
+                            ))
+                          }
+                          <option value="externo">+ Diseñador externo...</option>
+                        </select>
+
+                        {selectedDisenoEmpId === 'externo' && (
+                          <input 
+                            type="text"
+                            placeholder="Nombre del diseñador..."
+                            value={manualDisenoEmpName}
+                            onChange={(e) => setManualDisenoEmpName(e.target.value)}
+                            className={styles.disenoManualInput}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddDisenoEncargado();
+                              }
+                            }}
+                          />
+                        )}
+
+                        {selectedDisenoEmpId && (
+                          <button
+                            type="button"
+                            className={styles.disenoAssignBtn}
+                            onClick={handleAddDisenoEncargado}
+                          >
+                            Asignar
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={styles.disenoCheckboxes}>
+                      {/* 1. Diseño aprobado por el cliente */}
+                      <label 
+                        className={`${styles.checkItem} ${!canCheckDiseno ? styles.disabledCheckItem : ''}`}
+                        onClick={(e) => {
+                          if (!canCheckDiseno) {
+                            e.preventDefault();
+                            setMsg({
+                              text: 'Solo el Diseñador asignado o los líderes (Comercial, Operaciones, Producción) pueden marcar la aprobación del diseño.',
+                              type: 'error'
+                            });
+                            setTimeout(() => setMsg({ text: '', type: '' }), 4000);
+                          }
+                        }}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={!!proyecto.diseno_aprobado_cliente} 
+                          disabled={!canCheckDiseno}
+                          title={!canCheckDiseno ? "Permiso requerido: Diseñador asignado o Líder (Comercial, Operaciones, Producción)" : ""}
+                          onChange={async (e) => {
+                            if (!canCheckDiseno) return;
+                            const checked = e.target.checked;
+                            const updates = { diseno_aprobado_cliente: checked };
+                            if (!checked && proyecto.diseno_terminado) {
+                              updates.diseno_terminado = false;
+                            }
+                            await handleMultipleChange(updates);
+                          }}
+                        />
+                        <span>Diseño aprobado por el cliente</span>
+                      </label>
+
+                      {/* 2. Diseño terminado */}
+                      <label 
+                        className={`${styles.checkItem} ${!canCheckDiseno ? styles.disabledCheckItem : ''}`}
+                        onClick={(e) => {
+                          if (!canCheckDiseno) {
+                            e.preventDefault();
+                            setMsg({
+                              text: 'Solo el Diseñador asignado o los líderes (Comercial, Operaciones, Producción) pueden marcar el diseño como terminado.',
+                              type: 'error'
+                            });
+                            setTimeout(() => setMsg({ text: '', type: '' }), 4000);
+                          }
+                        }}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={!!proyecto.diseno_terminado} 
+                          disabled={!canCheckDiseno}
+                          title={!canCheckDiseno ? "Permiso requerido: Diseñador asignado o Líder (Comercial, Operaciones, Producción)" : ""}
+                          onChange={async (e) => {
+                            if (!canCheckDiseno) return;
+                            const checked = e.target.checked;
+                            if (checked) {
+                              if (!proyecto.diseno_aprobado_cliente) {
+                                setConfirmPrompt({
+                                  title: '¿Diseño Aprobado por el Cliente?',
+                                  message: 'El diseño solo debe marcarse como terminado si el cliente ya lo aprobó formalmente. ¿Confirmas la aprobación del cliente?',
+                                  confirmText: 'Sí, aprobado y terminado',
+                                  cancelText: 'Aún no',
+                                  variant: 'primary',
+                                  onConfirm: async () => {
+                                    await handleMultipleChange({ diseno_aprobado_cliente: true, diseno_terminado: true });
+                                    const current = proyectoRef.current || proyecto;
+                                    if (current?.estado?.toLowerCase().includes('diseño')) {
+                                      promptAutoAdvance('Logística y compras', 'Diseño terminado', { diseno_aprobado_cliente: true, diseno_terminado: true });
+                                    }
+                                  }
+                                });
+                                return;
+                              }
+                              await handleChange('diseno_terminado', true);
+                              const current = proyectoRef.current || proyecto;
+                              if (current?.estado?.toLowerCase().includes('diseño')) {
+                                promptAutoAdvance('Logística y compras', 'Diseño terminado', { diseno_terminado: true });
+                              }
+                            } else {
+                              await handleChange('diseno_terminado', false);
+                            }
+                          }}
+                        />
+                        <span>Diseño terminado</span>
+                      </label>
+                    </div>
+                  </div>
                   
                   <label 
                     className={`${styles.checkItem} ${!canCheckMateriales ? styles.disabledCheckItem : ''}`}

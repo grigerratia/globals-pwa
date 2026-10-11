@@ -1067,3 +1067,143 @@
   }
 }
 
+/* Encargados y Hito de Diseño */
+.disenoMilestoneBox {
+  background: #fdf4ff;
+  border: 1px solid #f0abfc;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disenoHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.disenoHeaderLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #86198f;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.disenoChipsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.disenoChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #ffffff;
+  border: 1px solid #e879f9;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  .chipName {
+    font-weight: 600;
+    color: #701a75;
+  }
+
+  .chipRole {
+    font-size: 0.7rem;
+    color: #a21caf;
+    background: #fae8ff;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .chipRemoveBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    margin-left: 0.15rem;
+    transition: color 0.15s;
+
+    &:hover {
+      color: #ef4444;
+    }
+  }
+}
+
+.disenoAssignRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+  flex-wrap: wrap;
+}
+
+.disenoEmpSelect {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #e879f9;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+
+  &:focus {
+    border-color: #c026d3;
+  }
+}
+
+.disenoManualInput {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #e879f9;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+}
+
+.disenoAssignBtn {
+  padding: 0.45rem 0.85rem;
+  background: #c026d3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #a21caf;
+  }
+}
+
+.disenoCheckboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed #f0abfc;
+}
+

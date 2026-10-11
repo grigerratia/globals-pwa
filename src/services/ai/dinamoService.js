@@ -464,6 +464,15 @@ const executeTool = async (call) => {
          if (validation.rule === 'LEVANTAMIENTO') updateData.omitir_levantamiento = true;
       }
       
+      const findIdx = (str) => estadosList.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
+      const disenoIdx = findIdx('diseño');
+      const targetIdx = estadosList.indexOf(nuevo_estado);
+      const origenIdx = estadosList.indexOf(currentP?.estado);
+      if (disenoIdx !== -1 && targetIdx > disenoIdx && origenIdx < disenoIdx && !currentP?.diseno_terminado) {
+        updateData.diseno_terminado = true;
+        updateData.diseno_aprobado_cliente = true;
+      }
+
       const isEntregadoOAdelante = nuevo_estado.toLowerCase() === 'entregado' ||
         nuevo_estado.toLowerCase().includes('pagado') ||
         nuevo_estado.toLowerCase().includes('cerrado') ||
@@ -559,7 +568,10 @@ const executeTool = async (call) => {
 
       if (targetIdx > levantamientoIdx && levantamientoIdx !== -1) nuevoProy.omitir_levantamiento = true;
       if (targetIdx > presupIdx && presupIdx !== -1) nuevoProy.presupuesto_aprobado = true;
-      if (targetIdx > disenoIdx && disenoIdx !== -1) nuevoProy.diseno_terminado = true;
+      if (targetIdx > disenoIdx && disenoIdx !== -1) {
+        nuevoProy.diseno_terminado = true;
+        nuevoProy.diseno_aprobado_cliente = true;
+      }
       if (targetIdx > logisIdx && logisIdx !== -1) nuevoProy.materiales_comprados = true;
       if (targetIdx > fabIdx && fabIdx !== -1) nuevoProy.fabricado_listo = true;
       if (targetIdx > listoInstIdx && listoInstIdx !== -1) nuevoProy.fecha_instalacion = new Date().toISOString().split('T')[0];
