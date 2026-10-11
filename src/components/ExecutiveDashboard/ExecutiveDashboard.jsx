@@ -87,8 +87,8 @@ export default function ExecutiveDashboard({ session }) {
   const userRole = session?.user?.user_metadata?.rol;
   const isLiderComercial = userRole === 'Líder Comercial';
 
-  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
-  const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado');
+  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Pagado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
+  const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado');
   
   // FINANCIEROS - Corregido a presupuesto_vendido en lugar de precio_venta
   const ingresosProyectados = activos.reduce((sum, p) => sum + (Number(p.presupuesto_vendido) || 0), 0);

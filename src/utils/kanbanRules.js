@@ -7,7 +7,7 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
   const destinoGlobalIdx = estadosList.indexOf(destColumn);
   
   const isSpecialDest = destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa') || destColumn === 'Archivado' || destColumn === 'Cancelado';
-  const isRoutineArchive = destColumn === 'Archivado' && estadoOrigenReal === 'Entregado y cerrado';
+  const isRoutineArchive = destColumn === 'Archivado' && (estadoOrigenReal === 'Entregado y cerrado' || estadoOrigenReal === 'Pagado y cerrado');
   const cambioDeFase = estadoOrigenReal !== destColumn;
   const isRetroceso = cambioDeFase && (destinoGlobalIdx < origenGlobalIdx) && !isSpecialDest;
   const isAvance = cambioDeFase && (destinoGlobalIdx > origenGlobalIdx) && !isSpecialDest;
@@ -37,14 +37,14 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
     if (isAvance) {
       const findIdx = (str) => estadosList.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
 
+      const presupIdx = findIdx('presupuesto');
+      if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !proyecto.presupuesto_aprobado) {
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Presupuesto aprobado por el cliente'.", rule: "PRESUPUESTO" };
+      }
+
       const disenoIdx = findIdx('diseño');
       if (disenoIdx !== -1 && destinoGlobalIdx > disenoIdx && !proyecto.diseno_terminado) {
          return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Diseño terminado'.", rule: "DISENO" };
-      }
-
-      const presupIdx = findIdx('presupuesto enviado');
-      if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !proyecto.presupuesto_aprobado) {
-         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Presupuesto aprobado'.", rule: "PRESUPUESTO" };
       }
 
       const logisIdx = findIdx('logística');
@@ -64,11 +64,13 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
 
       const enInstIdx = findIdx('en instalación');
       if (enInstIdx !== -1 && destinoGlobalIdx > enInstIdx && !proyecto.instalado) {
-         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Instalado'.", rule: "INSTALACION" };
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Instalado correctamente'.", rule: "INSTALACION" };
       }
 
-      const entregadoIdx = findIdx('entregado');
-      // Asegurarse de que no sea 'entregado y cerrado', solo 'entregado'
+      const entregadoIdx = estadosList.findIndex(e => {
+        const lower = e.toLowerCase();
+        return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
+      });
       if (entregadoIdx !== -1 && destinoGlobalIdx > entregadoIdx && !proyecto.pagado_completo) {
          return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Pago cancelado por completo'.", rule: "PAGADO" };
       }

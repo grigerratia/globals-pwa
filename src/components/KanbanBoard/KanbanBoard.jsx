@@ -26,14 +26,16 @@ import AIAgentModal from '../Modals/AIAgentModal';
 import { logAudit } from '../../utils/audit';
 
 const defaultEstados = [
+  'En Conversación',
   'Levantamiento', 
-  'En Diseño', 
   'Presupuesto enviado', 
+  'En Diseño', 
   'Logística y compras', 
   'En fabricación', 
   'Listo para instalación', 
   'En instalación', 
-  'Entregado y cerrado', 
+  'Entregado', 
+  'Pagado y cerrado', 
   'En pausa/espera'
 ];
 

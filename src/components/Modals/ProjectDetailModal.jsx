@@ -46,13 +46,14 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const [cancelMotive, setCancelMotive] = useState('');
 
   const promptAutoAdvance = (nextColName, milestoneName) => {
+    const matchedCol = estados?.find(e => e.toLowerCase() === nextColName.toLowerCase()) || nextColName;
     setConfirmPrompt({
       title: 'Hito Completado',
-      message: `Has completado "${milestoneName}". ¿Deseas avanzar automáticamente este proyecto a la etapa "${nextColName}"?`,
-      confirmText: `Avanzar a ${nextColName}`,
+      message: `Has completado "${milestoneName}". ¿Deseas avanzar automáticamente este proyecto a la etapa "${matchedCol}"?`,
+      confirmText: `Avanzar a ${matchedCol}`,
       cancelText: 'Mantener en fase actual',
       variant: 'primary',
-      onConfirm: () => handleChange('estado', nextColName)
+      onConfirm: () => handleChange('estado', matchedCol)
     });
   };
 
@@ -505,8 +506,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
         proyecto={proyecto} 
         session={session}
         onProjectUpdated={(updatedProject) => {
+          const wasInLevantamiento = proyecto.estado === 'Levantamiento';
+          const hadNoLevantamiento = !proyecto.levantamiento_fecha;
           setProyecto(updatedProject);
           onProjectUpdated(updatedProject);
+          if (wasInLevantamiento && hadNoLevantamiento && updatedProject.levantamiento_fecha) {
+            promptAutoAdvance('Presupuesto enviado', 'Hoja de Levantamiento guardada');
+          }
         }}
         onClose={() => setShowLevantamiento(false)} 
       />
@@ -744,27 +750,27 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   <h4 style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Hitos Requeridos para Avanzar</h4>
                   
                   <label className={styles.checkItem}>
-                    <input type="checkbox" checked={!!proyecto.diseno_terminado} onChange={async (e) => {
-                      await handleChange('diseno_terminado', e.target.checked);
-                      if (e.target.checked && proyecto.estado === 'En Diseño') {
-                        promptAutoAdvance('Presupuesto enviado', 'Diseño terminado');
-                      }
-                    }}/> <span>Diseño terminado</span>
-                  </label>
-                  
-                  <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.presupuesto_aprobado} onChange={async (e) => {
                       await handleChange('presupuesto_aprobado', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('Presupuesto enviado')) {
-                        promptAutoAdvance('Logística y compras', 'Presupuesto aprobado por el cliente');
+                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('presupuesto')) {
+                        promptAutoAdvance('En Diseño', 'Presupuesto aprobado por el cliente');
                       }
                     }}/> <span>Presupuesto aprobado por el cliente</span>
                   </label>
 
                   <label className={styles.checkItem}>
+                    <input type="checkbox" checked={!!proyecto.diseno_terminado} onChange={async (e) => {
+                      await handleChange('diseno_terminado', e.target.checked);
+                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('diseño')) {
+                        promptAutoAdvance('Logística y compras', 'Diseño terminado');
+                      }
+                    }}/> <span>Diseño terminado</span>
+                  </label>
+                  
+                  <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.materiales_comprados} onChange={async (e) => {
                       await handleChange('materiales_comprados', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('Logística')) {
+                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('logística')) {
                         promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados');
                       }
                     }}/> <span>Material en almacén / comprado</span>
@@ -773,7 +779,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.fabricado_listo} onChange={async (e) => {
                       await handleChange('fabricado_listo', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('En fabricación')) {
+                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('fabricación')) {
                         promptAutoAdvance('Listo para instalación', 'Fabricado listo');
                       }
                     }}/> <span>Fabricado listo</span>
@@ -783,7 +789,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     <span style={{ marginRight: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>📅 Fecha de Instalación:</span>
                     <input type="date" value={proyecto.fecha_instalacion || ''} onChange={async (e) => {
                       await handleChange('fecha_instalacion', e.target.value);
-                      if (e.target.value && proyecto.estado.includes('Listo para instalación')) {
+                      if (e.target.value && proyecto.estado?.toLowerCase().includes('listo para instalación')) {
                         promptAutoAdvance('En instalación', 'Fecha de instalación asignada');
                       }
                     }} style={{ padding: '0.2rem', borderRadius: '4px', border: '1px solid #ccc' }} />
@@ -792,7 +798,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.instalado} onChange={async (e) => {
                       await handleChange('instalado', e.target.checked);
-                      if (e.target.checked && proyecto.estado.includes('En instalación')) {
+                      if (e.target.checked && proyecto.estado?.toLowerCase().includes('en instalación')) {
                         promptAutoAdvance('Entregado', 'Instalación completada');
                       }
                     }}/> <span>Instalado correctamente</span>
@@ -801,7 +807,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   <label className={styles.checkItem}>
                     <input type="checkbox" checked={!!proyecto.pagado_completo} onChange={async (e) => {
                       await handleChange('pagado_completo', e.target.checked);
-                      if (e.target.checked && proyecto.estado === 'Entregado') {
+                      if (e.target.checked && (proyecto.estado === 'Entregado' || (proyecto.estado?.toLowerCase().includes('entregado') && !proyecto.estado?.toLowerCase().includes('cerrado')))) {
                         promptAutoAdvance('Pagado y cerrado', 'Pago cancelado por completo');
                       }
                     }}/> <span>Pago cancelado por completo</span>

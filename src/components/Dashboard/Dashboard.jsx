@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { ArrowLeft, TrendingUp, DollarSign, Activity, AlertCircle, Sparkles, Copy, ExternalLink, Briefcase, Clock, Users, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, DollarSign, Activity, AlertCircle, Sparkles, Briefcase, Clock, Users, Target } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, FunnelChart, Funnel, LabelList } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import styles from './Dashboard.module.scss';
 
-export default function Dashboard({ session }) {
+const Trend = ({ val }) => (
+  <span className={val > 0 ? styles.positive : val < 0 ? styles.negative : styles.neutral}>
+    {val > 0 ? '▲ +' : val < 0 ? '▼ ' : '■ '} {Math.abs(val).toFixed(1)}%
+  </span>
+);
+
+export default function Dashboard() {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('finanzas');
   const [aiResponse, setAiResponse] = useState(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     const { data, error } = await supabase.from('proyectos').select('*');
@@ -23,6 +25,11 @@ export default function Dashboard({ session }) {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   // KPI Calculations & MoM/YoY
   const now = new Date();
@@ -79,7 +86,7 @@ export default function Dashboard({ session }) {
 
   const getExito = (arr) => {
     if (arr.length === 0) return 0;
-    return (arr.filter(p => p.estado === 'Entregado y cerrado').length / arr.length) * 100;
+    return (arr.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado').length / arr.length) * 100;
   };
   const exitoCurrent = getExito(proyectos);
   const exitoMoM = calcDiff(getExito(currentMonthProjects), getExito(prevMonthProjects));
@@ -102,7 +109,7 @@ export default function Dashboard({ session }) {
     return acc;
   }, {});
   const estancados = proyectos.filter(p => {
-    if (['Entregado y cerrado', 'Cancelado', 'Cancelado_Oculto'].includes(p.estado)) return false;
+    if (['Entregado y cerrado', 'Pagado y cerrado', 'Cancelado', 'Cancelado_Oculto'].includes(p.estado)) return false;
     const diffDays = Math.ceil(Math.abs(now - new Date(p.fecha_ultima_actualizacion)) / (1000 * 60 * 60 * 24));
     return diffDays > 3;
   });
@@ -125,15 +132,6 @@ export default function Dashboard({ session }) {
     });
   }
 
-  // Datos Gráfico de Embudo (Funnel)
-  const funnelOrder = [
-    { key: 'Nuevo', name: 'Contacto Inicial' },
-    { key: 'Levantamiento', name: 'Levantamiento' },
-    { key: 'Presupuesto enviado', name: 'Presupuesto' },
-    { key: 'En Conversación', name: 'Negociación' },
-    { key: 'En Diseño', name: 'Aprobados (Diseño/Fab/Inst)' },
-    { key: 'Entregado y cerrado', name: 'Cerrados' }
-  ];
   
   const getFunnelValue = (keys) => {
     return proyectos.filter(p => keys.includes(p.estado)).length;
@@ -145,7 +143,7 @@ export default function Dashboard({ session }) {
     { name: 'Presupuesto', value: getFunnelValue(['Presupuesto enviado', 'Cotizando']), fill: '#ec4899' },
     { name: 'Negociación', value: getFunnelValue(['En Conversación']), fill: '#f59e0b' },
     { name: 'Aprobados (En Proceso)', value: getFunnelValue(['En Diseño', 'En fabricación', 'En Instalación']), fill: '#10b981' },
-    { name: 'Cerrados (Éxito)', value: getFunnelValue(['Entregado y cerrado']), fill: '#14b8a6' }
+    { name: 'Cerrados (Éxito)', value: getFunnelValue(['Entregado y cerrado', 'Pagado y cerrado']), fill: '#14b8a6' }
   ].filter(f => f.value > 0);
 
     const handleGeminiPro = async () => {
@@ -224,11 +222,6 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
   };
   if (loading) return <div style={{ display:'flex', justifyContent:'center', marginTop:'3rem' }}>Cargando estadísticas...</div>;
 
-  const Trend = ({ val }) => (
-    <span className={val > 0 ? styles.positive : val < 0 ? styles.negative : styles.neutral}>
-      {val > 0 ? '▲ +' : val < 0 ? '▼ ' : '■ '} {Math.abs(val).toFixed(1)}%
-    </span>
-  );
 
   return (
     <div className={styles.dashboardContainer}>
