@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Sparkles, Send, Mic } from 'lucide-react';
 import styles from './Modals.module.scss'; // Reusamos los estilos limpios de los otros modales
 
-export default function AIAgentModal({ estadoPredefinido, onClose, onProjectCreated }) {
+export default function AIAgentModal({ estadoPredefinido, estados = [], onClose, onProjectCreated }) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -70,8 +70,14 @@ export default function AIAgentModal({ estadoPredefinido, onClose, onProjectCrea
         return;
       }
 
+      const columnasDisponibles = (estados && estados.length > 0)
+        ? estados.join(', ')
+        : 'En Conversación, Levantamiento, Presupuesto enviado, En Diseño, Logística y compras, En fabricación, Listo para instalación, En instalación, Entregado, Pagado y cerrado, En pausa/espera';
+
+      const defaultEstado = estadoPredefinido || (estados && estados[0]) || 'En Conversación';
+
       const systemInstruction = `
-Eres un asistente de clasificación de proyectos Kanban. 
+Eres un asistente de clasificación de proyectos Kanban para Globals. 
 Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un objeto JSON válido (sin markdown, sin explicaciones):
 {
   "titulo": "Resumen muy corto de la solicitud (Ej: Letrero luminoso, Impresión lonas)",
@@ -79,11 +85,11 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
   "cliente_empresa": "Nombre de la empresa si la menciona",
   "cliente_telefono": "El número de teléfono (solo números y + si aplica), si no hay deja cadena vacía",
   "notas": "Descripción detallada del pedido completo tal cual lo pide el cliente",
-  "estado": "Selecciona SOLO UNA de estas opciones que más se ajuste (por defecto ${estadoPredefinido || 'Levantamiento'}): Levantamiento, Presupuesto enviado, Logística y compras, En fabricación, Listo para instalación, En instalación, Entregado y cerrado, En pausa/espera",
+  "estado": "Selecciona SOLO UNA de estas opciones que más se ajuste (por defecto \"${defaultEstado}\"): ${columnasDisponibles}",
   "presupuesto_vendido": "Si menciona el precio de venta acordado, pon el número, sino 0",
   "costo_materiales": "Si menciona costos de materiales, pon el número, sino 0",
   "costo_operativo": "Si menciona costos operativos, pon el número, sino 0",
-  "fecha_entrega": "Si menciona una fecha de entrega, intenta ponerla en formato YYYY-MM-DD, sino omite",
+  "fecha_entrega": "Si menciona una fecha de entrega, interprétala bajo el estándar venezolano/latinoamericano Día/Mes/Año (ej: 05/11/2026 es 5 de noviembre) y devuélvela estrictamente en formato YYYY-MM-DD. Si no menciona ninguna fecha de entrega, deja null"
 }`;
 
       
@@ -148,6 +154,12 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
 
       if (finalData.fecha_entrega === "" || finalData.fecha_entrega === "null" || !finalData.fecha_entrega) {
         finalData.fecha_entrega = null;
+      } else if (typeof finalData.fecha_entrega === 'string') {
+        const cleanDate = finalData.fecha_entrega.trim();
+        if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(cleanDate)) {
+          const parts = cleanDate.split(/[/-]/);
+          finalData.fecha_entrega = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
       }
       
       const parseNumber = (val) => {

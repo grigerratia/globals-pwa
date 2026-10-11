@@ -45,7 +45,7 @@ REGLAS:
 1. Respuestas CORTAS, DIRECTAS, AMIGABLES. Cero tecnicismos. Usa viñetas y emojis para organizar.
 2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, M1, C1) al buscar registros. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA muestres ni le menciones estos códigos al usuario en tu texto.
 3. ARCHIVADO/CANCELACIÓN: NUNCA pases un proyecto a "Archivado" o "Cancelado" de inmediato. Pide un motivo, agrega la etiqueta [WIDGET:INPUT_MOTIVO]. Cuando respondan, usa 'actualizar_estado_proyecto' con el motivo.
-4. COLUMNAS: "En Conversación", "Levantamiento", "Presupuesto enviado", "Aprobado - Esperando Anticipo", "Anticipo - En Producción", "Listo para instalar/entregar", "Entregado y cerrado", "Pausa", "Cancelado", "Archivado".
+4. COLUMNAS: "En Conversación", "Levantamiento", "Presupuesto enviado", "En Diseño", "Logística y compras", "En fabricación", "Listo para instalación", "En instalación", "Entregado", "Pagado y cerrado", "Pausa", "Cancelado", "Archivado".
 5. GESTIÓN COMPLETA: Eres un administrador completo. Puedes consultar, crear, modificar y eliminar proyectos, materiales, columnas y consultar empleados. Usa las herramientas de "gestionar_*" correspondientes.
 6. ACCIONES DESTRUCTIVAS: Si el usuario te pide eliminar algo crítico (ej. columna), la herramienta te pedirá confirmación. Pregunta y usa [WIDGET:CONFIRM_CHECKBOXES]. Solo procede si te confirman.
 7. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
@@ -455,17 +455,28 @@ const executeTool = async (call) => {
       
       if (!validation.isValid && confirmar_casillas) {
          if (validation.rule === 'PRESUPUESTO') updateData.presupuesto_aprobado = true;
+         if (validation.rule === 'DISENO') updateData.diseno_terminado = true;
          if (validation.rule === 'MATERIALES') updateData.materiales_comprados = true;
+         if (validation.rule === 'FABRICACION') updateData.fabricado_listo = true;
+         if (validation.rule === 'FECHA_INSTALACION') updateData.fecha_instalacion = new Date().toISOString().split('T')[0];
+         if (validation.rule === 'INSTALACION') updateData.instalado = true;
+         if (validation.rule === 'PAGADO') updateData.pagado_completo = true;
          if (validation.rule === 'LEVANTAMIENTO') updateData.omitir_levantamiento = true;
       }
       
+      const isEntregadoOAdelante = nuevo_estado.toLowerCase() === 'entregado' ||
+        nuevo_estado.toLowerCase().includes('pagado') ||
+        nuevo_estado.toLowerCase().includes('cerrado') ||
+        nuevo_estado === 'Archivado' ||
+        nuevo_estado === 'Cancelado';
+
       let notaAnadida = `[DINAMO - ${nuevo_estado}]`;
       if (motivo) notaAnadida += ` Motivo: ${motivo}`;
-      if (dias_estimados) notaAnadida += `\n[DÍAS ESTIMADOS FASE ACTUAL: ${dias_estimados}]`;
+      if (dias_estimados && !isEntregadoOAdelante) notaAnadida += `\n[DÍAS ESTIMADOS FASE ACTUAL: ${dias_estimados}]`;
       
-      if (motivo || dias_estimados) {
+      if (motivo || dias_estimados || isEntregadoOAdelante) {
         let currentNotas = currentP?.notas || '';
-        if (dias_estimados) currentNotas = currentNotas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
+        currentNotas = currentNotas.replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
         updateData.notas = currentNotas ? currentNotas + '\n\n' + notaAnadida : notaAnadida;
         if (nuevo_estado === 'Cancelado' || nuevo_estado === 'Archivado' || nuevo_estado.includes('pausa')) {
            updateData.motivo_cancelacion = motivo;
@@ -496,7 +507,20 @@ const executeTool = async (call) => {
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       const estadosList = colsData ? colsData.map(c => c.nombre) : [];
       
-      if (!args.dias_estimados) {
+      const targetLower = (args.estado || 'en conversación').toLowerCase();
+      const targetIdx = estadosList.indexOf(args.estado || 'En Conversación');
+      const entregadoIdx = estadosList.findIndex(e => {
+        const lower = e.toLowerCase();
+        return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
+      });
+      const isEntregadoOAdelante = (entregadoIdx !== -1 && targetIdx >= entregadoIdx) ||
+        targetLower === 'entregado' ||
+        targetLower.includes('pagado') ||
+        targetLower.includes('cerrado') ||
+        args.estado === 'Archivado' ||
+        args.estado === 'Cancelado';
+
+      if (!args.dias_estimados && !isEntregadoOAdelante) {
          throw new Error("FALTAN DÍAS ESTIMADOS: Obligatorio preguntar.");
       }
 
@@ -507,7 +531,9 @@ const executeTool = async (call) => {
         cliente_telefono: args.cliente_telefono || '',
         estado: args.estado || 'En Conversación',
         encargados: encargadosPorDefecto,
-        notas: `[DINAMO - Proyecto Creado]\n[DÍAS ESTIMADOS FASE ACTUAL: ${args.dias_estimados}]`,
+        notas: isEntregadoOAdelante
+          ? `[DINAMO - Proyecto Creado]`
+          : `[DINAMO - Proyecto Creado]\n[DÍAS ESTIMADOS FASE ACTUAL: ${args.dias_estimados || 3}]`,
         fecha_creacion: new Date().toISOString(),
         materiales: []
       };
@@ -522,14 +548,23 @@ const executeTool = async (call) => {
          }));
       }
       
-      const targetIdx = estadosList.indexOf(nuevoProy.estado);
-      const levantamientoIdx = estadosList.indexOf('Levantamiento');
-      const presupIdx = estadosList.indexOf('Presupuesto enviado');
-      const logisIdx = estadosList.indexOf('Logística y compras');
+      const findIdx = (str) => estadosList.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
+      const levantamientoIdx = findIdx('levantamiento');
+      const presupIdx = findIdx('presupuesto');
+      const disenoIdx = findIdx('diseño');
+      const logisIdx = findIdx('logística');
+      const fabIdx = findIdx('fabricación');
+      const listoInstIdx = findIdx('listo para instalación');
+      const enInstIdx = findIdx('en instalación');
 
       if (targetIdx > levantamientoIdx && levantamientoIdx !== -1) nuevoProy.omitir_levantamiento = true;
       if (targetIdx > presupIdx && presupIdx !== -1) nuevoProy.presupuesto_aprobado = true;
+      if (targetIdx > disenoIdx && disenoIdx !== -1) nuevoProy.diseno_terminado = true;
       if (targetIdx > logisIdx && logisIdx !== -1) nuevoProy.materiales_comprados = true;
+      if (targetIdx > fabIdx && fabIdx !== -1) nuevoProy.fabricado_listo = true;
+      if (targetIdx > listoInstIdx && listoInstIdx !== -1) nuevoProy.fecha_instalacion = new Date().toISOString().split('T')[0];
+      if (targetIdx > enInstIdx && enInstIdx !== -1) nuevoProy.instalado = true;
+      if (targetIdx > entregadoIdx && entregadoIdx !== -1) nuevoProy.pagado_completo = true;
       
       const { data, error } = await supabase.from('proyectos').insert(nuevoProy).select('id');
       if (error) throw error;
@@ -573,8 +608,8 @@ const executeTool = async (call) => {
       const { data, error } = await supabase.from('proyectos').select('estado, presupuesto_vendido');
       if (error) throw error;
       
-      const activos = data.filter(p => !['Entregado y cerrado', 'Cancelado', 'Archivado'].includes(p.estado)).length;
-      const cerrados = data.filter(p => p.estado === 'Entregado y cerrado').reduce((acc, p) => acc + (p.presupuesto_vendido || 0), 0);
+      const activos = data.filter(p => !['Entregado y cerrado', 'Pagado y cerrado', 'Cancelado', 'Archivado'].includes(p.estado)).length;
+      const cerrados = data.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado').reduce((acc, p) => acc + (p.presupuesto_vendido || 0), 0);
       
       const desglosePorEstado = data.reduce((acc, p) => {
         const estado = p.estado || 'Sin estado';

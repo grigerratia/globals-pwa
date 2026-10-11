@@ -252,25 +252,62 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     });
     encargados = newEncargados;
 
-    // Días estimados por defecto o manual
-    const dias = nuevoProyectoData.diasEstimados || 3;
+    const targetIdx = estados.indexOf(nuevoProyectoData.estado);
+    const targetLower = (nuevoProyectoData.estado || '').toLowerCase();
+    const entregadoIdx = estados.findIndex(e => {
+      const lower = e.toLowerCase();
+      return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
+    });
+    const isEntregadoOAdelante = (entregadoIdx !== -1 && targetIdx >= entregadoIdx) ||
+      targetLower === 'entregado' ||
+      targetLower.includes('pagado') ||
+      targetLower.includes('cerrado') ||
+      nuevoProyectoData.estado === 'Archivado' ||
+      nuevoProyectoData.estado === 'Cancelado';
+
+    // Días estimados por defecto o manual (solo si no es Entregado o posterior)
     let cleanNotas = (nuevoProyectoData.notas || '').replace(/\[DÍAS ESTIMADOS FASE ACTUAL: \d+\]\n?/g, '').trim();
-    nuevoProyectoData.notas = cleanNotas ? cleanNotas + '\n\n[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']' : '[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']';
+    if (!isEntregadoOAdelante) {
+      const dias = nuevoProyectoData.diasEstimados || 3;
+      nuevoProyectoData.notas = cleanNotas ? cleanNotas + '\n\n[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']' : '[DÍAS ESTIMADOS FASE ACTUAL: ' + dias + ']';
+    } else {
+      nuevoProyectoData.notas = cleanNotas;
+    }
     delete nuevoProyectoData.diasEstimados;
 
-    const targetIdx = estados.indexOf(nuevoProyectoData.estado);
-    const levantamientoIdx = estados.indexOf('Levantamiento');
-    const presupIdx = estados.indexOf('Presupuesto enviado');
-    const logisIdx = estados.indexOf('Logística y compras');
+    // Completar automáticamente hitos previos si se crea directamente en una columna avanzada
+    const findIdx = (str) => estados.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
+    const levantamientoIdx = findIdx('levantamiento');
+    const presupIdx = findIdx('presupuesto');
+    const disenoIdx = findIdx('diseño');
+    const logisIdx = findIdx('logística');
+    const fabIdx = findIdx('fabricación');
+    const listoInstIdx = findIdx('listo para instalación');
+    const enInstIdx = findIdx('en instalación');
 
-    if (targetIdx > levantamientoIdx && levantamientoIdx !== -1) {
+    if (targetIdx > levantamientoIdx && levantamientoIdx !== -1 && !nuevoProyectoData.levantamiento_fecha) {
       nuevoProyectoData.levantamiento_fecha = new Date().toISOString();
     }
-    if (targetIdx > presupIdx && presupIdx !== -1) {
+    if (targetIdx > presupIdx && presupIdx !== -1 && nuevoProyectoData.presupuesto_aprobado === undefined) {
       nuevoProyectoData.presupuesto_aprobado = true;
     }
-    if (targetIdx > logisIdx && logisIdx !== -1) {
+    if (targetIdx > disenoIdx && disenoIdx !== -1 && nuevoProyectoData.diseno_terminado === undefined) {
+      nuevoProyectoData.diseno_terminado = true;
+    }
+    if (targetIdx > logisIdx && logisIdx !== -1 && nuevoProyectoData.materiales_comprados === undefined) {
       nuevoProyectoData.materiales_comprados = true;
+    }
+    if (targetIdx > fabIdx && fabIdx !== -1 && nuevoProyectoData.fabricado_listo === undefined) {
+      nuevoProyectoData.fabricado_listo = true;
+    }
+    if (targetIdx > listoInstIdx && listoInstIdx !== -1 && !nuevoProyectoData.fecha_instalacion) {
+      nuevoProyectoData.fecha_instalacion = new Date().toISOString().split('T')[0];
+    }
+    if (targetIdx > enInstIdx && enInstIdx !== -1 && nuevoProyectoData.instalado === undefined) {
+      nuevoProyectoData.instalado = true;
+    }
+    if (targetIdx > entregadoIdx && entregadoIdx !== -1 && nuevoProyectoData.pagado_completo === undefined) {
+      nuevoProyectoData.pagado_completo = true;
     }
 
     const nuevoProyecto = {
@@ -922,6 +959,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       {isAgentOpen && (
         <AIAgentModal 
           estadoPredefinido={typeof isAgentOpen === 'string' ? isAgentOpen : null}
+          estados={estados}
           onClose={() => setIsAgentOpen(false)}
           onProjectCreated={handleAgregarProyectoSubmit}
         />
