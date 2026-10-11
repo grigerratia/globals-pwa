@@ -129,26 +129,33 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
     const finalString = replyingTo ? `[REPLY_TO:${replyingTo.id}] ${nuevoComentario}` : nuevoComentario;
     const autorNombre = session?.user?.user_metadata?.nombre || session?.user?.user_metadata?.full_name || session?.user?.email || 'Usuario';
-    const { data, error } = await supabase.from('comentarios').insert([{
+    
+    let insertPayload = {
       proyecto_id: proyectoId,
       texto: finalString,
       autor_email: autorEmail,
       autor_nombre: autorNombre
-    }]).select();
+    };
+
+    let { data, error } = await supabase.from('comentarios').insert([insertPayload]).select();
+
+    // Fallback en caso de que la columna autor_nombre no exista aún en Supabase
+    if (error && (error.code === 'PGRST204' || error.message?.includes('autor_nombre'))) {
+      delete insertPayload.autor_nombre;
+      const retry = await supabase.from('comentarios').insert([insertPayload]).select();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (!error && data) {
-      // Realtime listener will handle adding to list, but we can do it optimistically too.
-      // Actually, if we do it optimistically, we might get duplicates if realtime fires too fast.
-      // For now, let's keep it optimistic but check for duplicates, or just rely on realtime? 
-      // The user said realtime didn't work, so keep optimistic.
       setComentarios(prev => prev.some(c => c.id === data[0].id) ? prev : [data[0], ...prev]);
       setNuevoComentario('');
       setReplyingTo(null);
       await logAudit(session, "Añadió comentario a proyecto", { proyecto_id: proyectoId, titulo: proyecto.titulo });
     } else {
       console.error(error);
-      setMsg({ text: 'Aún no existe la tabla comentarios o hubo un error.', type: 'error' });
-      setTimeout(() => setMsg({ text: '', type: '' }), 3000);
+      setMsg({ text: 'Error al guardar comentario: ' + (error?.message || 'Error desconocido'), type: 'error' });
+      setTimeout(() => setMsg({ text: '', type: '' }), 4000);
     }
   };
 
@@ -949,7 +956,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           <div key={c.id}>
                             <div className={styles.commentItem} style={{ opacity: 0.6, marginLeft, borderLeft }}>
                               <div className={styles.commentHeader}>
-                                <strong>{c.autor_email || 'Usuario'}</strong>
+                                <strong>{c.autor_nombre || c.autor_email || 'Usuario'}</strong>
                                 <span>{new Date(c.fecha_creacion).toLocaleString()}</span>
                               </div>
                               <p className={styles.commentText} style={{ fontStyle: 'italic', color: '#94a3b8' }}>
@@ -965,7 +972,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         <div key={c.id}>
                           <div className={styles.commentItem} style={{ marginLeft, borderLeft, opacity: parsed.isDeleted ? 0.6 : 1, ...(parsed.isDeleted && depth === 0 ? { borderLeft: '3px solid #ef4444' } : {}) }}>
                             <div className={styles.commentHeader}>
-                              <strong>{c.autor_email || 'Usuario'}</strong>
+                              <strong>{c.autor_nombre || c.autor_email || 'Usuario'}</strong>
                               <span>
                                 {new Date(c.fecha_creacion).toLocaleString()}
                                 {!parsed.isDeleted && (
