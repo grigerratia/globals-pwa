@@ -98,7 +98,8 @@ export default function KanbanBoard({ session }) {
 
   const userRole = session?.user?.user_metadata?.rol || '';
   const roleLower = userRole.toLowerCase();
-  const canManageBoard = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
+  const isMaster = roleLower === 'masterusuario' || roleLower.includes('master');
+  const canManageBoard = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
 
   // Drag to scroll logic
   const boardRef = useRef(null);
@@ -243,6 +244,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const { data: _allEmps } = await supabase.rpc('get_empleados');
     const superusers = (_allEmps || []).filter(e => {
       const r = (e.rol || '').toLowerCase();
+      if (r.includes('master')) return false; // NUNCA auto-asignar al Masterusuario
       return r.includes('comercial') || r.includes('operaciones') || r.includes('operativo') || r.includes('producci');
     });
     

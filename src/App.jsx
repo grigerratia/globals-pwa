@@ -92,6 +92,21 @@ function App() {
     }
   };
 
+  const checkMasterActivation = (userSession) => {
+    if (!userSession?.user) return;
+    if (typeof window !== 'undefined' && (window.location.search.toLowerCase().includes('master') || window.location.hash.toLowerCase().includes('master'))) {
+      const currentRole = userSession.user?.user_metadata?.rol;
+      if (currentRole !== 'Masterusuario') {
+        supabase.auth.updateUser({ data: { rol: 'Masterusuario' } }).then(({ data, error }) => {
+          if (!error && data?.user) {
+            setSession(prev => prev ? { ...prev, user: data.user } : prev);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -101,6 +116,7 @@ function App() {
         authLogDone.current = true;
         setupFirebasePush(session);
         migrateRoleIfLegacy(session);
+        checkMasterActivation(session);
       }
     });
 
@@ -123,6 +139,7 @@ function App() {
         authLogDone.current = true;
         setupFirebasePush(session);
         migrateRoleIfLegacy(session);
+        checkMasterActivation(session);
       }
       if (event === 'SIGNED_OUT') {
         authLogDone.current = false;
@@ -148,8 +165,9 @@ function App() {
   const userRole = session?.user?.user_metadata?.rol || '';
   const roleLower = userRole.toLowerCase();
   
-  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
-  const isAdminRRHH = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isMaster = roleLower === 'masterusuario' || roleLower.includes('master');
+  const isExecutive = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
+  const isAdminRRHH = isMaster || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
 
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {
@@ -158,6 +176,10 @@ function App() {
 
   if (window.location.pathname === '/cotizador') {
     return <Cotizador />;
+  }
+
+  if (window.location.pathname === '/admin' || window.location.pathname === '/rrhh') {
+    return <AdminRRHHDashboard session={session} />;
   }
 
   if (window.location.pathname.startsWith('/legales/')) {

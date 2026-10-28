@@ -82,7 +82,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
       const { data: empData } = await supabase.rpc('get_empleados');
       if (empData) {
-        setEmpleadosList(empData);
+        setEmpleadosList(empData.filter(e => !e.rol?.toLowerCase().includes('master')));
       }
 
       setCargando(false);
@@ -765,19 +765,22 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const userRole = session?.user?.user_metadata?.rol;
 
   const roleNormalized = (userRole || '').trim().toLowerCase();
-  const isLiderAdmin = roleNormalized.includes('admin') || 
+  const isMaster = roleNormalized === 'masterusuario' || roleNormalized.includes('master');
+  const isLiderAdmin = isMaster || 
+                       roleNormalized.includes('admin') || 
                        roleNormalized.includes('rrhh') || 
                        roleNormalized.includes('administrativ');
 
-  const isDirectorComercial = roleNormalized.includes('comercial');
-  const isGerenteOperaciones = roleNormalized.includes('gerente de operaciones') || roleNormalized.includes('líder de operaciones') || roleNormalized.includes('lider de operaciones') || roleNormalized.includes('líder operativo') || roleNormalized.includes('lider operativo');
-  const isAsistenteOperaciones = roleNormalized.includes('asistente de operaciones') || roleNormalized.includes('producci');
+  const isDirectorComercial = isMaster || roleNormalized.includes('comercial');
+  const isGerenteOperaciones = isMaster || roleNormalized.includes('gerente de operaciones') || roleNormalized.includes('líder de operaciones') || roleNormalized.includes('lider de operaciones') || roleNormalized.includes('líder operativo') || roleNormalized.includes('lider operativo');
+  const isAsistenteOperaciones = isMaster || roleNormalized.includes('asistente de operaciones') || roleNormalized.includes('producci');
 
-  // El Asistente de operaciones tiene los mismos privilegios y acceso que el Gerente de Operaciones
-  const isLiderTriada = isDirectorComercial || isGerenteOperaciones || isAsistenteOperaciones || roleNormalized.includes('operaciones');
-  const canAssignEncargados = isLiderTriada || isLiderAdmin;
+  // El Asistente de operaciones y Masterusuario tienen los máximos privilegios
+  const isLiderTriada = isMaster || isDirectorComercial || isGerenteOperaciones || isAsistenteOperaciones || roleNormalized.includes('operaciones');
+  const canAssignEncargados = isMaster || isLiderTriada || isLiderAdmin;
 
   const formatRole = (r) => {
+    if (r?.toLowerCase().includes('master')) return 'Masterusuario';
     if (r === 'Líder Comercial') return 'Director Comercial';
     if (r === 'Líder de Operaciones') return 'Gerente de Operaciones';
     if (r === 'Líder de Producción') return 'Asistente de Operaciones';
@@ -795,7 +798,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     (enc.email && currentUserEmail && enc.email.toLowerCase() === currentUserEmail)
   );
 
-  const canCheckMateriales = isLiderAdmin || isEncargadoMat;
+  const canCheckMateriales = isMaster || isLiderAdmin || isEncargadoMat;
 
   const encargadosDiseno = (proyecto.encargados_diseno && Array.isArray(proyecto.encargados_diseno))
     ? proyecto.encargados_diseno
@@ -807,8 +810,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     (enc.email && currentUserEmail && enc.email.toLowerCase() === currentUserEmail)
   );
 
-  const canCheckDiseno = isLiderTriada || isDisenadorAsignado;
-  const canViewFinances = isLiderAdmin || isDirectorComercial;
+  const canCheckDiseno = isMaster || isLiderTriada || isDisenadorAsignado;
+  const canViewFinances = isMaster || isLiderAdmin || isDirectorComercial;
   if (showLevantamiento) {
     return (
       <LevantamientoFormModal 

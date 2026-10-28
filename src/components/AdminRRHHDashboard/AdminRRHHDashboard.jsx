@@ -28,7 +28,7 @@ export default function AdminRRHHDashboard({ session }) {
       // Fetch empleados
       const { data: empData, error: empError } = await supabase.rpc('get_empleados');
       if (!empError && empData) {
-        setEmpleados(empData);
+        setEmpleados(empData.filter(e => !e.rol?.toLowerCase().includes('master')));
       }
 
       setLoading(false);

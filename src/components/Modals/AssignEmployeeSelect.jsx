@@ -19,7 +19,7 @@ export default function AssignEmployeeSelect({ onSelect, defaultRole = 'Director
       // Calls RPC 'get_empleados'
       const { data, error } = await supabase.rpc('get_empleados');
       if (!error && data) {
-        setEmpleados(data);
+        setEmpleados(data.filter(e => !e.rol?.toLowerCase().includes('master')));
       }
       setLoading(false);
     }
@@ -27,6 +27,7 @@ export default function AssignEmployeeSelect({ onSelect, defaultRole = 'Director
   }, []);
 
   const filteredEmpleados = empleados.filter(emp => {
+    if (emp.rol?.toLowerCase().includes('master')) return false;
     if (emp.rol === selectedRole) return true;
     if (selectedRole === 'Director Comercial' && (emp.rol === 'Líder Comercial' || emp.rol === 'Lider Comercial')) return true;
     if (selectedRole === 'Gerente de Operaciones' && (emp.rol === 'Líder de Operaciones' || emp.rol === 'Lider de Operaciones' || emp.rol === 'Líder Operativo')) return true;

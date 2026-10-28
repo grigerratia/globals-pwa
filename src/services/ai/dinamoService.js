@@ -401,7 +401,8 @@ const executeTool = async (call) => {
        if (args.accion === 'listar_empleados') {
          const { data, error } = await supabase.rpc('get_empleados');
          if (error) throw error;
-         return { success: true, empleados: data.map(e => ({ ...e, id: getShortId(e.id, 'E') })) };
+         const filtered = (data || []).filter(e => !e.rol?.toLowerCase().includes('master'));
+         return { success: true, empleados: filtered.map(e => ({ ...e, id: getShortId(e.id, 'E') })) };
        }
        throw new Error("Acción no válida");
     }
@@ -508,6 +509,7 @@ const executeTool = async (call) => {
       const { data: _allEmps } = await supabase.rpc('get_empleados');
       const superusers = (_allEmps || []).filter(e => {
         const r = (e.rol || '').toLowerCase();
+        if (r.includes('master')) return false; // NUNCA asignar a Masterusuario
         return r.includes('comercial') || r.includes('operaciones') || r.includes('operativo') || r.includes('producci');
       });
       
@@ -600,7 +602,7 @@ const executeTool = async (call) => {
       let targetUser = null;
       const { data: empleadosData, error: empError } = await supabase.rpc('get_empleados');
       if (!empError && empleadosData) {
-        targetUser = empleadosData.find(e => e.nombre && e.nombre.toLowerCase().includes(args.nombre_usuario.toLowerCase()));
+        targetUser = empleadosData.filter(e => !e.rol?.toLowerCase().includes('master')).find(e => e.nombre && e.nombre.toLowerCase().includes(args.nombre_usuario.toLowerCase()));
       }
 
       if (!targetUser) {

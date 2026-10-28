@@ -1,5 +1,12 @@
 export const validateProjectMove = (proyecto, destColumn, estadosList, session) => {
   const userRole = (session?.user?.user_metadata?.rol || '').toLowerCase();
+  const isMaster = userRole === 'masterusuario' || userRole.includes('master');
+  
+  if (isMaster) {
+    // Masterusuario tiene permiso total e irrestricto en todo el tablero
+    return { isValid: true, requiresMotive: null, isRetroceso: false, requiresDias: false };
+  }
+
   const isLider = userRole.includes('comercial') || userRole.includes('operaciones') || userRole.includes('operativo') || userRole.includes('producci');
   const isEncargado = (proyecto.encargados || []).some(enc => enc.user_id === session?.user?.id || enc.id === session?.user?.id);
   

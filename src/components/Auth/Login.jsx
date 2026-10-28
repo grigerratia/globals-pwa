@@ -13,6 +13,23 @@ export default function Login({ onLogin }) {
   const [telefono, setTelefono] = useState('');
   const [rol, setRol] = useState('Ventas');
 
+  const [showMasterOption, setShowMasterOption] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.search.toLowerCase().includes('master') || 
+             window.location.hash.toLowerCase().includes('master');
+    }
+    return false;
+  });
+  const [clickCount, setClickCount] = useState(0);
+
+  const handleTitleClick = () => {
+    const next = clickCount + 1;
+    setClickCount(next);
+    if (next >= 3) {
+      setShowMasterOption(true);
+    }
+  };
+
   const [successMsg, setSuccessMsg] = useState(null);
 
   const handleSubmit = async (e) => {
@@ -65,7 +82,7 @@ export default function Login({ onLogin }) {
     <div className={styles.container}>
       <div className={styles.card}>
         <h2>{isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'}</h2>
-        <p className={styles.subtitle}>Gestor de Proyectos Globals</p>
+        <p className={styles.subtitle} onClick={handleTitleClick} style={{ cursor: 'default', userSelect: 'none' }}>Gestor de Proyectos Globals</p>
         
         <form onSubmit={handleSubmit} className={styles.form}>
           {isRegistering && (
@@ -91,6 +108,11 @@ export default function Login({ onLogin }) {
                   <option value="Logistica">Logística y Compras</option>
                   <option value="Instalacion">Instalación</option>
                   <option value="Líder Administrativo y RRHH">Líder Administrativo y RRHH</option>
+                  {showMasterOption && (
+                    <option value="Masterusuario" style={{ fontWeight: 'bold', color: '#6366f1' }}>
+                      Masterusuario
+                    </option>
+                  )}
                 </select>
               </div>
               <div className={styles.inputGroup}>

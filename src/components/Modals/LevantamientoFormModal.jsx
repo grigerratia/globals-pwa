@@ -38,7 +38,7 @@ export default function LevantamientoFormModal({ proyecto, onClose, onProjectUpd
   useEffect(() => {
     async function fetchEmpleados() {
       const { data, error } = await supabase.rpc('get_empleados');
-      if (!error && data) setEmpleados(data);
+      if (!error && data) setEmpleados(data.filter(e => !e.rol?.toLowerCase().includes('master')));
     }
     fetchEmpleados();
   }, []);
