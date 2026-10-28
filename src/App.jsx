@@ -74,6 +74,24 @@ function App() {
     }
   }
 
+  const migrateRoleIfLegacy = (userSession) => {
+    if (!userSession?.user) return;
+    const currentRole = userSession.user?.user_metadata?.rol;
+    let newRole = null;
+    if (currentRole === 'Líder Comercial') newRole = 'Director Comercial';
+    else if (currentRole === 'Líder de Operaciones') newRole = 'Gerente de Operaciones';
+    else if (currentRole === 'Líder de Producción') newRole = 'Asistente de Operaciones';
+    else if (currentRole === 'Administración' || currentRole === 'Administracion' || currentRole === 'Líder de Administración') newRole = 'Líder Administrativo y RRHH';
+
+    if (newRole) {
+      supabase.auth.updateUser({ data: { rol: newRole } }).then(({ data, error }) => {
+        if (!error && data?.user) {
+          setSession(prev => prev ? { ...prev, user: data.user } : prev);
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -82,6 +100,7 @@ function App() {
         logAudit(session, 'Inició sesión');
         authLogDone.current = true;
         setupFirebasePush(session);
+        migrateRoleIfLegacy(session);
       }
     });
 
@@ -103,6 +122,7 @@ function App() {
         logAudit(session, 'Inició sesión');
         authLogDone.current = true;
         setupFirebasePush(session);
+        migrateRoleIfLegacy(session);
       }
       if (event === 'SIGNED_OUT') {
         authLogDone.current = false;
@@ -128,7 +148,7 @@ function App() {
   const userRole = session?.user?.user_metadata?.rol || '';
   const roleLower = userRole.toLowerCase();
   
-  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo');
+  const isExecutive = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
   const isAdminRRHH = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
 
   // Simple Router

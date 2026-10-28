@@ -506,13 +506,23 @@ const executeTool = async (call) => {
 
     if (name === 'crear_proyecto') {
       const { data: _allEmps } = await supabase.rpc('get_empleados');
-      const superusers = (_allEmps || []).filter(e => ['Líder Comercial', 'Líder de Operaciones', 'Líder de Producción'].includes(e.rol));
+      const superusers = (_allEmps || []).filter(e => {
+        const r = (e.rol || '').toLowerCase();
+        return r.includes('comercial') || r.includes('operaciones') || r.includes('operativo') || r.includes('producci');
+      });
       
-      if (!superusers || !superusers.some(su => su.rol === 'Líder Comercial')) {
-         throw new Error("ERROR: No hay 'Líder Comercial' para asignar.");
+      if (!superusers || !superusers.some(su => (su.rol || '').toLowerCase().includes('comercial'))) {
+         throw new Error("ERROR: No hay 'Director Comercial' para asignar.");
       }
       
-      const encargadosPorDefecto = superusers.map(su => ({ id: su.id, nombre: su.nombre, rol: su.rol }));
+      const encargadosPorDefecto = superusers.map(su => {
+        let normalizedRole = su.rol;
+        if (normalizedRole === 'Líder Comercial') normalizedRole = 'Director Comercial';
+        else if (normalizedRole === 'Líder de Operaciones') normalizedRole = 'Gerente de Operaciones';
+        else if (normalizedRole === 'Líder de Producción') normalizedRole = 'Asistente de Operaciones';
+        else if (normalizedRole === 'Administración' || normalizedRole === 'Administracion') normalizedRole = 'Líder Administrativo y RRHH';
+        return { id: su.id, nombre: su.nombre, rol: normalizedRole };
+      });
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       const estadosList = colsData ? colsData.map(c => c.nombre) : [];
       

@@ -85,8 +85,10 @@ export default function ExecutiveDashboard({ session }) {
     );
   }
 
-  const userRole = session?.user?.user_metadata?.rol;
-  const isLiderComercial = userRole === 'Líder Comercial';
+  const userRole = session?.user?.user_metadata?.rol || '';
+  const roleLower = userRole.toLowerCase();
+  const isDirectorComercial = roleLower.includes('comercial');
+  const hasExecutiveActions = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
 
   const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Pagado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
   const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado');
@@ -123,7 +125,7 @@ export default function ExecutiveDashboard({ session }) {
             <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
           </div>
           
-          {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+          {hasExecutiveActions && (
             <>
               <div className={styles.desktopToolbarActions}>
                 <button 
@@ -180,7 +182,7 @@ export default function ExecutiveDashboard({ session }) {
       <main className={styles.mainContent}>
         <section className={styles.kpiGrid}>
           
-          {isLiderComercial ? (
+          {isDirectorComercial ? (
             <>
               <div 
                 className={`${styles.kpiCard} ${styles.cardProyectados}`} 

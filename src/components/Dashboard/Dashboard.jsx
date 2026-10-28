@@ -229,7 +229,7 @@ Restricciones: Sé directo. Usa viñetas. No me des introducciones genéricas ni
         <button className={styles.backBtn} onClick={() => window.location.href = '/'}>
           <ArrowLeft size={20} /> Volver al Tablero
         </button>
-        <h1>Panel Estadístico (Líder Comercial)</h1>
+        <h1>Panel Estadístico (Director Comercial)</h1>
       </header>
 
       <div className={styles.aiCard}>

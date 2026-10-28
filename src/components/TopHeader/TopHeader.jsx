@@ -11,9 +11,15 @@ export default function TopHeader({ session, currentView }) {
   const userRole = session?.user?.user_metadata?.rol || 'Usuario';
   const roleLower = userRole.toLowerCase();
   const userName = session?.user?.user_metadata?.nombre || session?.user?.email;
-  const isExecutiveRole = roleLower.includes('comercial') || roleLower.includes('operaciones');
-  const isAdminRole = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isExecutiveRole = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
+  const isAdminRole = roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso') || roleLower.includes('administrativ');
   const isComercial = roleLower.includes('comercial');
+
+  let displayRole = userRole;
+  if (displayRole === 'Líder Comercial') displayRole = 'Director Comercial';
+  else if (displayRole === 'Líder de Operaciones') displayRole = 'Gerente de Operaciones';
+  else if (displayRole === 'Líder de Producción') displayRole = 'Asistente de Operaciones';
+  else if (displayRole === 'Administración' || displayRole === 'Administracion' || displayRole === 'Líder de Administración') displayRole = 'Líder Administrativo y RRHH';
   
   // Administrators should not see the financial dashboard
   const canViewFinances = isComercial; // Only comercial should see it maybe? Or operations too? Let's leave it as roleLower.includes('comercial')
@@ -33,7 +39,7 @@ export default function TopHeader({ session, currentView }) {
             {userName}
           </span>
           <span className={styles.userRole}>
-            {userRole}
+            {displayRole}
           </span>
         </div>
       </div>

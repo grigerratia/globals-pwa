@@ -764,17 +764,26 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const currentUserEmail = session?.user?.email?.toLowerCase();
   const userRole = session?.user?.user_metadata?.rol;
 
-  const isLiderAdmin = userRole === 'Administración' || 
-                       userRole === 'Administrador' || 
-                       userRole === 'Líder de Administración' || 
-                       (typeof userRole === 'string' && userRole.toLowerCase().includes('administra'));
-
   const roleNormalized = (userRole || '').trim().toLowerCase();
-  const isLiderComercial = roleNormalized === 'líder comercial' || roleNormalized === 'lider comercial';
-  const isLiderOperativo = roleNormalized === 'líder de operaciones' || roleNormalized === 'lider de operaciones' || roleNormalized === 'líder operativo' || roleNormalized === 'lider operativo' || roleNormalized === 'operaciones';
-  const isLiderProduccion = roleNormalized === 'líder de producción' || roleNormalized === 'lider de produccion' || roleNormalized === 'producción' || roleNormalized === 'produccion';
+  const isLiderAdmin = roleNormalized.includes('admin') || 
+                       roleNormalized.includes('rrhh') || 
+                       roleNormalized.includes('administrativ');
 
-  const canAssignEncargados = isLiderComercial || isLiderOperativo || isLiderProduccion || isLiderAdmin;
+  const isDirectorComercial = roleNormalized.includes('comercial');
+  const isGerenteOperaciones = roleNormalized.includes('gerente de operaciones') || roleNormalized.includes('líder de operaciones') || roleNormalized.includes('lider de operaciones') || roleNormalized.includes('líder operativo') || roleNormalized.includes('lider operativo');
+  const isAsistenteOperaciones = roleNormalized.includes('asistente de operaciones') || roleNormalized.includes('producci');
+
+  // El Asistente de operaciones tiene los mismos privilegios y acceso que el Gerente de Operaciones
+  const isLiderTriada = isDirectorComercial || isGerenteOperaciones || isAsistenteOperaciones || roleNormalized.includes('operaciones');
+  const canAssignEncargados = isLiderTriada || isLiderAdmin;
+
+  const formatRole = (r) => {
+    if (r === 'Líder Comercial') return 'Director Comercial';
+    if (r === 'Líder de Operaciones') return 'Gerente de Operaciones';
+    if (r === 'Líder de Producción') return 'Asistente de Operaciones';
+    if (r === 'Administración' || r === 'Administracion' || r === 'Líder de Administración') return 'Líder Administrativo y RRHH';
+    return r;
+  };
 
   const encargadosMateriales = (proyecto.encargados_materiales && Array.isArray(proyecto.encargados_materiales))
     ? proyecto.encargados_materiales
@@ -788,7 +797,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
   const canCheckMateriales = isLiderAdmin || isEncargadoMat;
 
-  const isLiderTriada = isLiderComercial || isLiderOperativo || isLiderProduccion;
   const encargadosDiseno = (proyecto.encargados_diseno && Array.isArray(proyecto.encargados_diseno))
     ? proyecto.encargados_diseno
     : (proyecto.encargados || []).filter(e => e.es_diseno || (e.rol && e.rol.toLowerCase().includes('diseñ')));
@@ -800,7 +808,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   );
 
   const canCheckDiseno = isLiderTriada || isDisenadorAsignado;
-  const canViewFinances = userRole === 'Administración' || userRole === 'Administrador' || userRole === 'Líder Comercial';
+  const canViewFinances = isLiderAdmin || isDirectorComercial;
   if (showLevantamiento) {
     return (
       <LevantamientoFormModal 
@@ -1000,7 +1008,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   )}
                 </div>
 
-                {/* ENCARGADO(S) DE MATERIALES (Solo visible para Líder Comercial, Líder Operativo, Líder de Producción y Administración) */}
+                {/* ENCARGADO(S) DE MATERIALES (Visible para Director Comercial, Gerente de Operaciones, Asistente de Operaciones y Líder Administrativo y RRHH) */}
                 {canAssignEncargados ? (
                   <div className={styles.materialsEncargadosBox}>
                     <div className={styles.materialsEncargadosHeader}>
@@ -1013,7 +1021,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       {encargadosMateriales.map((enc, idx) => (
                         <div key={idx} className={styles.materialsEncargadoChip}>
                           <span className={styles.chipName}>{enc.nombre}</span>
-                          {enc.rol && <span className={styles.chipRole}>{enc.rol}</span>}
+                          {enc.rol && <span className={styles.chipRole}>{formatRole(enc.rol)}</span>}
                           <button 
                             type="button" 
                             className={styles.chipRemoveBtn}
@@ -1102,7 +1110,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         if (!canCheckMateriales) {
                           e.preventDefault();
                           setMsg({
-                            text: 'Solo el encargado de materiales asignado o el Líder de Administración pueden marcar o desmarcar compras.',
+                            text: 'Solo el encargado de materiales asignado o el Líder Administrativo y RRHH pueden marcar o desmarcar compras.',
                             type: 'error'
                           });
                           setTimeout(() => setMsg({ text: '', type: '' }), 4000);
@@ -1113,7 +1121,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         type="checkbox" 
                         checked={mat.comprado || false} 
                         disabled={!canCheckMateriales}
-                        title={!canCheckMateriales ? "Permiso requerido: Encargado de materiales o Líder de Administración" : ""}
+                        title={!canCheckMateriales ? "Permiso requerido: Encargado de materiales o Líder Administrativo y RRHH" : ""}
                         onChange={async (e) => {
                           if (!canCheckMateriales) return;
                           const mats = (proyecto.materiales || []).map(m => ({...m}));
@@ -1205,7 +1213,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           {encargadosDiseno.map((enc, idx) => (
                             <div key={idx} className={styles.disenoChip}>
                               <span className={styles.chipName}>{enc.nombre}</span>
-                              {enc.rol && <span className={styles.chipRole}>{enc.rol}</span>}
+                              {enc.rol && <span className={styles.chipRole}>{formatRole(enc.rol)}</span>}
                               {canAssignEncargados && (
                                 <button 
                                   type="button" 
@@ -1281,7 +1289,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           if (!canCheckDiseno) {
                             e.preventDefault();
                             setMsg({
-                              text: 'Solo el Diseñador asignado o los líderes (Comercial, Operaciones, Producción) pueden marcar la aprobación del diseño.',
+                              text: 'Solo el Diseñador asignado o la Dirección/Operaciones (Director Comercial, Gerente de Operaciones, Asistente de Operaciones) pueden marcar la aprobación del diseño.',
                               type: 'error'
                             });
                             setTimeout(() => setMsg({ text: '', type: '' }), 4000);
@@ -1292,7 +1300,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           type="checkbox" 
                           checked={!!proyecto.diseno_aprobado_cliente} 
                           disabled={!canCheckDiseno}
-                          title={!canCheckDiseno ? "Permiso requerido: Diseñador asignado o Líder (Comercial, Operaciones, Producción)" : ""}
+                          title={!canCheckDiseno ? "Permiso requerido: Diseñador asignado o Dirección/Operaciones (Director Comercial, Gerente o Asistente de Operaciones)" : ""}
                           onChange={async (e) => {
                             if (!canCheckDiseno) return;
                             const checked = e.target.checked;
@@ -1313,7 +1321,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           if (!canCheckDiseno) {
                             e.preventDefault();
                             setMsg({
-                              text: 'Solo el Diseñador asignado o los líderes (Comercial, Operaciones, Producción) pueden marcar el diseño como terminado.',
+                              text: 'Solo el Diseñador asignado o la Dirección/Operaciones (Director Comercial, Gerente de Operaciones, Asistente de Operaciones) pueden marcar el diseño como terminado.',
                               type: 'error'
                             });
                             setTimeout(() => setMsg({ text: '', type: '' }), 4000);
@@ -1324,7 +1332,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           type="checkbox" 
                           checked={!!proyecto.diseno_terminado} 
                           disabled={!canCheckDiseno}
-                          title={!canCheckDiseno ? "Permiso requerido: Diseñador asignado o Líder (Comercial, Operaciones, Producción)" : ""}
+                          title={!canCheckDiseno ? "Permiso requerido: Diseñador asignado o Dirección/Operaciones (Director Comercial, Gerente o Asistente de Operaciones)" : ""}
                           onChange={async (e) => {
                             if (!canCheckDiseno) return;
                             const checked = e.target.checked;
@@ -1367,7 +1375,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       if (!canCheckMateriales) {
                         e.preventDefault();
                         setMsg({
-                          text: 'Solo el encargado de materiales asignado o el Líder de Administración pueden marcar materiales comprados.',
+                          text: 'Solo el encargado de materiales asignado o el Líder Administrativo y RRHH pueden marcar materiales comprados.',
                           type: 'error'
                         });
                         setTimeout(() => setMsg({ text: '', type: '' }), 4000);
@@ -1378,7 +1386,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       type="checkbox" 
                       checked={!!proyecto.materiales_comprados} 
                       disabled={!canCheckMateriales}
-                      title={!canCheckMateriales ? "Permiso requerido: Encargado de materiales o Líder de Administración" : ""}
+                      title={!canCheckMateriales ? "Permiso requerido: Encargado de materiales o Líder Administrativo y RRHH" : ""}
                       onChange={async (e) => {
                         if (!canCheckMateriales) return;
                         const checked = e.target.checked;
@@ -1617,7 +1625,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     // Sort roots descending (newest first), but children ascending (oldest first under parent)
                     roots.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
                     
-                    const isSuperUser = (userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones');
+                    const isSuperUser = isLiderTriada;
 
                     const renderNode = (c, depth = 0) => {
                       const pData = parsedMap.get(c.id);
@@ -1738,8 +1746,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
               {(proyecto.encargados || []).map((enc, idx) => (
                 <div key={idx} className={styles.encargadoTag}>
                   <span className={styles.encName}>{enc.nombre}</span>
-                  <span className={styles.encRole}>{enc.rol}</span>
-                  {(userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones' || userRole === 'Líder Operativo') && (
+                  <span className={styles.encRole}>{formatRole(enc.rol)}</span>
+                  {isLiderTriada && (
                     <button onClick={async () => {
                       const encs = (proyecto.encargados || []).filter((_, i) => i !== idx);
                       setProyecto(prev => ({ ...prev, encargados: encs }));
@@ -1751,7 +1759,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
               {(proyecto.encargados || []).length === 0 && <p className={styles.noEncargados}>Nadie asignado aún.</p>}
             </div>
 
-            {((userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones') || (proyecto.encargados || []).some(e => e.id === session?.user?.id)) && (
+            {(isLiderTriada || (proyecto.encargados || []).some(e => e.id === session?.user?.id)) && (
               <AssignEmployeeSelect 
                 onSelect={async (newEnc) => {
                   const encs = [...(proyecto.encargados || []), newEnc];
@@ -1770,7 +1778,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             </button>
 
             <h4 style={{ marginTop: '1rem' }}>Acciones</h4>
-            {proyecto.estado !== 'Archivado' && (userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones') && (
+            {proyecto.estado !== 'Archivado' && isLiderTriada && (
               <button 
                 className={`${styles.actionButton} ${styles.warning}`} 
                 onClick={() => setConfirmArchive(true)}
@@ -1780,7 +1788,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
               </button>
             )}
 
-            {(userRole === 'Líder Comercial' || userRole === 'Líder de Operaciones') && (
+            {isLiderTriada && (
               <button className={`${styles.actionButton} ${styles.danger}`} onClick={() => setConfirmDelete(true)}>
                 <Trash2 size={16} /> Cancelar Proyecto
               </button>

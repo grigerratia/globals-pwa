@@ -1,5 +1,6 @@
 export const validateProjectMove = (proyecto, destColumn, estadosList, session) => {
-  const isLider = session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones';
+  const userRole = (session?.user?.user_metadata?.rol || '').toLowerCase();
+  const isLider = userRole.includes('comercial') || userRole.includes('operaciones') || userRole.includes('operativo') || userRole.includes('producci');
   const isEncargado = (proyecto.encargados || []).some(enc => enc.user_id === session?.user?.id || enc.id === session?.user?.id);
   
   const estadoOrigenReal = proyecto.estado;
@@ -18,12 +19,12 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
 
   // Regla de permisos general
   if (!isLider && !isEncargado) {
-    return { isValid: false, error: "Acceso denegado: Solo el Líder o un encargado pueden reordenar este proyecto." };
+    return { isValid: false, error: "Acceso denegado: Solo los líderes o un encargado pueden reordenar este proyecto." };
   }
 
   if (destColumn.toLowerCase().includes('espera') || destColumn.toLowerCase().includes('pausa')) {
     if (!isLider) {
-      return { isValid: false, error: "Acceso denegado: Solo el Líder puede mover proyectos a Pausa/Espera." };
+      return { isValid: false, error: "Acceso denegado: Solo la Dirección Comercial o el equipo de Operaciones pueden mover proyectos a Pausa/Espera." };
     }
   } else {
     // Regla de Levantamiento

@@ -204,7 +204,13 @@ export default function AdminRRHHDashboard({ session }) {
                     </div>
                     <div className={styles.empInfo}>
                       <h4>{emp.nombre || 'Sin nombre'}</h4>
-                      <p className={styles.empRole}>{emp.rol}</p>
+                      <p className={styles.empRole}>
+                        {emp.rol === 'Líder Comercial' ? 'Director Comercial' :
+                         emp.rol === 'Líder de Operaciones' ? 'Gerente de Operaciones' :
+                         emp.rol === 'Líder de Producción' ? 'Asistente de Operaciones' :
+                         (emp.rol === 'Administración' || emp.rol === 'Administracion' || emp.rol === 'Líder de Administración') ? 'Líder Administrativo y RRHH' :
+                         emp.rol}
+                      </p>
                       <p className={styles.empEmail}>{emp.email}</p>
                       {emp.telefono && <p className={styles.empTel}>📞 {emp.telefono}</p>}
                     </div>

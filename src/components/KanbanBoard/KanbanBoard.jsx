@@ -96,6 +96,10 @@ export default function KanbanBoard({ session }) {
     try { return JSON.parse(localStorage.getItem('globals_column_colors') || '{}'); } catch { return {}; }
   });
 
+  const userRole = session?.user?.user_metadata?.rol || '';
+  const roleLower = userRole.toLowerCase();
+  const canManageBoard = roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
+
   // Drag to scroll logic
   const boardRef = useRef(null);
   const dragInfo = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
@@ -237,17 +241,25 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const handleAgregarProyectoSubmit = async (nuevoProyectoData) => {
     let encargados = nuevoProyectoData.encargados || [];
     const { data: _allEmps } = await supabase.rpc('get_empleados');
-    const superusers = (_allEmps || []).filter(e => ['Líder Comercial', 'Líder de Operaciones', 'Líder de Producción'].includes(e.rol));
+    const superusers = (_allEmps || []).filter(e => {
+      const r = (e.rol || '').toLowerCase();
+      return r.includes('comercial') || r.includes('operaciones') || r.includes('operativo') || r.includes('producci');
+    });
     
-    if (!superusers || !superusers.some(su => su.rol === 'Líder Comercial')) {
-      showError("No se puede crear el proyecto: Debe existir al menos un usuario con el rol 'Líder Comercial' en el sistema.");
+    if (!superusers || !superusers.some(su => (su.rol || '').toLowerCase().includes('comercial'))) {
+      showError("No se puede crear el proyecto: Debe existir al menos un usuario con el rol 'Director Comercial' en el sistema.");
       return;
     }
 
     const newEncargados = [...encargados];
     superusers.forEach(su => {
       if (!newEncargados.some(e => e.id === su.id)) {
-        newEncargados.push({ id: su.id, nombre: su.nombre, rol: su.rol });
+        let normalizedRole = su.rol;
+        if (normalizedRole === 'Líder Comercial') normalizedRole = 'Director Comercial';
+        else if (normalizedRole === 'Líder de Operaciones') normalizedRole = 'Gerente de Operaciones';
+        else if (normalizedRole === 'Líder de Producción') normalizedRole = 'Asistente de Operaciones';
+        else if (normalizedRole === 'Administración' || normalizedRole === 'Administracion') normalizedRole = 'Líder Administrativo y RRHH';
+        newEncargados.push({ id: su.id, nombre: su.nombre, rol: normalizedRole });
       }
     });
     encargados = newEncargados;
@@ -358,8 +370,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
   };
 
   const agregarColumnaSubmit = async (nombre, dias_defecto = 7) => {
-    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
-      showError('Acceso denegado: Solo el Líder Comercial puede agregar columnas.');
+    if (!canManageBoard) {
+      showError('Acceso denegado: Solo el Director Comercial o el equipo de Operaciones pueden agregar columnas.');
       return;
     }
     const nombreLower = nombre.toLowerCase().trim();
@@ -382,8 +394,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
   };
 
   const handleUpdateColumna = async (oldName, newName, color) => {
-    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
-      showError('Acceso denegado: Solo el Líder Comercial puede editar columnas.');
+    if (!canManageBoard) {
+      showError('Acceso denegado: Solo el Director Comercial o el equipo de Operaciones pueden editar columnas.');
       return;
     }
     setEstados(prev => prev.map(e => e === oldName ? newName : e));
@@ -405,8 +417,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
   };
 
   const handleDeleteColumna = async (nombre) => {
-    if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
-      showError('Acceso denegado: Solo el Líder Comercial puede eliminar columnas.');
+    if (!canManageBoard) {
+      showError('Acceso denegado: Solo el Director Comercial o el equipo de Operaciones pueden eliminar columnas.');
       return;
     }
     setEstados(prev => prev.filter(e => e !== nombre));
@@ -485,8 +497,8 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     const type = active.data.current?.type;
 
     if (type === 'Column') {
-      if ((session?.user?.user_metadata?.rol !== 'Líder Comercial' && session?.user?.user_metadata?.rol !== 'Líder de Operaciones')) {
-        showError("Acceso denegado: Solo el Líder Comercial puede mover columnas.");
+      if (!canManageBoard) {
+        showError("Acceso denegado: Solo el Director Comercial o el equipo de Operaciones pueden mover columnas.");
         return;
       }
 
@@ -698,7 +710,7 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
       <div className={styles.toolbar}>
         <GlobalSearch onResultClick={(id) => setProyectoDetalleId(id)} />
         
-        {(session?.user?.user_metadata?.rol === 'Líder Comercial' || session?.user?.user_metadata?.rol === 'Líder de Operaciones') && (
+        {canManageBoard && (
           <>
             <div className={styles.desktopToolbarActions}>
               <button 

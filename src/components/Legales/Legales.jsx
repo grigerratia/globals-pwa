@@ -71,7 +71,7 @@ La finalidad exclusiva de la recolección de datos es:
 - Mantener la seguridad de la información corporativa.
 
 3. Confidencialidad
-Los datos de actividad son accesibles por la dirección operativa (Líder Comercial, COO) con fines de monitoreo y mejora del desempeño. No se compartirán con terceros ajenos a la organización.
+Los datos de actividad son accesibles por la dirección operativa (Director Comercial, COO) con fines de monitoreo y mejora del desempeño. No se compartirán con terceros ajenos a la organización.
 
 4. Retención
 Los registros de auditoría y los datos de la cuenta se conservarán mientras exista la relación laboral o contractual, y posteriormente según lo requiera la normativa legal.
