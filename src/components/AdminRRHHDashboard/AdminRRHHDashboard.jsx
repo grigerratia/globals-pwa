@@ -80,7 +80,7 @@ export default function AdminRRHHDashboard({ session }) {
 
   return (
     <>
-      <TopHeader session={session} currentView="ejecutivo" />
+      <TopHeader session={session} currentView="admin" />
       <div className={styles.dashboardContainer}>
         <header className={styles.header}>
           <div>

@@ -9,7 +9,7 @@ import TopHeader from '../TopHeader/TopHeader';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
 import { formatDateTimeVE } from '../../utils/kanbanRules';
 
-export default function ExecutiveDashboard({ session }) {
+export default function ExecutiveDashboard({ session, initialMode }) {
   const [proyectos, setProyectos] = useState([]);
   const [estados, setEstados] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -21,6 +21,20 @@ export default function ExecutiveDashboard({ session }) {
   
   // Estado para el modal de KPIs (Tarjetas interactivas)
   const [modalKpi, setModalKpi] = useState(null);
+
+  const userRole = session?.user?.user_metadata?.rol || '';
+  const roleLower = userRole.toLowerCase();
+  const isMaster = roleLower === 'masterusuario' || roleLower.includes('master');
+
+  const [dashboardMode, setDashboardMode] = useState(() => {
+    if (initialMode) return initialMode;
+    if (typeof window !== 'undefined' && window.location.pathname === '/operaciones') return 'operaciones';
+    if (roleLower.includes('operaciones') && !roleLower.includes('comercial') && !isMaster) return 'operaciones';
+    return 'comercial';
+  });
+
+  const isOperacionesView = dashboardMode === 'operaciones';
+  const hasExecutiveActions = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
 
   const fetchLogs = async () => {
     try {
@@ -85,12 +99,6 @@ export default function ExecutiveDashboard({ session }) {
     );
   }
 
-  const userRole = session?.user?.user_metadata?.rol || '';
-  const roleLower = userRole.toLowerCase();
-  const isMaster = roleLower === 'masterusuario' || roleLower.includes('master');
-  const isDirectorComercial = isMaster || roleLower.includes('comercial');
-  const hasExecutiveActions = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
-
   const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Pagado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
   const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado');
   
@@ -115,11 +123,65 @@ export default function ExecutiveDashboard({ session }) {
 
   return (
     <div className={styles.executiveContainer}>
-      <TopHeader session={session} currentView="ejecutivo" />
+      <TopHeader session={session} currentView={isOperacionesView ? "operaciones" : "ejecutivo"} />
       
       <header className={styles.header} style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className={styles.greeting}>
-          <p style={{ margin: 0, fontWeight: 600, color: '#334155' }}>Resumen Ejecutivo</p>
+        <div className={styles.greeting} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>
+              {isOperacionesView ? 'Resumen Operativo (Gerente de Operaciones)' : 'Resumen Ejecutivo (Dirección Comercial)'}
+            </p>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+              {isOperacionesView ? 'Métricas de producción, logística y culminación de proyectos.' : 'Métricas financieras y estado de proyectos activos.'}
+            </p>
+          </div>
+
+          {(isMaster || (roleLower.includes('comercial') && roleLower.includes('operaciones'))) && (
+            <div style={{ display: 'flex', gap: '0.35rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '10px' }}>
+              <button 
+                type="button"
+                style={{ 
+                  padding: '0.35rem 0.75rem', 
+                  borderRadius: '8px', 
+                  border: 'none',
+                  background: !isOperacionesView ? '#ffffff' : 'transparent',
+                  color: !isOperacionesView ? '#2563eb' : '#64748b',
+                  fontWeight: !isOperacionesView ? 700 : 500,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: !isOperacionesView ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+                onClick={() => setDashboardMode('comercial')}
+              >
+                <Activity size={16} />
+                Comercial
+              </button>
+              <button 
+                type="button"
+                style={{ 
+                  padding: '0.35rem 0.75rem', 
+                  borderRadius: '8px', 
+                  border: 'none',
+                  background: isOperacionesView ? '#ffffff' : 'transparent',
+                  color: isOperacionesView ? '#0284c7' : '#64748b',
+                  fontWeight: isOperacionesView ? 700 : 500,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: isOperacionesView ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+                onClick={() => setDashboardMode('operaciones')}
+              >
+                <Wrench size={16} />
+                Operaciones
+              </button>
+            </div>
+          )}
         </div>
         <div className={styles.toolbar} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div style={{ flex: 1 }}>
@@ -183,7 +245,7 @@ export default function ExecutiveDashboard({ session }) {
       <main className={styles.mainContent}>
         <section className={styles.kpiGrid}>
           
-          {isDirectorComercial ? (
+          {!isOperacionesView ? (
             <>
               <div 
                 className={`${styles.kpiCard} ${styles.cardProyectados}`} 

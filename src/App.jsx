@@ -182,6 +182,10 @@ function App() {
     return <AdminRRHHDashboard session={session} />;
   }
 
+  if (window.location.pathname === '/operaciones') {
+    return <ExecutiveDashboard session={session} initialMode="operaciones" />;
+  }
+
   if (window.location.pathname.startsWith('/legales/')) {
     const page = window.location.pathname.split('/').pop();
     return <Legales pagina={page} />;
