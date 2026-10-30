@@ -27,7 +27,7 @@ export default function TopHeader({ session, currentView }) {
   
   const canViewDashboard = isMaster || isExecutiveRole;
   const canViewCotizador = isMaster || isComercial || isOperaciones;
-  const canViewOperaciones = isMaster || isOperaciones || isComercial;
+  const canViewOperaciones = !roleLower.includes('admin') || isMaster || isOperaciones || isComercial;
 
   const getNavBtnStyle = (isActive) => ({
     padding: '0.4rem 0.75rem',

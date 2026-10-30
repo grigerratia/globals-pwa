@@ -118,74 +118,133 @@
 .kpiGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: minmax(140px, auto);
-  gap: 1.5rem;
+  gap: 1.25rem;
   margin-bottom: 2.5rem;
 }
 
 .kpiCard {
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.25rem 1.4rem;
   color: white;
-  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 130px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+    border-radius: 16px;
+  }
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px -5px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px -5px rgba(0, 0, 0, 0.22);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 }
 
-.cardProyectados {
-  grid-column: span 2;
-  grid-row: span 1;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+// 6 Column Gradients
+.cardLevantamiento {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.cardCerrados {
-  grid-column: span 1;
-  grid-row: span 2;
-  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+.cardDiseno {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.cardActivos {
-  grid-column: span 1;
-  grid-row: span 1;
-  background: linear-gradient(135deg, #d946ef 0%, #f43f5e 100%);
+.cardLogistica {
+  background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.cardAtencion {
-  grid-column: span 1;
-  grid-row: span 1;
-  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+.cardFabricacion {
+  background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cardInstalacion {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cardEntregado {
+  background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .kpiHeader {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  opacity: 0.9;
+  opacity: 0.95;
+  min-width: 0;
+  
+  svg {
+    flex-shrink: 0;
+  }
   
   h3 {
     margin: 0;
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
+.desktopTitle {
+  display: inline;
+}
+
+.mobileTitle {
+  display: none;
+}
+
 .kpiValue {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0.75rem 0;
-  letter-spacing: -0.5px;
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+  line-height: 1;
+  letter-spacing: -1px;
 }
 
 .kpiSub {
-  font-size: 0.8rem;
-  opacity: 0.8;
+  font-size: 0.78rem;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desktopSub {
+  display: inline;
+}
+
+.mobileSub {
+  display: none;
 }
 
 .activitySection {
@@ -261,32 +320,97 @@
   color: #64748b;
 }
 
+@media (max-width: 768px) {
+  .kpiGrid {
+    gap: 0.85rem;
+  }
+}
+
 @media (max-width: 640px) {
   .hideMobile {
     display: none;
   }
   
   .header {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
   }
   
   .mainContent {
-    padding: 0 1rem;
-  }
-  
-  .kpiValue {
-    font-size: 1.75rem;
+    padding: 0 0.85rem;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .kpiGrid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: minmax(120px, auto);
-    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
   }
   
-  .cardProyectados, .cardCerrados, .cardActivos, .cardAtencion {
-    grid-column: span 1;
-    grid-row: span 1;
+  .kpiCard {
+    padding: 0.75rem 0.85rem;
+    min-height: 96px;
+    border-radius: 14px;
+    box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .desktopTitle {
+    display: none;
+  }
+  
+  .mobileTitle {
+    display: inline;
+  }
+  
+  .desktopSub {
+    display: none;
+  }
+  
+  .mobileSub {
+    display: inline;
+  }
+
+  .kpiHeader {
+    gap: 0.35rem;
+    h3 {
+      font-size: 0.8rem;
+    }
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .kpiValue {
+    font-size: 1.6rem;
+    margin: 0.3rem 0;
+  }
+
+  .kpiSub {
+    font-size: 0.68rem;
+    opacity: 0.85;
+  }
+}
+
+@media (max-width: 360px) {
+  .kpiGrid {
+    gap: 0.5rem;
+  }
+  .kpiCard {
+    padding: 0.6rem 0.65rem;
+    min-height: 88px;
+  }
+  .kpiHeader h3 {
+    font-size: 0.74rem;
+  }
+  .kpiValue {
+    font-size: 1.4rem;
+  }
+  .kpiSub {
+    font-size: 0.62rem;
   }
 }
 

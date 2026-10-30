@@ -168,6 +168,7 @@ function App() {
   const isMaster = roleLower === 'masterusuario' || roleLower.includes('master');
   const isExecutive = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
   const isAdminRRHH = isMaster || roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso');
+  const isOnlyAdminRRHH = !isMaster && (roleLower.includes('admin') || roleLower.includes('rrhh') || roleLower.includes('recurso') || roleLower.includes('administrativ'));
 
   // Simple Router
   if (window.location.pathname === '/admin/whatsapp') {
@@ -198,12 +199,10 @@ function App() {
   let ActiveComponent = null;
 
   if (window.location.pathname === '/') {
-    if (isExecutive) {
-      ActiveComponent = <ExecutiveDashboard session={session} />;
-    } else if (isAdminRRHH) {
+    if (isOnlyAdminRRHH) {
       ActiveComponent = <AdminRRHHDashboard session={session} />;
     } else {
-      ActiveComponent = <KanbanBoard session={session} />;
+      ActiveComponent = <ExecutiveDashboard session={session} />;
     }
   } else if (window.location.pathname === '/kanban' || window.location.pathname === '/tablero') {
     ActiveComponent = <KanbanBoard session={session} />;

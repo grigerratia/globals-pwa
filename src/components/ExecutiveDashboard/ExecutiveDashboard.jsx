@@ -1,10 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Activity, TrendingUp, CheckCircle, Briefcase, AlertCircle, Wrench, X } from 'lucide-react';
+import { 
+  Activity, 
+  CheckCircle, 
+  Wrench, 
+  X, 
+  Archive, 
+  Trash2, 
+  MoreVertical, 
+  ClipboardList, 
+  Palette, 
+  Package, 
+  Truck 
+} from 'lucide-react';
 import { supabase } from '../../supabase';
 import styles from './ExecutiveDashboard.module.scss';
 import GlobalSearch from '../GlobalSearch/GlobalSearch';
 import CanceladosModal from '../Modals/CanceladosModal';
-import { Archive, Trash2, MoreVertical } from 'lucide-react';
 import TopHeader from '../TopHeader/TopHeader';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
 import { formatDateTimeVE } from '../../utils/kanbanRules';
@@ -100,19 +111,48 @@ export default function ExecutiveDashboard({ session }) {
     );
   }
 
-  const activos = proyectos.filter(p => !['Entregado y cerrado', 'Entregado y Cerrado', 'Pagado y cerrado'].includes(p.estado) && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
-  const completados = proyectos.filter(p => ['Entregado y cerrado', 'Entregado y Cerrado', 'Pagado y cerrado'].includes(p.estado));
-  
-  // OPERATIVOS Y PRODUCCIÓN
-  const produccionFases = ['Logística y Materiales', 'Logística y compras', 'En Fabricación', 'En fabricación', 'Instalación y Montaje', 'Listo para instalación', 'En instalación'];
-  const enProduccion = activos.filter(p => produccionFases.includes(p.estado));
-  
-  const hoy = new Date();
-  const estancados = activos.filter(p => {
-    if (p.estado?.includes('Pausa')) return true;
-    if (!p.fecha_ultima_actualizacion) return false;
-    const diffTime = Math.abs(hoy - new Date(p.fecha_ultima_actualizacion));
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) > 5;
+  // Proyectos base excluyendo cancelados y filtrando archivados según el toggle
+  const baseProyectos = proyectos.filter(p => {
+    if (p.estado?.includes('Cancelado')) return false;
+    if (!showArchived && p.estado === 'Archivado') return false;
+    return true;
+  });
+
+  // Conteo y agrupación por las 6 Columnas Operativas
+  // 1. Levantamiento Técnico
+  const proysLevantamiento = baseProyectos.filter(p => {
+    const est = (p.estado || '').toLowerCase().trim();
+    return est === 'levantamiento técnico' || est === 'levantamiento tecnico' || est.includes('levantamiento') || est.includes('conversaci') || est.includes('presupuesto');
+  });
+
+  // 2. Diseño y Aprobación
+  const proysDiseno = baseProyectos.filter(p => {
+    const est = (p.estado || '').toLowerCase().trim();
+    return est === 'diseño y aprobación' || est === 'diseno y aprobacion' || est.includes('diseño') || est.includes('diseno');
+  });
+
+  // 3. Logística y Materiales
+  const proysLogistica = baseProyectos.filter(p => {
+    const est = (p.estado || '').toLowerCase().trim();
+    return est === 'logística y materiales' || est === 'logistica y materiales' || est.includes('logística') || est.includes('logistica') || est.includes('compras');
+  });
+
+  // 4. En Fabricación
+  const proysFabricacion = baseProyectos.filter(p => {
+    const est = (p.estado || '').toLowerCase().trim();
+    return est === 'en fabricación' || est === 'en fabricacion' || est.includes('fabricaci') || est.includes('fabricacion') || est.includes('taller');
+  });
+
+  // 5. Instalación y Montaje
+  const proysInstalacion = baseProyectos.filter(p => {
+    const est = (p.estado || '').toLowerCase().trim();
+    return est === 'instalación y montaje' || est === 'instalacion y montaje' || est.includes('instalaci') || est.includes('instalacion') || est.includes('montaje');
+  });
+
+  // 6. Entregado y Cerrado
+  const proysEntregado = baseProyectos.filter(p => {
+    const est = (p.estado || '').toLowerCase().trim();
+    return est === 'entregado y cerrado' || est.includes('entregado') || est.includes('pagado y cerrado') || est === 'cerrado';
   });
 
   return (
@@ -191,72 +231,135 @@ export default function ExecutiveDashboard({ session }) {
 
       <main className={styles.mainContent}>
         <section className={styles.kpiGrid}>
-          
+          {/* 1. Levantamiento Técnico */}
           <div 
-            className={`${styles.kpiCard} ${styles.cardProyectados}`}
-            onClick={() => setModalKpi({ title: 'Proyectos en Producción', data: enProduccion })}
-            style={{ cursor: 'pointer' }}
+            className={`${styles.kpiCard} ${styles.cardLevantamiento}`}
+            onClick={() => setModalKpi({ title: '1. Levantamiento Técnico', data: proysLevantamiento })}
+            title="Ver proyectos en Levantamiento Técnico"
           >
             <div className={styles.kpiHeader}>
-              <Wrench size={20} />
-              <h3>En Producción</h3>
+              <ClipboardList size={18} />
+              <h3>
+                <span className={styles.desktopTitle}>1. Levantamiento Técnico</span>
+                <span className={styles.mobileTitle}>1. Levantamiento</span>
+              </h3>
             </div>
             <div className={styles.kpiValue}>
-              {enProduccion.length}
+              {proysLevantamiento.length}
             </div>
             <div className={styles.kpiSub}>
-              Logística, fab. o inst. (Click para ver)
+              <span className={styles.desktopSub}>Medidas y requisitos (Click para ver)</span>
+              <span className={styles.mobileSub}>Medidas • Ver</span>
             </div>
           </div>
 
+          {/* 2. Diseño y Aprobación */}
           <div 
-            className={`${styles.kpiCard} ${styles.cardCerrados}`}
-            onClick={() => setModalKpi({ title: 'Proyectos Completados', data: completados })}
-            style={{ cursor: 'pointer' }}
+            className={`${styles.kpiCard} ${styles.cardDiseno}`}
+            onClick={() => setModalKpi({ title: '2. Diseño y Aprobación', data: proysDiseno })}
+            title="Ver proyectos en Diseño y Aprobación"
           >
             <div className={styles.kpiHeader}>
-              <CheckCircle size={20} />
-              <h3>Proyectos Completados</h3>
+              <Palette size={18} />
+              <h3>
+                <span className={styles.desktopTitle}>2. Diseño y Aprobación</span>
+                <span className={styles.mobileTitle}>2. Diseño</span>
+              </h3>
             </div>
             <div className={styles.kpiValue}>
-              {completados.length}
+              {proysDiseno.length}
             </div>
             <div className={styles.kpiSub}>
-              Histórico cerrado (Click para ver)
+              <span className={styles.desktopSub}>Arte y validación (Click para ver)</span>
+              <span className={styles.mobileSub}>Arte • Ver</span>
             </div>
           </div>
 
+          {/* 3. Logística y Materiales */}
           <div 
-            className={`${styles.kpiCard} ${styles.cardActivos}`}
-            onClick={() => setModalKpi({ title: 'Todos los Proyectos Activos', data: activos })}
-            style={{ cursor: 'pointer' }}
+            className={`${styles.kpiCard} ${styles.cardLogistica}`}
+            onClick={() => setModalKpi({ title: '3. Logística y Materiales', data: proysLogistica })}
+            title="Ver proyectos en Logística y Materiales"
           >
             <div className={styles.kpiHeader}>
-              <Briefcase size={20} />
-              <h3>Proyectos Activos</h3>
+              <Package size={18} />
+              <h3>
+                <span className={styles.desktopTitle}>3. Logística y Materiales</span>
+                <span className={styles.mobileTitle}>3. Logística</span>
+              </h3>
             </div>
             <div className={styles.kpiValue}>
-              {activos.length}
+              {proysLogistica.length}
             </div>
             <div className={styles.kpiSub}>
-              En progreso (Click para ver)
+              <span className={styles.desktopSub}>Insumos y compras (Click para ver)</span>
+              <span className={styles.mobileSub}>Compras • Ver</span>
             </div>
           </div>
 
+          {/* 4. En Fabricación */}
           <div 
-            className={`${styles.kpiCard} ${styles.cardAtencion}`}
-            onClick={() => setModalKpi({ title: 'Requieren Atención (Estancados > 5 días o en Pausa)', data: estancados })}
-            style={{ cursor: 'pointer' }}
+            className={`${styles.kpiCard} ${styles.cardFabricacion}`}
+            onClick={() => setModalKpi({ title: '4. En Fabricación', data: proysFabricacion })}
+            title="Ver proyectos en En Fabricación"
           >
             <div className={styles.kpiHeader}>
-              <AlertCircle size={20} />
-              <h3>Atención Requerida</h3>
+              <Wrench size={18} />
+              <h3>
+                <span className={styles.desktopTitle}>4. En Fabricación</span>
+                <span className={styles.mobileTitle}>4. Fabricación</span>
+              </h3>
             </div>
             <div className={styles.kpiValue}>
-              {estancados.length}
+              {proysFabricacion.length}
             </div>
             <div className={styles.kpiSub}>
-              Estancados por &gt; 5 días (Click para ver)
+              <span className={styles.desktopSub}>Taller y manufactura (Click para ver)</span>
+              <span className={styles.mobileSub}>Taller • Ver</span>
+            </div>
+          </div>
+
+          {/* 5. Instalación y Montaje */}
+          <div 
+            className={`${styles.kpiCard} ${styles.cardInstalacion}`}
+            onClick={() => setModalKpi({ title: '5. Instalación y Montaje', data: proysInstalacion })}
+            title="Ver proyectos en Instalación y Montaje"
+          >
+            <div className={styles.kpiHeader}>
+              <Truck size={18} />
+              <h3>
+                <span className={styles.desktopTitle}>5. Instalación y Montaje</span>
+                <span className={styles.mobileTitle}>5. Instalación</span>
+              </h3>
+            </div>
+            <div className={styles.kpiValue}>
+              {proysInstalacion.length}
+            </div>
+            <div className={styles.kpiSub}>
+              <span className={styles.desktopSub}>En sitio y montaje (Click para ver)</span>
+              <span className={styles.mobileSub}>Montaje • Ver</span>
+            </div>
+          </div>
+
+          {/* 6. Entregado y Cerrado */}
+          <div 
+            className={`${styles.kpiCard} ${styles.cardEntregado}`}
+            onClick={() => setModalKpi({ title: '6. Entregado y Cerrado', data: proysEntregado })}
+            title="Ver proyectos Entregados y Cerrados"
+          >
+            <div className={styles.kpiHeader}>
+              <CheckCircle size={18} />
+              <h3>
+                <span className={styles.desktopTitle}>6. Entregado y Cerrado</span>
+                <span className={styles.mobileTitle}>6. Entregado</span>
+              </h3>
+            </div>
+            <div className={styles.kpiValue}>
+              {proysEntregado.length}
+            </div>
+            <div className={styles.kpiSub}>
+              <span className={styles.desktopSub}>Histórico culminado (Click para ver)</span>
+              <span className={styles.mobileSub}>Cerrados • Ver</span>
             </div>
           </div>
         </section>
