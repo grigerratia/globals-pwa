@@ -886,17 +886,17 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
         )}
 
         {diasEstimadosNota !== null && (
-           <div style={{ padding: '0.75rem 1.25rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', borderLeft: '4px solid #3b82f6', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
-             <span style={{ fontSize: '0.9rem', color: '#93c5fd', fontWeight: 500 }}>
+           <div style={{ padding: '0.75rem 1.25rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', borderLeft: '4px solid #3b82f6', marginBottom: '1rem', display: 'flex', alignItems: 'center', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+             <span style={{ fontSize: '0.9rem', color: '#93c5fd', fontWeight: 500, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                Días estimados para terminar esta fase: <strong style={{ color: '#ffffff' }}>{diasEstimadosNota} días</strong>
              </span>
            </div>
         )}
 
         {(proyecto.estado?.toLowerCase().includes('espera') || proyecto.estado?.toLowerCase().includes('pausa') || proyecto.estado === 'Archivado' || proyecto.estado === 'Cancelado') && proyecto.motivo_cancelacion && (
-           <div style={{ padding: '1rem 1.25rem', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '10px', borderLeft: '4px solid #f59e0b', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
+           <div style={{ padding: '1rem 1.25rem', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '10px', borderLeft: '4px solid #f59e0b', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Motivo ({proyecto.estado})</span>
-             <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontStyle: 'italic', lineHeight: '1.4' }}>"{proyecto.motivo_cancelacion}"</span>
+             <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontStyle: 'italic', lineHeight: '1.4', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>"{proyecto.motivo_cancelacion}"</span>
            </div>
         )}
 
@@ -949,23 +949,23 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cliente (Empresa)</span>
-                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_empresa || '—'}</span>
+                  <div className={styles.clientSummaryGrid}>
+                    <div className={styles.clientSummaryItem}>
+                      <span className={styles.clientSummaryLabel}>Cliente (Empresa)</span>
+                      <span className={styles.clientSummaryValue}>{proyecto.cliente_empresa || '—'}</span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Persona de Contacto</span>
-                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_nombre || '—'}</span>
+                    <div className={styles.clientSummaryItem}>
+                      <span className={styles.clientSummaryLabel}>Persona de Contacto</span>
+                      <span className={styles.clientSummaryValue}>{proyecto.cliente_nombre || '—'}</span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Teléfono</span>
-                      <span style={{ color: '#0f172a' }}>{proyecto.cliente_telefono || '—'}</span>
+                    <div className={styles.clientSummaryItem}>
+                      <span className={styles.clientSummaryLabel}>Teléfono</span>
+                      <span className={styles.clientSummaryValue}>{proyecto.cliente_telefono || '—'}</span>
                     </div>
                     {proyecto.fecha_entrega && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Fecha de Entrega</span>
-                        <span style={{ color: '#0f172a', fontWeight: 600 }}>{formatDateVE(proyecto.fecha_entrega)}</span>
+                      <div className={styles.clientSummaryItem}>
+                        <span className={styles.clientSummaryLabel}>Fecha de Entrega</span>
+                        <span className={styles.clientSummaryValue} style={{ fontWeight: 600 }}>{formatDateVE(proyecto.fecha_entrega)}</span>
                       </div>
                     )}
                   </div>
@@ -1083,9 +1083,9 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   </div>
                 ) : (
                   encargadosMateriales.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#475569', marginBottom: '0.75rem', background: '#f8fafc', padding: '0.35rem 0.65rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                      <Users size={14} color="#3b82f6" />
-                      <span>Encargado de compras: <strong style={{ color: '#0f172a' }}>{encargadosMateriales.map(e => e.nombre).join(', ')}</strong></span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#475569', marginBottom: '0.75rem', background: '#f8fafc', padding: '0.35rem 0.65rem', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                      <Users size={14} color="#3b82f6" style={{ flexShrink: 0 }} />
+                      <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>Encargado de compras: <strong style={{ color: '#0f172a' }}>{encargadosMateriales.map(e => e.nombre).join(', ')}</strong></span>
                     </div>
                   )
                 )}
@@ -1406,8 +1406,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     }}/> <span>Fabricado listo</span>
                   </label>
                   
-                  <div className={styles.checkItem} style={{ padding: '0.25rem 0' }}>
-                    <span style={{ marginRight: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>📅 Fecha de Instalación:</span>
+                  <div className={styles.checkItem} style={{ padding: '0.4rem 0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.9rem', flex: 'none' }}>📅 Fecha de Instalación:</span>
                     <input type="date" value={proyecto.fecha_instalacion || ''} onChange={async (e) => {
                       const val = e.target.value;
                       await handleChange('fecha_instalacion', val);
@@ -1415,9 +1415,9 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       if (val && current?.estado?.toLowerCase().includes('listo para instalación')) {
                         promptAutoAdvance('En instalación', 'Fecha de instalación asignada', { fecha_instalacion: val });
                       }
-                    }} style={{ padding: '0.2rem', borderRadius: '4px', border: '1px solid #ccc' }} />
+                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', maxWidth: '100%', boxSizing: 'border-box' }} />
                     {proyecto.fecha_instalacion && (
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, flex: 'none' }}>
                         ({formatDateVE(proyecto.fecha_instalacion)})
                       </span>
                     )}
@@ -1573,7 +1573,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       const canEdit = c.autor_email === autorEmail;
                       const canDelete = isSuperUser || c.autor_email === autorEmail;
                       
-                      const marginLeft = depth > 0 ? `${depth * 20}px` : '0';
+                      const marginLeft = depth > 0 ? `${Math.min(depth * 14, 28)}px` : '0';
                       const borderLeft = depth > 0 ? '2px solid #334155' : (parsed.isDeleted ? '3px solid #ef4444' : 'none');
 
                       const replies = childrenMap.get(c.id) || [];
