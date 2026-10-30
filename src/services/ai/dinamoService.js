@@ -95,7 +95,6 @@ const tools = [
             cliente_nombre: { type: SchemaType.STRING },
             cliente_empresa: { type: SchemaType.STRING },
             cliente_telefono: { type: SchemaType.STRING },
-            presupuesto_vendido: { type: SchemaType.NUMBER },
             fecha_entrega: { type: SchemaType.STRING },
             notas: { type: SchemaType.STRING }
           },
@@ -629,11 +628,11 @@ const executeTool = async (call) => {
     }
 
     if (name === 'obtener_kpis') {
-      const { data, error } = await supabase.from('proyectos').select('estado, presupuesto_vendido');
+      const { data, error } = await supabase.from('proyectos').select('estado');
       if (error) throw error;
       
       const activos = data.filter(p => !['Entregado y cerrado', 'Pagado y cerrado', 'Cancelado', 'Archivado'].includes(p.estado)).length;
-      const cerrados = data.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado').reduce((acc, p) => acc + (p.presupuesto_vendido || 0), 0);
+      const cerrados = data.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado').length;
       
       const desglosePorEstado = data.reduce((acc, p) => {
         const estado = p.estado || 'Sin estado';

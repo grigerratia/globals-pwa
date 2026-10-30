@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { validateProjectMove, formatDateVE, formatDateTimeVE } from '../../utils/kanbanRules';
 import { supabase } from '../../supabase';
-import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, DollarSign, Palette } from 'lucide-react';
+import { X, XCircle, Layout, Edit2, Check, AlignLeft, CheckSquare, MessageSquare, Trash2, MessageCircle, Users, AlertTriangle, Archive, Paperclip, Upload, FileText, DownloadCloud, Palette } from 'lucide-react';
 import styles from './ProjectDetailModal.module.scss';
 import AssignEmployeeSelect from './AssignEmployeeSelect';
 import CustomSelect from '../CustomSelect/CustomSelect';
@@ -752,13 +752,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
   const fechaUltima = new Date(proyecto.fecha_ultima_actualizacion);
   const diasEstancado = Math.floor((hoy - fechaUltima) / (1000 * 60 * 60 * 24));
   const esEstancado = diasEstancado >= 3;
-
-  // Calculamos Rentabilidad
-  const presupuestoVendido = Number(proyecto.presupuesto_vendido) || 0;
-  const costoMateriales = Number(proyecto.costo_materiales) || 0;
-  const costoOperativo = Number(proyecto.costo_operativo) || 0;
-  const gananciaNeta = presupuestoVendido - costoMateriales - costoOperativo;
-  const margenRentabilidad = presupuestoVendido > 0 ? ((gananciaNeta / presupuestoVendido) * 100).toFixed(1) : 0;
   
   const currentUserId = session?.user?.id;
   const currentUserEmail = session?.user?.email?.toLowerCase();
@@ -1471,62 +1464,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                   >
                     <FileText size={16} /> Ver/Editar Hoja de Levantamiento
                   </button>
-                </div>
-              </div>
-            )}
-
-
-            {/* FINANZAS Y RENTABILIDAD (Solo Admin / Lider) */}
-            {canViewFinances && (
-              <div className={styles.section}>
-                <div className={styles.sectionContent}>
-                <h3><DollarSign className={styles.icon} size={20} /> Costos y Rentabilidad (Privado)</h3>
-                  
-                  <div className={styles.financeGrid}>
-                    <div className={styles.financeField}>
-                      <label>Presupuesto Vendido ($)</label>
-                      <input 
-                        type="number" 
-                        value={proyecto.presupuesto_vendido || ''}
-                        onChange={e => setProyecto(prev => ({...prev, presupuesto_vendido: e.target.value}))}
-                        onBlur={e => handleChange('presupuesto_vendido', Number(e.target.value) || 0)}
-                        placeholder="Ej. 1000"
-                      />
-                    </div>
-                    <div className={styles.financeField}>
-                      <label>Costo Materiales ($)</label>
-                      <input 
-                        type="number" 
-                        value={proyecto.costo_materiales || ''}
-                        onChange={e => setProyecto(prev => ({...prev, costo_materiales: e.target.value}))}
-                        onBlur={e => handleChange('costo_materiales', Number(e.target.value) || 0)}
-                        placeholder="Ej. 400"
-                      />
-                    </div>
-                    <div className={styles.financeField}>
-                      <label>Costo Operativo/Instalación ($)</label>
-                      <input 
-                        type="number" 
-                        value={proyecto.costo_operativo || ''}
-                        onChange={e => setProyecto(prev => ({...prev, costo_operativo: e.target.value}))}
-                        onBlur={e => handleChange('costo_operativo', Number(e.target.value) || 0)}
-                        placeholder="Ej. 150"
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.financeSummary}>
-                    <div className={styles.summaryItem}>
-                      <span>Ganancia Neta:</span>
-                      <strong className={gananciaNeta >= 0 ? styles.positive : styles.negative}>${gananciaNeta.toLocaleString()}</strong>
-                    </div>
-                    <div className={styles.summaryItem}>
-                      <span>Margen de Rentabilidad:</span>
-                      <strong className={margenRentabilidad >= 30 ? styles.positive : (margenRentabilidad >= 0 ? styles.warningText : styles.negative)}>
-                        {margenRentabilidad}%
-                      </strong>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

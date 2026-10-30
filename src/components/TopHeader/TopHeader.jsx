@@ -25,8 +25,7 @@ export default function TopHeader({ session, currentView }) {
   else if (displayRole === 'Líder de Producción') displayRole = 'Asistente de Operaciones';
   else if (displayRole === 'Administración' || displayRole === 'Administracion' || displayRole === 'Líder de Administración') displayRole = 'Líder Administrativo y RRHH';
   
-  // Administrators should not see the financial dashboard, Master sees everything
-  const canViewFinances = isComercial || isMaster;
+  const canViewDashboard = isMaster || isExecutiveRole;
   const canViewCotizador = isMaster || isComercial || isOperaciones;
   const canViewOperaciones = isMaster || isOperaciones || isComercial;
 
@@ -65,10 +64,10 @@ export default function TopHeader({ session, currentView }) {
         <BellNotifications session={session} />
 
         <div className={styles.desktopOnlyActions}>
-          {canViewFinances && (
+          {canViewDashboard && (
             <button 
               className={styles.btnActionMobile} 
-              title="Dashboard Financiero"
+              title="Panel de Métricas Operativas y Producción"
               style={{ padding: '0.4rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
               onClick={() => window.location.href = '/dashboard'}
             >
@@ -87,28 +86,15 @@ export default function TopHeader({ session, currentView }) {
             <span className={styles.hideOnMobile}>Tablero</span>
           </button>
 
-          {/* Dirección Comercial */}
-          {isComercial && (
-            <button 
-              className={styles.btnActionMobile} 
-              title="Resumen Ejecutivo Comercial"
-              style={getNavBtnStyle(currentView === 'ejecutivo' || currentView === 'comercial')} 
-              onClick={() => window.location.href = '/'}
-            >
-              <Activity size={18} color={(currentView === 'ejecutivo' || currentView === 'comercial') ? '#1d4ed8' : '#475569'} />
-              <span className={styles.hideOnMobile}>Comercial</span>
-            </button>
-          )}
-
-          {/* Gerente de Operaciones */}
+          {/* Resumen Operativo */}
           {canViewOperaciones && (
             <button 
               className={styles.btnActionMobile} 
-              title="Vista del Gerente de Operaciones"
-              style={getNavBtnStyle(currentView === 'operaciones')} 
-              onClick={() => window.location.href = '/operaciones'}
+              title="Resumen Operativo y Producción"
+              style={getNavBtnStyle(currentView === 'ejecutivo' || currentView === 'operaciones' || currentView === 'comercial')} 
+              onClick={() => window.location.href = '/'}
             >
-              <Wrench size={18} color={currentView === 'operaciones' ? '#0284c7' : '#475569'} />
+              <Activity size={18} color={(currentView === 'ejecutivo' || currentView === 'operaciones' || currentView === 'comercial') ? '#1d4ed8' : '#475569'} />
               <span className={styles.hideOnMobile}>Operaciones</span>
             </button>
           )}
@@ -163,13 +149,13 @@ export default function TopHeader({ session, currentView }) {
       
       {isMobileMenuOpen && (
         <div className={styles.mobileDropdown}>
-          {canViewFinances && (
+          {canViewDashboard && (
             <button 
               className={`${styles.mobileMenuItem} ${styles.primary}`}
               onClick={() => window.location.href = '/dashboard'}
             >
               <BarChart2 size={18} />
-              <span>Dashboard Financiero</span>
+              <span>Panel Operativo y Producción</span>
             </button>
           )}
 
@@ -181,23 +167,13 @@ export default function TopHeader({ session, currentView }) {
             <span>Tablero Completo</span>
           </button>
 
-          {isComercial && (
+          {canViewOperaciones && (
             <button 
               className={styles.mobileMenuItem}
               onClick={() => window.location.href = '/'}
             >
-              <Activity size={18} />
-              <span>Vista Comercial</span>
-            </button>
-          )}
-
-          {canViewOperaciones && (
-            <button 
-              className={styles.mobileMenuItem}
-              onClick={() => window.location.href = '/operaciones'}
-            >
-              <Wrench size={18} color="#0284c7" />
-              <span>Vista Gerente de Operaciones</span>
+              <Activity size={18} color="#0284c7" />
+              <span>Resumen Operativo</span>
             </button>
           )}
 

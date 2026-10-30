@@ -9,7 +9,7 @@ import TopHeader from '../TopHeader/TopHeader';
 import ProjectDetailModal from '../Modals/ProjectDetailModal';
 import { formatDateTimeVE } from '../../utils/kanbanRules';
 
-export default function ExecutiveDashboard({ session, initialMode }) {
+export default function ExecutiveDashboard({ session }) {
   const [proyectos, setProyectos] = useState([]);
   const [estados, setEstados] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -25,15 +25,6 @@ export default function ExecutiveDashboard({ session, initialMode }) {
   const userRole = session?.user?.user_metadata?.rol || '';
   const roleLower = userRole.toLowerCase();
   const isMaster = roleLower === 'masterusuario' || roleLower.includes('master');
-
-  const [dashboardMode, setDashboardMode] = useState(() => {
-    if (initialMode) return initialMode;
-    if (typeof window !== 'undefined' && window.location.pathname === '/operaciones') return 'operaciones';
-    if (roleLower.includes('operaciones') && !roleLower.includes('comercial') && !isMaster) return 'operaciones';
-    return 'comercial';
-  });
-
-  const isOperacionesView = dashboardMode === 'operaciones';
   const hasExecutiveActions = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
 
   const isValidActivityLog = (log) => {
@@ -112,11 +103,7 @@ export default function ExecutiveDashboard({ session, initialMode }) {
   const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Pagado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
   const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado');
   
-  // FINANCIEROS - Corregido a presupuesto_vendido en lugar de precio_venta
-  const ingresosProyectados = activos.reduce((sum, p) => sum + (Number(p.presupuesto_vendido) || 0), 0);
-  const ingresosCompletados = completados.reduce((sum, p) => sum + (Number(p.presupuesto_vendido) || 0), 0);
-  
-  // OPERATIVOS
+  // OPERATIVOS Y PRODUCCIÓN
   const produccionFases = ['Logística y compras', 'En fabricación', 'Listo para instalación', 'En instalación'];
   const enProduccion = activos.filter(p => produccionFases.includes(p.estado));
   
@@ -127,71 +114,21 @@ export default function ExecutiveDashboard({ session, initialMode }) {
     const diffTime = Math.abs(hoy - new Date(p.fecha_ultima_actualizacion));
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) > 5;
   });
-  
-
-  const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
 
   return (
     <div className={styles.executiveContainer}>
-      <TopHeader session={session} currentView={isOperacionesView ? "operaciones" : "ejecutivo"} />
+      <TopHeader session={session} currentView="operaciones" />
       
       <header className={styles.header} style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className={styles.greeting} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <p style={{ margin: 0, fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>
-              {isOperacionesView ? 'Resumen Operativo (Gerente de Operaciones)' : 'Resumen Ejecutivo (Dirección Comercial)'}
+              Resumen de Control Operativo y Producción
             </p>
             <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-              {isOperacionesView ? 'Métricas de producción, logística y culminación de proyectos.' : 'Métricas financieras y estado de proyectos activos.'}
+              Métricas de avance, seguimiento de taller, logística y culminación de proyectos.
             </p>
           </div>
-
-          {(isMaster || (roleLower.includes('comercial') && roleLower.includes('operaciones'))) && (
-            <div style={{ display: 'flex', gap: '0.35rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '10px' }}>
-              <button 
-                type="button"
-                style={{ 
-                  padding: '0.35rem 0.75rem', 
-                  borderRadius: '8px', 
-                  border: 'none',
-                  background: !isOperacionesView ? '#ffffff' : 'transparent',
-                  color: !isOperacionesView ? '#2563eb' : '#64748b',
-                  fontWeight: !isOperacionesView ? 700 : 500,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  boxShadow: !isOperacionesView ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem'
-                }}
-                onClick={() => setDashboardMode('comercial')}
-              >
-                <Activity size={16} />
-                Comercial
-              </button>
-              <button 
-                type="button"
-                style={{ 
-                  padding: '0.35rem 0.75rem', 
-                  borderRadius: '8px', 
-                  border: 'none',
-                  background: isOperacionesView ? '#ffffff' : 'transparent',
-                  color: isOperacionesView ? '#0284c7' : '#64748b',
-                  fontWeight: isOperacionesView ? 700 : 500,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  boxShadow: isOperacionesView ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem'
-                }}
-                onClick={() => setDashboardMode('operaciones')}
-              >
-                <Wrench size={16} />
-                Operaciones
-              </button>
-            </div>
-          )}
         </div>
         <div className={styles.toolbar} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div style={{ flex: 1 }}>
@@ -255,79 +192,39 @@ export default function ExecutiveDashboard({ session, initialMode }) {
       <main className={styles.mainContent}>
         <section className={styles.kpiGrid}>
           
-          {!isOperacionesView ? (
-            <>
-              <div 
-                className={`${styles.kpiCard} ${styles.cardProyectados}`} 
-                onClick={() => setModalKpi({ title: 'Ingresos Proyectados (Activos)', data: activos })}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className={styles.kpiHeader}>
-                  <TrendingUp size={20} />
-                  <h3>Ingresos Proyectados</h3>
-                </div>
-                <div className={styles.kpiValue}>
-                  {formatCurrency(ingresosProyectados)}
-                </div>
-                <div className={styles.kpiSub}>
-                  En {activos.length} proyectos activos (Click para ver)
-                </div>
-              </div>
+          <div 
+            className={`${styles.kpiCard} ${styles.cardProyectados}`}
+            onClick={() => setModalKpi({ title: 'Proyectos en Producción', data: enProduccion })}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className={styles.kpiHeader}>
+              <Wrench size={20} />
+              <h3>En Producción</h3>
+            </div>
+            <div className={styles.kpiValue}>
+              {enProduccion.length}
+            </div>
+            <div className={styles.kpiSub}>
+              Logística, fab. o inst. (Click para ver)
+            </div>
+          </div>
 
-              <div 
-                className={`${styles.kpiCard} ${styles.cardCerrados}`}
-                onClick={() => setModalKpi({ title: 'Ingresos Cerrados', data: completados })}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className={styles.kpiHeader}>
-                  <CheckCircle size={20} />
-                  <h3>Ingresos Cerrados</h3>
-                </div>
-                <div className={styles.kpiValue}>
-                  {formatCurrency(ingresosCompletados)}
-                </div>
-                <div className={styles.kpiSub}>
-                  Histórico completado (Click para ver)
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div 
-                className={`${styles.kpiCard} ${styles.cardProyectados}`}
-                onClick={() => setModalKpi({ title: 'Proyectos en Producción', data: enProduccion })}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className={styles.kpiHeader}>
-                  <Wrench size={20} />
-                  <h3>En Producción</h3>
-                </div>
-                <div className={styles.kpiValue}>
-                  {enProduccion.length}
-                </div>
-                <div className={styles.kpiSub}>
-                  Logística, fab. o inst. (Click para ver)
-                </div>
-              </div>
-
-              <div 
-                className={`${styles.kpiCard} ${styles.cardCerrados}`}
-                onClick={() => setModalKpi({ title: 'Proyectos Completados', data: completados })}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className={styles.kpiHeader}>
-                  <CheckCircle size={20} />
-                  <h3>Proyectos Completados</h3>
-                </div>
-                <div className={styles.kpiValue}>
-                  {completados.length}
-                </div>
-                <div className={styles.kpiSub}>
-                  Histórico cerrado (Click para ver)
-                </div>
-              </div>
-            </>
-          )}
+          <div 
+            className={`${styles.kpiCard} ${styles.cardCerrados}`}
+            onClick={() => setModalKpi({ title: 'Proyectos Completados', data: completados })}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className={styles.kpiHeader}>
+              <CheckCircle size={20} />
+              <h3>Proyectos Completados</h3>
+            </div>
+            <div className={styles.kpiValue}>
+              {completados.length}
+            </div>
+            <div className={styles.kpiSub}>
+              Histórico cerrado (Click para ver)
+            </div>
+          </div>
 
           <div 
             className={`${styles.kpiCard} ${styles.cardActivos}`}
@@ -437,7 +334,7 @@ export default function ExecutiveDashboard({ session, initialMode }) {
                     </div>
                     <div className={styles.activityMeta} style={{ marginTop: '4px' }}>
                       <span>Cliente: {p.cliente_nombre || p.cliente_empresa || 'N/A'}</span>
-                      {p.presupuesto_vendido && <span>• {formatCurrency(p.presupuesto_vendido)}</span>}
+                      {p.dias !== undefined && <span>• {p.dias} días en fase</span>}
                     </div>
                   </div>
                 ))

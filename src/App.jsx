@@ -183,7 +183,7 @@ function App() {
   }
 
   if (window.location.pathname === '/operaciones') {
-    return <ExecutiveDashboard session={session} initialMode="operaciones" />;
+    return <ExecutiveDashboard session={session} />;
   }
 
   if (window.location.pathname.startsWith('/legales/')) {

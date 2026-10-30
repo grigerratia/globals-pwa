@@ -86,9 +86,6 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
   "cliente_telefono": "El número de teléfono (solo números y + si aplica), si no hay deja cadena vacía",
   "notas": "Descripción detallada del pedido completo tal cual lo pide el cliente",
   "estado": "Selecciona SOLO UNA de estas opciones que más se ajuste (por defecto '${defaultEstado}'): ${columnasDisponibles}",
-  "presupuesto_vendido": "Si menciona el precio de venta acordado, pon el número, sino 0",
-  "costo_materiales": "Si menciona costos de materiales, pon el número, sino 0",
-  "costo_operativo": "Si menciona costos operativos, pon el número, sino 0",
   "fecha_entrega": "Si menciona una fecha de entrega, interprétala bajo el estándar venezolano/latinoamericano Día/Mes/Año (ej: 05/11/2026 es 5 de noviembre) y devuélvela estrictamente en formato YYYY-MM-DD. Si no menciona ninguna fecha de entrega, deja null"
 }`;
 
@@ -142,8 +139,7 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
       // Sanitizar datos vacíos y extraer solo las columnas válidas que Supabase espera
       const validFields = [
         'titulo', 'cliente_nombre', 'cliente_empresa', 'cliente_telefono',
-        'notas', 'estado', 'presupuesto_vendido', 'costo_materiales',
-        'costo_operativo', 'fecha_entrega'
+        'notas', 'estado', 'fecha_entrega'
       ];
       
       const finalData = {};
@@ -162,15 +158,6 @@ Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un obje
           finalData.fecha_entrega = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
       }
-      
-      const parseNumber = (val) => {
-        const n = parseFloat(val);
-        return isNaN(n) ? 0 : n;
-      };
-
-      finalData.presupuesto_vendido = parseNumber(finalData.presupuesto_vendido);
-      finalData.costo_materiales = parseNumber(finalData.costo_materiales);
-      finalData.costo_operativo = parseNumber(finalData.costo_operativo);
 
       if (estadoPredefinido && typeof estadoPredefinido === 'string') { finalData.estado = estadoPredefinido; }
       await onProjectCreated(finalData);
