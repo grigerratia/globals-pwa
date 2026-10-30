@@ -66,13 +66,13 @@ export default function Dashboard() {
   const totalMoM = calcDiff(currentMonthProjects.length, prevMonthProjects.length);
   const totalYoY = calcDiff(currentYearProjects.length, prevYearProjects.length);
 
-  const activos = proyectos.filter(p => !['Entregado y cerrado', 'Pagado y cerrado', 'Cancelado', 'Cancelado_Oculto', 'Archivado'].includes(p.estado));
-  const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado');
+  const activos = proyectos.filter(p => !['Entregado y cerrado', 'Entregado y Cerrado', 'Pagado y cerrado', 'Cancelado', 'Cancelado_Oculto', 'Archivado'].includes(p.estado));
+  const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Entregado y Cerrado' || p.estado === 'Pagado y cerrado');
 
-  const produccionFases = ['Logística y compras', 'En fabricación', 'Listo para instalación', 'En instalación'];
+  const produccionFases = ['Logística y Materiales', 'Logística y compras', 'En Fabricación', 'En fabricación', 'Instalación y Montaje', 'Listo para instalación', 'En instalación'];
   const enProduccion = activos.filter(p => produccionFases.includes(p.estado));
 
-  const disenoFases = ['Levantamiento', 'En Conversación', 'En Diseño', 'En diseño'];
+  const disenoFases = ['Levantamiento Técnico', 'Levantamiento', 'En Conversación', 'Diseño y Aprobación', 'En Diseño', 'En diseño'];
   const enDiseno = activos.filter(p => disenoFases.includes(p.estado));
 
   const estancados = activos.filter(p => {
@@ -104,7 +104,7 @@ export default function Dashboard() {
       return pD.m === m && pD.y === y;
     }).length;
     const cerradosCount = proyectos.filter(p => {
-      if (p.estado !== 'Entregado y cerrado' && p.estado !== 'Pagado y cerrado') return false;
+      if (p.estado !== 'Entregado y cerrado' && p.estado !== 'Entregado y Cerrado' && p.estado !== 'Pagado y cerrado') return false;
       const pD = getMonthAndYear(p.fecha_ultima_actualizacion || p.fecha_creacion);
       return pD.m === m && pD.y === y;
     }).length;
@@ -121,13 +121,12 @@ export default function Dashboard() {
   };
 
   const funnelData = [
-    { name: '1. Contacto / Requerimiento', value: getFunnelValue(['Nuevo', 'Contactado', 'En Conversación']), fill: '#3b82f6' },
-    { name: '2. Levantamiento', value: getFunnelValue(['Levantamiento']), fill: '#6366f1' },
-    { name: '3. En Diseño', value: getFunnelValue(['En Diseño', 'En diseño']), fill: '#8b5cf6' },
-    { name: '4. Logística y Compras', value: getFunnelValue(['Logística y compras']), fill: '#ec4899' },
-    { name: '5. Fabricación en Taller', value: getFunnelValue(['En fabricación']), fill: '#f59e0b' },
-    { name: '6. Instalación', value: getFunnelValue(['Listo para instalación', 'En instalación']), fill: '#10b981' },
-    { name: '7. Entregado y Cerrado', value: getFunnelValue(['Entregado y cerrado', 'Pagado y cerrado']), fill: '#14b8a6' }
+    { name: '1. Levantamiento Técnico', value: getFunnelValue(['Levantamiento Técnico', 'Levantamiento', 'En Conversación', 'Presupuesto enviado']), fill: '#3b82f6' },
+    { name: '2. Diseño y Aprobación', value: getFunnelValue(['Diseño y Aprobación', 'En Diseño', 'En diseño']), fill: '#8b5cf6' },
+    { name: '3. Logística y Materiales', value: getFunnelValue(['Logística y Materiales', 'Logística y compras']), fill: '#ec4899' },
+    { name: '4. En Fabricación', value: getFunnelValue(['En Fabricación', 'En fabricación']), fill: '#f59e0b' },
+    { name: '5. Instalación y Montaje', value: getFunnelValue(['Instalación y Montaje', 'Listo para instalación', 'En instalación']), fill: '#10b981' },
+    { name: '6. Entregado y Cerrado', value: getFunnelValue(['Entregado y Cerrado', 'Entregado y cerrado', 'Entregado', 'Pagado y cerrado']), fill: '#14b8a6' }
   ].filter(f => f.value > 0);
 
   // Proyectos Detenidos este mes

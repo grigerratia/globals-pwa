@@ -811,13 +811,13 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
         proyecto={proyecto} 
         session={session}
         onProjectUpdated={(updatedProject) => {
-          const wasInLevantamiento = (proyectoRef.current || proyecto)?.estado === 'Levantamiento';
+          const wasInLevantamiento = (proyectoRef.current || proyecto)?.estado?.toLowerCase().includes('levantamiento');
           const hadNoLevantamiento = !(proyectoRef.current || proyecto)?.levantamiento_fecha;
           proyectoRef.current = updatedProject;
           setProyecto(updatedProject);
           onProjectUpdated(updatedProject);
           if (wasInLevantamiento && hadNoLevantamiento && updatedProject.levantamiento_fecha) {
-            promptAutoAdvance('Presupuesto enviado', 'Hoja de Levantamiento guardada', { levantamiento_fecha: updatedProject.levantamiento_fecha });
+            promptAutoAdvance('Diseño y Aprobación', 'Hoja de Levantamiento guardada', { levantamiento_fecha: updatedProject.levantamiento_fecha });
           }
         }}
         onClose={() => setShowLevantamiento(false)} 
@@ -1130,8 +1130,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
 
                           await handleMultipleChange({ materiales: mats, materiales_comprados: isAllBought });
                           const current = proyectoRef.current || proyecto;
-                          if (isAllBought && current?.estado?.toLowerCase().includes('logística')) {
-                            promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales: mats, materiales_comprados: true });
+                          if (isAllBought && (current?.estado?.toLowerCase().includes('logística') || current?.estado?.toLowerCase().includes('material'))) {
+                            promptAutoAdvance('En Fabricación', 'Materiales en almacén / comprados', { materiales: mats, materiales_comprados: true });
                           }
                         }}
                       />
@@ -1149,8 +1149,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                           
                           await handleMultipleChange({ materiales: mats, materiales_comprados: isAllBought });
                           const current = proyectoRef.current || proyecto;
-                          if (isAllBought && current?.estado?.toLowerCase().includes('logística')) {
-                            promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales: mats, materiales_comprados: true });
+                          if (isAllBought && (current?.estado?.toLowerCase().includes('logística') || current?.estado?.toLowerCase().includes('material'))) {
+                            promptAutoAdvance('En Fabricación', 'Materiales en almacén / comprados', { materiales: mats, materiales_comprados: true });
                           }
                         }}><Trash2 size={14}/></button>
                       )}
@@ -1192,8 +1192,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       const checked = e.target.checked;
                       await handleChange('presupuesto_aprobado', checked);
                       const current = proyectoRef.current || proyecto;
-                      if (checked && current?.estado?.toLowerCase().includes('presupuesto')) {
-                        promptAutoAdvance('En Diseño', 'Presupuesto aprobado por el cliente', { presupuesto_aprobado: true });
+                      if (checked && current?.estado?.toLowerCase().includes('levantamiento')) {
+                        promptAutoAdvance('Diseño y Aprobación', 'Presupuesto aprobado por el cliente', { presupuesto_aprobado: true });
                       }
                     }}/> <span>Presupuesto aprobado por el cliente</span>
                   </label>
@@ -1344,7 +1344,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                                     await handleMultipleChange({ diseno_aprobado_cliente: true, diseno_terminado: true });
                                     const current = proyectoRef.current || proyecto;
                                     if (current?.estado?.toLowerCase().includes('diseño')) {
-                                      promptAutoAdvance('Logística y compras', 'Diseño terminado', { diseno_aprobado_cliente: true, diseno_terminado: true });
+                                      promptAutoAdvance('Logística y Materiales', 'Diseño terminado', { diseno_aprobado_cliente: true, diseno_terminado: true });
                                     }
                                   }
                                 });
@@ -1353,7 +1353,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                               await handleChange('diseno_terminado', true);
                               const current = proyectoRef.current || proyecto;
                               if (current?.estado?.toLowerCase().includes('diseño')) {
-                                promptAutoAdvance('Logística y compras', 'Diseño terminado', { diseno_terminado: true });
+                                promptAutoAdvance('Logística y Materiales', 'Diseño terminado', { diseno_terminado: true });
                               }
                             } else {
                               await handleChange('diseno_terminado', false);
@@ -1388,8 +1388,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                         const checked = e.target.checked;
                         await handleChange('materiales_comprados', checked);
                         const current = proyectoRef.current || proyecto;
-                        if (checked && current?.estado?.toLowerCase().includes('logística')) {
-                          promptAutoAdvance('En fabricación', 'Materiales en almacén / comprados', { materiales_comprados: true });
+                        if (checked && (current?.estado?.toLowerCase().includes('logística') || current?.estado?.toLowerCase().includes('material'))) {
+                          promptAutoAdvance('En Fabricación', 'Materiales en almacén / comprados', { materiales_comprados: true });
                         }
                       }}
                     /> <span>Material en almacén / comprado</span>
@@ -1401,7 +1401,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       await handleChange('fabricado_listo', checked);
                       const current = proyectoRef.current || proyecto;
                       if (checked && current?.estado?.toLowerCase().includes('fabricación')) {
-                        promptAutoAdvance('Listo para instalación', 'Fabricado listo', { fabricado_listo: true });
+                        promptAutoAdvance('Instalación y Montaje', 'Fabricado listo', { fabricado_listo: true });
                       }
                     }}/> <span>Fabricado listo</span>
                   </label>
@@ -1411,10 +1411,6 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                     <input type="date" value={proyecto.fecha_instalacion || ''} onChange={async (e) => {
                       const val = e.target.value;
                       await handleChange('fecha_instalacion', val);
-                      const current = proyectoRef.current || proyecto;
-                      if (val && current?.estado?.toLowerCase().includes('listo para instalación')) {
-                        promptAutoAdvance('En instalación', 'Fecha de instalación asignada', { fecha_instalacion: val });
-                      }
                     }} style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', maxWidth: '100%', boxSizing: 'border-box' }} />
                     {proyecto.fecha_instalacion && (
                       <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, flex: 'none' }}>
@@ -1428,8 +1424,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       const checked = e.target.checked;
                       await handleChange('instalado', checked);
                       const current = proyectoRef.current || proyecto;
-                      if (checked && current?.estado?.toLowerCase().includes('en instalación')) {
-                        promptAutoAdvance('Entregado', 'Instalación completada', { instalado: true });
+                      if (checked && current?.estado?.toLowerCase().includes('instalación')) {
+                        promptAutoAdvance('Entregado y Cerrado', 'Instalación completada', { instalado: true });
                       }
                     }}/> <span>Instalado correctamente</span>
                   </label>
@@ -1440,8 +1436,8 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
                       await handleChange('pagado_completo', checked);
                       const current = proyectoRef.current || proyecto;
                       const est = current?.estado || '';
-                      if (checked && (est === 'Entregado' || (est.toLowerCase().includes('entregado') && !est.toLowerCase().includes('cerrado')))) {
-                        promptAutoAdvance('Pagado y cerrado', 'Pago cancelado por completo', { pagado_completo: true });
+                      if (checked && !est.toLowerCase().includes('cerrado')) {
+                        promptAutoAdvance('Entregado y Cerrado', 'Pago cancelado por completo', { pagado_completo: true });
                       }
                     }}/> <span>Pago cancelado por completo</span>
                   </label>
@@ -1450,7 +1446,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
               </div>
             </div>            
 
-                        {!['Nuevo', 'Contactado', 'Cotizando', 'En Conversación'].includes(proyecto.estado) && (
+            {proyecto.estado !== 'Cancelado' && (
               <div className={styles.section} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
                 <div className={styles.sectionContent}>
                 <h3 style={{ color: '#1e3a8a' }}><FileText className={styles.icon} size={20} style={{ color: '#2563eb' }} /> Hoja de Levantamiento de Trabajo</h3>

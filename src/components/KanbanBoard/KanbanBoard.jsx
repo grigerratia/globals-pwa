@@ -26,17 +26,12 @@ import AIAgentModal from '../Modals/AIAgentModal';
 import { logAudit } from '../../utils/audit';
 
 const defaultEstados = [
-  'En Conversación',
-  'Levantamiento', 
-  'Presupuesto enviado', 
-  'En Diseño', 
-  'Logística y compras', 
-  'En fabricación', 
-  'Listo para instalación', 
-  'En instalación', 
-  'Entregado', 
-  'Pagado y cerrado', 
-  'En pausa/espera'
+  'Levantamiento Técnico',
+  'Diseño y Aprobación',
+  'Logística y Materiales',
+  'En Fabricación',
+  'Instalación y Montaje',
+  'Entregado y Cerrado'
 ];
 
 import TopHeader from '../TopHeader/TopHeader';
@@ -292,18 +287,13 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     // Completar automáticamente hitos previos si se crea directamente en una columna avanzada
     const findIdx = (str) => estados.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
     const levantamientoIdx = findIdx('levantamiento');
-    const presupIdx = findIdx('presupuesto');
     const disenoIdx = findIdx('diseño');
-    const logisIdx = findIdx('logística');
+    const logisIdx = findIdx('logística') !== -1 ? findIdx('logística') : findIdx('material');
     const fabIdx = findIdx('fabricación');
-    const listoInstIdx = findIdx('listo para instalación');
-    const enInstIdx = findIdx('en instalación');
+    const instIdx = findIdx('instalación');
 
     if (targetIdx > levantamientoIdx && levantamientoIdx !== -1 && !nuevoProyectoData.levantamiento_fecha) {
       nuevoProyectoData.levantamiento_fecha = new Date().toISOString();
-    }
-    if (targetIdx > presupIdx && presupIdx !== -1 && nuevoProyectoData.presupuesto_aprobado === undefined) {
-      nuevoProyectoData.presupuesto_aprobado = true;
     }
     if (targetIdx > disenoIdx && disenoIdx !== -1 && nuevoProyectoData.diseno_terminado === undefined) {
       nuevoProyectoData.diseno_terminado = true;
@@ -315,13 +305,15 @@ Devuelve ÚNICAMENTE el título generado, sin comillas, ni introducciones, ni pu
     if (targetIdx > fabIdx && fabIdx !== -1 && nuevoProyectoData.fabricado_listo === undefined) {
       nuevoProyectoData.fabricado_listo = true;
     }
-    if (targetIdx > listoInstIdx && listoInstIdx !== -1 && !nuevoProyectoData.fecha_instalacion) {
-      nuevoProyectoData.fecha_instalacion = new Date().toISOString().split('T')[0];
+    if (targetIdx > instIdx && instIdx !== -1) {
+      if (!nuevoProyectoData.fecha_instalacion) {
+        nuevoProyectoData.fecha_instalacion = new Date().toISOString().split('T')[0];
+      }
+      if (nuevoProyectoData.instalado === undefined) {
+        nuevoProyectoData.instalado = true;
+      }
     }
-    if (targetIdx > enInstIdx && enInstIdx !== -1 && nuevoProyectoData.instalado === undefined) {
-      nuevoProyectoData.instalado = true;
-    }
-    if (targetIdx > entregadoIdx && entregadoIdx !== -1 && nuevoProyectoData.pagado_completo === undefined) {
+    if (targetIdx >= entregadoIdx && entregadoIdx !== -1 && nuevoProyectoData.pagado_completo === undefined) {
       nuevoProyectoData.pagado_completo = true;
     }
 

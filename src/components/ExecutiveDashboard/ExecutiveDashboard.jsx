@@ -100,11 +100,11 @@ export default function ExecutiveDashboard({ session }) {
     );
   }
 
-  const activos = proyectos.filter(p => p.estado !== 'Entregado y cerrado' && p.estado !== 'Pagado y cerrado' && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
-  const completados = proyectos.filter(p => p.estado === 'Entregado y cerrado' || p.estado === 'Pagado y cerrado');
+  const activos = proyectos.filter(p => !['Entregado y cerrado', 'Entregado y Cerrado', 'Pagado y cerrado'].includes(p.estado) && !p.estado?.includes('Cancelado') && (showArchived ? true : p.estado !== 'Archivado'));
+  const completados = proyectos.filter(p => ['Entregado y cerrado', 'Entregado y Cerrado', 'Pagado y cerrado'].includes(p.estado));
   
   // OPERATIVOS Y PRODUCCIÓN
-  const produccionFases = ['Logística y compras', 'En fabricación', 'Listo para instalación', 'En instalación'];
+  const produccionFases = ['Logística y Materiales', 'Logística y compras', 'En Fabricación', 'En fabricación', 'Instalación y Montaje', 'Listo para instalación', 'En instalación'];
   const enProduccion = activos.filter(p => produccionFases.includes(p.estado));
   
   const hoy = new Date();

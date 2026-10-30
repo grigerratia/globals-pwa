@@ -35,7 +35,8 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
     }
   } else {
     // Regla de Levantamiento
-    if (estadoOrigenReal === 'Levantamiento' && destColumn !== 'Levantamiento' && !isSpecialDest) {
+    const isOrigenLevantamiento = estadoOrigenReal.toLowerCase().includes('levantamiento');
+    if (isOrigenLevantamiento && !destColumn.toLowerCase().includes('levantamiento') && !isSpecialDest) {
       if (!proyecto.levantamiento_fecha && !proyecto.omitir_levantamiento) {
          return { isValid: false, error: "No puedes mover el proyecto. Debes llenar la Hoja de Levantamiento primero.", rule: "LEVANTAMIENTO" };
       }
@@ -45,23 +46,18 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
     if (isAvance) {
       const findIdx = (str) => estadosList.findIndex(e => e.toLowerCase().includes(str.toLowerCase()));
 
-      const presupIdx = findIdx('presupuesto');
-      if (presupIdx !== -1 && destinoGlobalIdx > presupIdx && !proyecto.presupuesto_aprobado) {
-         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Presupuesto aprobado por el cliente'.", rule: "PRESUPUESTO" };
-      }
-
       const disenoIdx = findIdx('diseño');
       if (disenoIdx !== -1 && destinoGlobalIdx > disenoIdx && !proyecto.diseno_terminado) {
-         // Solo es obligatorio si el proyecto está saliendo de 'En Diseño'.
-         // Si la tarjeta salta directamente desde una columna previa sin pasar por 'En Diseño', no se bloquea.
+         // Solo es obligatorio si el proyecto está saliendo de 'Diseño y Aprobación'.
+         // Si la tarjeta salta directamente desde una columna previa sin pasar por diseño, no se bloquea.
          if (origenGlobalIdx === disenoIdx) {
-            return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Diseño terminado'.", rule: "DISENO" };
+            return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Diseño terminado' (aprobado por el cliente).", rule: "DISENO" };
          }
       }
 
-      const logisIdx = findIdx('logística');
+      const logisIdx = findIdx('logística') !== -1 ? findIdx('logística') : findIdx('material');
       if (logisIdx !== -1 && destinoGlobalIdx > logisIdx && !proyecto.materiales_comprados) {
-         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Materiales comprados o en inventario'.", rule: "MATERIALES" };
+         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Materiales comprados o en almacén'.", rule: "MATERIALES" };
       }
 
       const fabIdx = findIdx('fabricación');
@@ -69,32 +65,19 @@ export const validateProjectMove = (proyecto, destColumn, estadosList, session) 
          return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Fabricado listo'.", rule: "FABRICACION" };
       }
 
-      const listoInstIdx = findIdx('listo para instalación');
-      if (listoInstIdx !== -1 && destinoGlobalIdx > listoInstIdx && !proyecto.fecha_instalacion) {
-         return { isValid: false, error: "No puede ser movido: Falta asignar la fecha de instalación.", rule: "FECHA_INSTALACION" };
-      }
-
-      const enInstIdx = findIdx('en instalación');
-      if (enInstIdx !== -1 && destinoGlobalIdx > enInstIdx && !proyecto.instalado) {
+      const instIdx = findIdx('instalación');
+      if (instIdx !== -1 && destinoGlobalIdx > instIdx && !proyecto.instalado) {
          return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Instalado correctamente'.", rule: "INSTALACION" };
-      }
-
-      const entregadoIdx = estadosList.findIndex(e => {
-        const lower = e.toLowerCase();
-        return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
-      });
-      if (entregadoIdx !== -1 && destinoGlobalIdx > entregadoIdx && !proyecto.pagado_completo) {
-         return { isValid: false, error: "No puede ser movido: Falta completar el hito 'Pago cancelado por completo'.", rule: "PAGADO" };
       }
     }
   }
 
   const entregadoIdx = estadosList.findIndex(e => {
     const lower = e.toLowerCase();
-    return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
+    return lower.includes('entregado') || lower.includes('cerrado');
   });
   const isEntregadoOAdelante = (entregadoIdx !== -1 && destinoGlobalIdx >= entregadoIdx) ||
-    destColumn.toLowerCase() === 'entregado' ||
+    destColumn.toLowerCase().includes('entregado') ||
     destColumn.toLowerCase().includes('pagado') ||
     destColumn.toLowerCase().includes('cerrado') ||
     destColumn === 'Archivado' ||

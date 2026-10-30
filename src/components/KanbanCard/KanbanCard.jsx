@@ -18,6 +18,15 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
   });
 
   const SLA_LIMITS = {
+    'Levantamiento Técnico': 2,
+    'Diseño y Aprobación': 2,
+    'Logística y Materiales': 2,
+    'En Fabricación': 4,
+    'Instalación y Montaje': 2,
+    'Entregado y Cerrado': 999,
+    'Archivado': 999,
+    'En pausa/espera': 999,
+    // Compatibilidad retroactiva
     'En Conversación': 2,
     'Levantamiento': 1,
     'Presupuesto enviado': 2,
@@ -29,8 +38,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
     'En instalación': 2,
     'Entregado': 999,
     'Pagado y cerrado': 999,
-    'Entregado y cerrado': 999,
-    'En pausa/espera': 999
+    'Entregado y cerrado': 999
   };
 
   const isArchivedOrCanceled = ['Archivado', 'Cancelado', 'Cancelado_Oculto'].includes(proyecto.estado);
@@ -39,7 +47,7 @@ export default function KanbanCard({ proyecto, isOverlay, onClick }) {
 
   let isOverdue = false;
   let daysOverdue = 0;
-  if (proyecto.fecha_entrega && !isArchivedOrCanceled && !['Entregado', 'Entregado y cerrado', 'Pagado y cerrado'].includes(proyecto.estado)) {
+  if (proyecto.fecha_entrega && !isArchivedOrCanceled && !['Entregado', 'Entregado y cerrado', 'Entregado y Cerrado', 'Pagado y cerrado'].includes(proyecto.estado)) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const entrega = new Date(proyecto.fecha_entrega + 'T00:00:00');

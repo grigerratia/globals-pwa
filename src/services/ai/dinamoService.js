@@ -45,7 +45,7 @@ REGLAS:
 1. Respuestas CORTAS, DIRECTAS, AMIGABLES. Cero tecnicismos. Usa viñetas y emojis para organizar.
 2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, M1, C1) al buscar registros. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA muestres ni le menciones estos códigos al usuario en tu texto.
 3. ARCHIVADO/CANCELACIÓN: NUNCA pases un proyecto a "Archivado" o "Cancelado" de inmediato. Pide un motivo, agrega la etiqueta [WIDGET:INPUT_MOTIVO]. Cuando respondan, usa 'actualizar_estado_proyecto' con el motivo.
-4. COLUMNAS: "En Conversación", "Levantamiento", "Presupuesto enviado", "En Diseño", "Logística y compras", "En fabricación", "Listo para instalación", "En instalación", "Entregado", "Pagado y cerrado", "Pausa", "Cancelado", "Archivado".
+4. COLUMNAS: "Levantamiento Técnico", "Diseño y Aprobación", "Logística y Materiales", "En Fabricación", "Instalación y Montaje", "Entregado y Cerrado", "Pausa", "Cancelado", "Archivado".
 5. GESTIÓN COMPLETA: Eres un administrador completo. Puedes consultar, crear, modificar y eliminar proyectos, materiales, columnas y consultar empleados. Usa las herramientas de "gestionar_*" correspondientes.
 6. ACCIONES DESTRUCTIVAS: Si el usuario te pide eliminar algo crítico (ej. columna), la herramienta te pedirá confirmación. Pregunta y usa [WIDGET:CONFIRM_CHECKBOXES]. Solo procede si te confirman.
 7. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
@@ -111,7 +111,7 @@ const tools = [
             cliente_nombre: { type: SchemaType.STRING },
             cliente_empresa: { type: SchemaType.STRING },
             cliente_telefono: { type: SchemaType.STRING },
-            estado: { type: SchemaType.STRING, description: 'Columna inicial. Por defecto "En Conversación".' },
+            estado: { type: SchemaType.STRING, description: 'Columna inicial. Por defecto "Levantamiento Técnico".' },
             dias_estimados: { type: SchemaType.NUMBER, description: 'Obligatorio preguntar.' },
             materiales: { 
               type: SchemaType.ARRAY, 
@@ -527,14 +527,14 @@ const executeTool = async (call) => {
       const { data: colsData } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true });
       const estadosList = colsData ? colsData.map(c => c.nombre) : [];
       
-      const targetLower = (args.estado || 'en conversación').toLowerCase();
-      const targetIdx = estadosList.indexOf(args.estado || 'En Conversación');
+      const targetLower = (args.estado || 'levantamiento técnico').toLowerCase();
+      const targetIdx = estadosList.indexOf(args.estado || 'Levantamiento Técnico');
       const entregadoIdx = estadosList.findIndex(e => {
         const lower = e.toLowerCase();
-        return lower === 'entregado' || (lower.includes('entregado') && !lower.includes('cerrado'));
+        return lower.includes('entregado') || lower.includes('cerrado');
       });
       const isEntregadoOAdelante = (entregadoIdx !== -1 && targetIdx >= entregadoIdx) ||
-        targetLower === 'entregado' ||
+        targetLower.includes('entregado') ||
         targetLower.includes('pagado') ||
         targetLower.includes('cerrado') ||
         args.estado === 'Archivado' ||
@@ -549,7 +549,7 @@ const executeTool = async (call) => {
         cliente_nombre: args.cliente_nombre || '',
         cliente_empresa: args.cliente_empresa || '',
         cliente_telefono: args.cliente_telefono || '',
-        estado: args.estado || 'En Conversación',
+        estado: args.estado || 'Levantamiento Técnico',
         encargados: encargadosPorDefecto,
         notas: isEntregadoOAdelante
           ? `[DINAMO - Proyecto Creado]`
