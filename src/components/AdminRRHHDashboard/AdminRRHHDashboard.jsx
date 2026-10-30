@@ -10,6 +10,7 @@ export default function AdminRRHHDashboard({ session }) {
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('compras'); // compras, rrhh
+  const [presupuestoTab, setPresupuestoTab] = useState('aprobados'); // aprobados, pendientes
 
   useEffect(() => {
     async function fetchData() {
@@ -70,6 +71,7 @@ export default function AdminRRHHDashboard({ session }) {
 
   // Derived state
   const proyectosConCompras = proyectos.filter(p => p.materiales && p.materiales.length > 0);
+  const proyectosPresupuestoAprobado = proyectos.filter(p => !!p.presupuesto_aprobado);
   const proyectosPendientesPresupuesto = proyectos.filter(p => !p.presupuesto_aprobado);
 
   const materialsCount = proyectosConCompras.reduce((acc, p) => acc + (p.materiales?.filter(m => !m.comprado).length || 0), 0);
@@ -154,35 +156,84 @@ export default function AdminRRHHDashboard({ session }) {
             {/* Panel de Presupuestos */}
             <div className={styles.panel}>
               <div className={styles.panelHeader}>
-                <h2><DollarSign size={20} /> Presupuestos por Aprobar ({proyectosPendientesPresupuesto.length})</h2>
+                <h2>
+                  <DollarSign size={20} /> 
+                  {presupuestoTab === 'aprobados' 
+                    ? `Presupuestos Aprobados (${proyectosPresupuestoAprobado.length})` 
+                    : `Presupuestos por Aprobar (${proyectosPendientesPresupuesto.length})`}
+                </h2>
+                <div className={styles.filterPills}>
+                  <button 
+                    className={presupuestoTab === 'aprobados' ? styles.filterPillActive : styles.filterPill}
+                    onClick={() => setPresupuestoTab('aprobados')}
+                  >
+                    Aprobados ({proyectosPresupuestoAprobado.length})
+                  </button>
+                  <button 
+                    className={presupuestoTab === 'pendientes' ? styles.filterPillActive : styles.filterPill}
+                    onClick={() => setPresupuestoTab('pendientes')}
+                  >
+                    Por Aprobar ({proyectosPendientesPresupuesto.length})
+                  </button>
+                </div>
               </div>
               <div className={styles.panelBody}>
-                {proyectosPendientesPresupuesto.length === 0 ? (
-                  <p className={styles.empty}>Todos los proyectos tienen el presupuesto aprobado.</p>
+                {presupuestoTab === 'aprobados' ? (
+                  proyectosPresupuestoAprobado.length === 0 ? (
+                    <p className={styles.empty}>No hay proyectos con presupuesto aprobado actualmente.</p>
+                  ) : (
+                    proyectosPresupuestoAprobado.map(p => (
+                      <div key={p.id} className={styles.projectCard}>
+                        <div className={styles.projectHeader}>
+                          <h3>{p.titulo}</h3>
+                          <span className={styles.badgeSuccess}>Aprobado</span>
+                        </div>
+                        <div className={styles.projectDetails}>
+                          <p><strong>Cliente:</strong> {p.cliente_empresa || p.cliente_nombre || 'N/A'}</p>
+                          <p><strong>Fase:</strong> {p.estado}</p>
+                        </div>
+                        <div className={styles.actions}>
+                          <label className={styles.checkContainer}>
+                            <input 
+                              type="checkbox" 
+                              checked={!!p.presupuesto_aprobado} 
+                              onChange={(e) => handleUpdatePresupuesto(p.id, e.target.checked)}
+                            />
+                            <span className={styles.checkmark}></span>
+                            Presupuesto Aprobado
+                          </label>
+                        </div>
+                      </div>
+                    ))
+                  )
                 ) : (
-                  proyectosPendientesPresupuesto.map(p => (
-                    <div key={p.id} className={styles.projectCard}>
-                      <div className={styles.projectHeader}>
-                        <h3>{p.titulo}</h3>
-                        <span className={styles.badgeWarning}>Pendiente</span>
+                  proyectosPendientesPresupuesto.length === 0 ? (
+                    <p className={styles.empty}>Todos los proyectos tienen el presupuesto aprobado.</p>
+                  ) : (
+                    proyectosPendientesPresupuesto.map(p => (
+                      <div key={p.id} className={styles.projectCard}>
+                        <div className={styles.projectHeader}>
+                          <h3>{p.titulo}</h3>
+                          <span className={styles.badgeWarning}>Pendiente</span>
+                        </div>
+                        <div className={styles.projectDetails}>
+                          <p><strong>Cliente:</strong> {p.cliente_empresa || p.cliente_nombre || 'N/A'}</p>
+                          <p><strong>Fase:</strong> {p.estado}</p>
+                        </div>
+                        <div className={styles.actions}>
+                          <label className={styles.checkContainer}>
+                            <input 
+                              type="checkbox" 
+                              checked={!!p.presupuesto_aprobado} 
+                              onChange={(e) => handleUpdatePresupuesto(p.id, e.target.checked)}
+                            />
+                            <span className={styles.checkmark}></span>
+                            Marcar como Presupuesto Aprobado
+                          </label>
+                        </div>
                       </div>
-                      <div className={styles.projectDetails}>
-                        <p><strong>Cliente:</strong> {p.cliente_empresa || p.cliente_nombre || 'N/A'}</p>
-                        <p><strong>Fase:</strong> {p.estado}</p>
-                      </div>
-                      <div className={styles.actions}>
-                        <label className={styles.checkContainer}>
-                          <input 
-                            type="checkbox" 
-                            checked={p.presupuesto_aprobado} 
-                            onChange={(e) => handleUpdatePresupuesto(p.id, e.target.checked)}
-                          />
-                          <span className={styles.checkmark}></span>
-                          Marcar como Presupuesto Aprobado y Entregado
-                        </label>
-                      </div>
-                    </div>
-                  ))
+                    ))
+                  )
                 )}
               </div>
             </div>
