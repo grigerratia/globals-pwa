@@ -1,5 +1,3 @@
-import { supabase } from '../supabase';
-
 const LOCAL_KEY = 'dinamo_app_errors';
 export let appLogs = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]');
 const listeners = new Set();
@@ -11,20 +9,6 @@ export const subscribeToLogs = (fn) => {
 
 const notify = () => {
   listeners.forEach((fn) => fn());
-};
-
-const saveToDB = async (type, msg) => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.from('audit_logs').insert([{
-        usuario_id: session.user.id,
-        usuario_nombre: session.user.user_metadata?.nombre || session.user.email,
-        accion: `ERROR_${type}`,
-        detalles: { message: msg }
-      }]);
-    }
-  } catch (e) {}
 };
 
 const addLog = (type, ...args) => {
@@ -41,7 +25,6 @@ const addLog = (type, ...args) => {
   
   localStorage.setItem(LOCAL_KEY, JSON.stringify(appLogs));
   notify();
-  saveToDB(type, msg);
 };
 
 export const clearLogs = () => {

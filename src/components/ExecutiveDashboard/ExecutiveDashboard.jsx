@@ -36,17 +36,27 @@ export default function ExecutiveDashboard({ session, initialMode }) {
   const isOperacionesView = dashboardMode === 'operaciones';
   const hasExecutiveActions = isMaster || roleLower.includes('comercial') || roleLower.includes('operaciones') || roleLower.includes('operativo') || roleLower.includes('producci');
 
+  const isValidActivityLog = (log) => {
+    if (!log || !log.accion) return false;
+    const acc = String(log.accion).trim().toUpperCase();
+    if (acc === 'INICIÓ SESIÓN') return false;
+    if (acc.startsWith('ERROR') || acc.startsWith('WARN') || acc.includes('BUG')) return false;
+    return true;
+  };
+
   const fetchLogs = async () => {
     try {
       const { data: logs, error } = await supabase.from('audit_logs')
         .select('*')
         .neq('accion', 'Inició sesión')
+        .not('accion', 'ilike', 'ERROR%')
+        .not('accion', 'ilike', 'WARN%')
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) {
         console.warn("Error cargando actividad:", error.message);
       } else if (logs) {
-        setAuditLogs(logs);
+        setAuditLogs(logs.filter(isValidActivityLog));
       }
     } catch (err) {
       console.warn("Error en fetchLogs:", err);
@@ -80,8 +90,8 @@ export default function ExecutiveDashboard({ session, initialMode }) {
     
     const channel = supabase.channel('audit_logs_changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, (payload) => {
-        if (payload.new.accion !== 'Inició sesión') {
-          setAuditLogs(prev => [payload.new, ...prev].slice(0, 30));
+        if (isValidActivityLog(payload.new)) {
+          setAuditLogs(prev => [payload.new, ...prev.filter(l => l.id !== payload.new?.id)].slice(0, 30));
         }
       })
       .subscribe();
@@ -361,27 +371,31 @@ export default function ExecutiveDashboard({ session, initialMode }) {
             <button onClick={fetchLogs} style={{ marginLeft: "auto", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.2rem 0.5rem", fontSize: "0.8rem", cursor: "pointer" }}>Actualizar</button>
           </div>
           <div className={styles.activityList}>
-            {auditLogs.length === 0 ? <p style={{ padding: "1rem", color: "#64748b", textAlign: "center", fontSize: "0.9rem" }}>No hay actividad reciente para mostrar.</p> : auditLogs.map(log => {
-              const projectId = log.detalles?.proyecto_id || log.detalles?.id;
-              return (
-                <div key={log.id} className={styles.activityItem} onClick={() => projectId && setProyectoDetalleId(projectId)} style={{ cursor: projectId ? 'pointer' : 'default' }}>
-                  <div className={styles.activityMain}>
-                    <h4 style={{ fontSize: '0.95rem' }}>{log.accion}</h4>
-                    {log.detalles?.titulo && <span className={styles.badge} style={{ opacity: 0.8 }}>{log.detalles.titulo}</span>}
+            {auditLogs.filter(isValidActivityLog).length === 0 ? (
+              <p style={{ padding: "1rem", color: "#64748b", textAlign: "center", fontSize: "0.9rem" }}>No hay actividad reciente para mostrar.</p>
+            ) : (
+              auditLogs.filter(isValidActivityLog).map(log => {
+                const projectId = log.detalles?.proyecto_id || log.detalles?.id;
+                return (
+                  <div key={log.id} className={styles.activityItem} onClick={() => projectId && setProyectoDetalleId(projectId)} style={{ cursor: projectId ? 'pointer' : 'default' }}>
+                    <div className={styles.activityMain}>
+                      <h4 style={{ fontSize: '0.95rem' }}>{log.accion}</h4>
+                      {log.detalles?.titulo && <span className={styles.badge} style={{ opacity: 0.8 }}>{log.detalles.titulo}</span>}
+                    </div>
+                    <div className={styles.activityDetails} style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                      {log.accion === 'Movió proyecto de fase' && (
+                        <span>De <strong>{log.detalles?.origen || '...'}</strong> a <strong>{log.detalles?.nuevo_estado || '...'}</strong></span>
+                      )}
+                      {log.detalles?.motivo && <span> (Motivo: {log.detalles.motivo})</span>}
+                    </div>
+                    <div className={styles.activityMeta} style={{ marginTop: '0.25rem' }}>
+                      <span>{formatDateTimeVE(log.created_at)}</span>
+                      <span>• {log.usuario_nombre}</span>
+                    </div>
                   </div>
-                  <div className={styles.activityDetails} style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
-                    {log.accion === 'Movió proyecto de fase' && (
-                      <span>De <strong>{log.detalles?.origen || '...'}</strong> a <strong>{log.detalles?.nuevo_estado || '...'}</strong></span>
-                    )}
-                    {log.detalles?.motivo && <span> (Motivo: {log.detalles.motivo})</span>}
-                  </div>
-                  <div className={styles.activityMeta} style={{ marginTop: '0.25rem' }}>
-                    <span>{formatDateTimeVE(log.created_at)}</span>
-                    <span>• {log.usuario_nombre}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
       </main>
