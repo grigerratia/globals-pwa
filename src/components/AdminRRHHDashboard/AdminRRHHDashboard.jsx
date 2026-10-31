@@ -14,7 +14,6 @@ export default function AdminRRHHDashboard({ session }) {
 
   useEffect(() => {
     async function fetchData() {
-      setLoading(true);
       // Fetch proyectos
       const { data: proyData, error: proyError } = await supabase
         .from('proyectos')
@@ -36,6 +35,24 @@ export default function AdminRRHHDashboard({ session }) {
     }
 
     fetchData();
+
+    // Evento local inmediato (cuando Dinamo o modales crean o mueven proyectos)
+    const handleLocalChange = () => {
+      fetchData();
+    };
+    window.addEventListener('globals:proyectos-changed', handleLocalChange);
+
+    const channelName = `admin_dashboard_${Date.now()}`;
+    const channel = supabase.channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proyectos' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      window.removeEventListener('globals:proyectos-changed', handleLocalChange);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleUpdateMaterial = async (proyecto, matIndex, newValue) => {

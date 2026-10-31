@@ -89,7 +89,18 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
     };
     fetchDatos();
 
-    const channel = supabase.channel(`comentarios_${proyectoId}`)
+    const handleLocalProjectChange = (e) => {
+      const changedId = e.detail?.id || e.detail?.payload?.id;
+      if (changedId === proyectoId || !changedId) {
+        fetchDatos();
+      }
+    };
+    window.addEventListener('globals:proyectos-changed', handleLocalProjectChange);
+
+    const channel = supabase.channel(`proyecto_detail_${proyectoId}_${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proyectos', filter: `id=eq.${proyectoId}` }, () => {
+         fetchDatos();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comentarios', filter: `proyecto_id=eq.${proyectoId}` }, (payload) => {
          if (payload.eventType === 'INSERT') {
            setComentarios(prev => prev.some(c => c.id === payload.new.id) ? prev : [payload.new, ...prev]);
@@ -102,6 +113,7 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
       .subscribe();
 
     return () => {
+      window.removeEventListener('globals:proyectos-changed', handleLocalProjectChange);
       supabase.removeChannel(channel);
     };
   }, [proyectoId]);

@@ -1,6 +1,19 @@
 import { validateProjectMove } from '../../utils/kanbanRules';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { supabase } from '../../supabase';
+import { logAudit } from '../../utils/audit';
+
+export function notifyProyectosChanged(action = 'update', detail = {}) {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('globals:proyectos-changed', {
+        detail: { action, ...detail, timestamp: Date.now() }
+      }));
+    } catch (e) {
+      console.warn('[Dinamo] Error emitiendo evento de proyecto:', e);
+    }
+  }
+}
 
 // Inicializar SDK
 const googleKeys = [
@@ -329,6 +342,7 @@ const executeTool = async (call) => {
         mats.push(nuevoMat);
         const { error } = await supabase.from('proyectos').update({ materiales: mats }).eq('id', id_proyecto);
         if (error) throw error;
+        notifyProyectosChanged('materiales', { id: id_proyecto });
         return { success: true, message: 'Material añadido al proyecto', id_material: getShortId(nuevoMat.id, 'M') };
       }
       
@@ -343,6 +357,7 @@ const executeTool = async (call) => {
            mats.splice(index, 1);
            const { error } = await supabase.from('proyectos').update({ materiales: mats }).eq('id', id_proyecto);
            if (error) throw error;
+           notifyProyectosChanged('materiales', { id: id_proyecto });
            return { success: true, message: 'Material eliminado del proyecto' };
         } else {
            if (nombre) mats[index].nombre = nombre;
@@ -350,6 +365,7 @@ const executeTool = async (call) => {
            if (costo_unitario !== undefined) mats[index].costo_unitario = costo_unitario;
            const { error } = await supabase.from('proyectos').update({ materiales: mats }).eq('id', id_proyecto);
            if (error) throw error;
+           notifyProyectosChanged('materiales', { id: id_proyecto });
            return { success: true, message: 'Material editado en el proyecto' };
         }
       }
@@ -494,6 +510,18 @@ const executeTool = async (call) => {
       
       const { error } = await supabase.from('proyectos').update(updateData).eq('id', id_proyecto);
       if (error) throw error;
+
+      notifyProyectosChanged('actualizar_estado_proyecto', { id: id_proyecto, nuevo_estado, updateData });
+      if (session) {
+        logAudit(session, 'Movió proyecto de fase', { 
+          proyecto_id: id_proyecto, 
+          titulo: currentP?.titulo, 
+          origen: currentP?.estado, 
+          nuevo_estado, 
+          motivo: motivo || 'Por Dinamo IA' 
+        });
+      }
+
       return { success: true, message: `Movido a ${nuevo_estado}` };
     }
 
@@ -501,6 +529,7 @@ const executeTool = async (call) => {
       const { id_proyecto, ...campos } = args;
       const { error } = await supabase.from('proyectos').update(campos).eq('id', id_proyecto);
       if (error) throw error;
+      notifyProyectosChanged('modificar_proyecto', { id: id_proyecto, campos });
       return { success: true };
     }
 
@@ -591,7 +620,19 @@ const executeTool = async (call) => {
       
       const { data, error } = await supabase.from('proyectos').insert(nuevoProy).select('id');
       if (error) throw error;
-      return { success: true, short_id: getShortId(data[0].id) };
+
+      const createdId = data[0].id;
+      notifyProyectosChanged('crear_proyecto', { id: createdId, nuevoProy });
+      const currentSession = await supabase.auth.getSession().then(({ data }) => data.session);
+      if (currentSession) {
+        logAudit(currentSession, 'Creó proyecto con Dinamo IA', { 
+          proyecto_id: createdId, 
+          titulo: nuevoProy.titulo, 
+          nuevo_estado: nuevoProy.estado 
+        });
+      }
+
+      return { success: true, short_id: getShortId(createdId) };
     }
 
     if (name === 'asignar_encargado') {
@@ -612,7 +653,9 @@ const executeTool = async (call) => {
       let encargados = pData.encargados || [];
       if (!encargados.find(e => e.id === newEncargado.id || e.user_id === newEncargado.id)) {
         encargados.push(newEncargado);
-        const { error: updErr } = await supabase.from('proyectos').update({ encargados }).eq('id', args.id_proyecto); if (updErr) throw updErr;
+        const { error: updErr } = await supabase.from('proyectos').update({ encargados }).eq('id', args.id_proyecto); 
+        if (updErr) throw updErr;
+        notifyProyectosChanged('asignar_encargado', { id: args.id_proyecto, encargados });
         return { success: true };
       }
       return { success: true, message: 'Ya estaba asignado.' };
@@ -623,7 +666,9 @@ const executeTool = async (call) => {
         proyecto_id: args.id_proyecto,
         texto: args.texto_comentario,
         autor_email: 'Dinamo AI ✨'
-      }]); if (comErr) throw comErr;
+      }]); 
+      if (comErr) throw comErr;
+      notifyProyectosChanged('comentarios', { id: args.id_proyecto });
       return { success: true };
     }
 

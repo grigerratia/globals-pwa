@@ -188,19 +188,33 @@ export default function KanbanBoard({ session }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData(ignore);
 
+    // Evento local inmediato (cuando Dinamo o modales crean o mueven proyectos)
+    const handleLocalChange = () => {
+      if (!ignore) {
+        fetchData(false);
+      }
+    };
+    window.addEventListener('globals:proyectos-changed', handleLocalChange);
+
     // 3. Suscripción a Realtime
+    const channelName = `kanban-realtime-${Date.now()}`;
     const channel = supabase
-      .channel('proyectos-realtime')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'proyectos' }, () => {
-        fetchData(ignore);
+        if (!ignore) {
+          fetchData(false);
+        }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'columnas' }, () => {
-        fetchData(ignore);
+        if (!ignore) {
+          fetchData(false);
+        }
       })
       .subscribe();
 
     return () => { 
       ignore = true; 
+      window.removeEventListener('globals:proyectos-changed', handleLocalChange);
       supabase.removeChannel(channel);
     };
   }, [fetchData]);

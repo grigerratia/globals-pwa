@@ -65,6 +65,17 @@ export default function ExecutiveDashboard({ session }) {
     }
   };
 
+  const refreshProyectos = async () => {
+    try {
+      const { data: proys } = await supabase.from('proyectos').select('*');
+      if (proys) {
+        setProyectos(proys);
+      }
+    } catch (err) {
+      console.warn("Error refrescando proyectos:", err);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     async function fetchData() {
@@ -89,16 +100,36 @@ export default function ExecutiveDashboard({ session }) {
       }
     }
     fetchData();
+
+    // Evento local inmediato (cuando Dinamo o modales crean o mueven proyectos)
+    const handleLocalChange = () => {
+      if (isMounted) {
+        refreshProyectos();
+        fetchLogs();
+      }
+    };
+    window.addEventListener('globals:proyectos-changed', handleLocalChange);
     
-    const channel = supabase.channel('audit_logs_changes')
+    // Suscripción Realtime para proyectos y auditoría
+    const channelName = `exec_dashboard_${Date.now()}`;
+    const channel = supabase.channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proyectos' }, () => {
+        if (isMounted) {
+          refreshProyectos();
+        }
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, (payload) => {
-        if (isValidActivityLog(payload.new)) {
+        if (isValidActivityLog(payload.new) && isMounted) {
           setAuditLogs(prev => [payload.new, ...prev.filter(l => l.id !== payload.new?.id)].slice(0, 30));
         }
       })
       .subscribe();
       
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      isMounted = false;
+      window.removeEventListener('globals:proyectos-changed', handleLocalChange);
+      supabase.removeChannel(channel); 
+    };
   }, []);
 
   if (cargando) {
