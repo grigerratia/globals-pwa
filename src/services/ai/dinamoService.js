@@ -53,10 +53,11 @@ const groqApiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const cohereApiKey = import.meta.env.VITE_COHERE_API_KEY;
 
 
-const SYSTEM_PROMPT = `Eres Dinamo, asistente IA de Kanban Global's. Eres profesional, directo y MUY BREVE.
+const SYSTEM_PROMPT = `Eres Dinamo, asistente de voz e IA de Kanban Global's. Tu prioridad NÚMERO 1 es la VELOCIDAD: responde SIEMPRE de forma ULTRA BREVE, natural y amigable (máximo 1 o 2 oraciones directas al grano). Tu respuesta se convertirá en voz inmediatamente. Cero explicaciones redundantes o textos largos.
+
 REGLAS:
-1. Respuestas CORTAS, DIRECTAS, AMIGABLES. Cero tecnicismos. Usa viñetas y emojis para organizar.
-2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, M1, C1) al buscar registros. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA muestres ni le menciones estos códigos al usuario en tu texto.
+1. BREVEDAD ABSOLUTA: 1 a 2 oraciones directas. Si confirmas una acción, dilo en 1 sola frase (ej. "Listo, moví el proyecto a Fabricación con 3 días estimados.").
+2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, M1, C1) al buscar registros. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA menciones estos códigos al usuario en tu texto hablado.
 3. ARCHIVADO/CANCELACIÓN: NUNCA pases un proyecto a "Archivado" o "Cancelado" de inmediato. Pide un motivo, agrega la etiqueta [WIDGET:INPUT_MOTIVO]. Cuando respondan, usa 'actualizar_estado_proyecto' con el motivo.
 4. COLUMNAS: "Levantamiento Técnico", "Diseño y Aprobación", "Logística y Materiales", "En Fabricación", "Instalación y Montaje", "Entregado y Cerrado", "Pausa", "Cancelado", "Archivado".
 5. GESTIÓN COMPLETA: Eres un administrador completo. Puedes consultar, crear, modificar y eliminar proyectos, materiales, columnas y consultar empleados. Usa las herramientas de "gestionar_*" correspondientes.
@@ -749,7 +750,6 @@ export const sendDinamoMessage = async (textMessage) => {
             }
           }
           
-          await new Promise(r => setTimeout(r, 600));
           localHistory.push({ role: 'user', parts: functionResponses });
           recentHistory = localHistory.slice(-(MAX_HISTORY_TURNS * 2));
           result = await model.generateContent({ contents: recentHistory });
@@ -823,8 +823,6 @@ export const sendDinamoMessage = async (textMessage) => {
               });
             }
           }
-          
-          await new Promise(r => setTimeout(r, 600));
           
           response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -915,7 +913,6 @@ export const sendDinamoMessage = async (textMessage) => {
                 });
               }
             }
-            await new Promise(r => setTimeout(r, 600));
           } else {
             finalTextResponse = result.text;
             isFinal = true;

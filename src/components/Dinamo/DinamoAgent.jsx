@@ -177,94 +177,61 @@ export default function DinamoAgent({ onClose }) {
 
     if (googleKeys.length === 0) return null;
 
-    const ttsModels = [
-      'gemini-3.8-flash-lite-tts',
-      'gemini-3.8-flash-tts',
-      'gemini-2.5-flash-preview-tts'
-    ];
-
-    const combos = [];
-    if (workingTtsRef.current) {
-      combos.push(workingTtsRef.current);
-    }
-
-    for (const key of googleKeys) {
-      for (const model of ttsModels) {
-        if (!workingTtsRef.current || workingTtsRef.current.key !== key || workingTtsRef.current.model !== model) {
-          combos.push({ key, model });
-        }
+    // Priorizamos la key que ya sabemos que funciona
+    const sortedKeys = [...googleKeys];
+    if (workingTtsRef.current?.key) {
+      const idx = sortedKeys.indexOf(workingTtsRef.current.key);
+      if (idx > -1) {
+        sortedKeys.splice(idx, 1);
+        sortedKeys.unshift(workingTtsRef.current.key);
       }
     }
 
-    const reqBodyWithVoice = {
-      contents: [{ parts: [{ text: textChunk }] }],
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: 'Puck'
-            }
-          }
-        }
-      }
-    };
-
-    const reqBodySimple = {
+    const ttsModel = 'gemini-3.8-flash-lite-tts';
+    const reqBody = {
       contents: [{ parts: [{ text: textChunk }] }]
     };
 
-    for (const { key, model } of combos) {
+    for (const key of sortedKeys) {
       if (fetchId !== currentFetchIdRef.current) return null;
-
-      const bodiesToTry = model.includes('2.5') 
-        ? [reqBodyWithVoice] 
-        : [reqBodyWithVoice, reqBodySimple];
-
-      for (const body of bodiesToTry) {
-        if (fetchId !== currentFetchIdRef.current) return null;
-        try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body)
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-
-            if (inlineData && inlineData.data) {
-              workingTtsRef.current = { key, model };
-              const bytes = b64ToUint8Array(inlineData.data);
-              let audioBlob;
-              if (inlineData.mimeType?.includes('pcm') || inlineData.mimeType?.includes('L16')) {
-                audioBlob = pcmToWavBlob(bytes, 24000);
-              } else {
-                audioBlob = new Blob([bytes], { type: inlineData.mimeType || 'audio/wav' });
-              }
-              const audioUrl = URL.createObjectURL(audioBlob);
-              const audio = new Audio(audioUrl);
-              audio._blobUrl = audioUrl;
-              return audio;
-            }
-          } else {
-            const status = response.status;
-            if (status === 429 || status === 401 || status === 403) {
-              if (workingTtsRef.current && workingTtsRef.current.key === key && workingTtsRef.current.model === model) {
-                workingTtsRef.current = null;
-              }
-              break;
-            }
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${key}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
           }
-        } catch (err) {
-          console.warn(`[Dinamo TTS] Error con ${model}:`, err.message);
-          if (workingTtsRef.current && workingTtsRef.current.key === key && workingTtsRef.current.model === model) {
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+
+          if (inlineData && inlineData.data) {
+            workingTtsRef.current = { key, model: ttsModel };
+            const bytes = b64ToUint8Array(inlineData.data);
+            let audioBlob;
+            if (inlineData.mimeType?.includes('pcm') || inlineData.mimeType?.includes('L16')) {
+              audioBlob = pcmToWavBlob(bytes, 24000);
+            } else {
+              audioBlob = new Blob([bytes], { type: inlineData.mimeType || 'audio/wav' });
+            }
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio._blobUrl = audioUrl;
+            return audio;
+          }
+        } else {
+          // Si da 429 o error, rotamos a la siguiente key de inmediato
+          if (workingTtsRef.current?.key === key) {
             workingTtsRef.current = null;
           }
+        }
+      } catch (err) {
+        console.warn(`[Dinamo TTS] Error con key:`, err.message);
+        if (workingTtsRef.current?.key === key) {
+          workingTtsRef.current = null;
         }
       }
     }
@@ -291,7 +258,7 @@ export default function DinamoAgent({ onClose }) {
 
     setIsSpeaking(true);
 
-    const chunks = chunkText(cleanText, 220);
+    const chunks = chunkText(cleanText, 350);
     let fallbackText = '';
 
     for (let i = 0; i < chunks.length; i++) {

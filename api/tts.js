@@ -7,54 +7,66 @@ export default async function handler(req) {
     return new Response('Method not allowed', { status: 405 });
   }
 
-  const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const keys = [
+    process.env.VITE_GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY,
+    process.env.VITE_GEMINI_API_KEY_2,
+    process.env.VITE_GEMINI_API_KEY_3
+  ].filter(Boolean);
   
-  if (!apiKey) {
+  if (keys.length === 0) {
     return new Response(JSON.stringify({ error: { message: "Falta VITE_GEMINI_API_KEY" } }), { status: 401 });
   }
 
   try {
     const { input } = await req.json();
     
-    // El modelo gemini-3.8-flash-tts no soporta "systemInstruction".
-    // Enviamos el diseño de voz (Voice Design) directamente como parte del texto de entrada.
     const reqBody = {
       contents: [{
-        parts: [{ text: `(Voz de hombre adulto profesional, tono seguro y amable): ${input}` }]
+        parts: [{ text: input }]
       }]
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${apiKey}`;
+    let lastError = null;
+    for (const apiKey of keys) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite-tts:generateContent?key=${apiKey}`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(reqBody)
-    });
-    
-    if (!response.ok) {
-       const err = await response.json().catch(() => ({}));
-       return new Response(JSON.stringify({ error: err }), { status: response.status });
-    }
-    
-    const data = await response.json();
-    
-    const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-    if (!inlineData || !inlineData.data) {
-       return new Response(JSON.stringify({ error: { message: "Gemini no devolvió audio" } }), { status: 500 });
-    }
-    
-    const binaryData = Uint8Array.from(atob(inlineData.data), c => c.charCodeAt(0));
-    
-    return new Response(binaryData, {
-      status: 200,
-      headers: {
-        'Content-Type': inlineData.mimeType || 'audio/wav',
-        'Content-Length': binaryData.length.toString()
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(reqBody)
+        });
+        
+        if (!response.ok) {
+           lastError = await response.json().catch(() => ({}));
+           continue;
+        }
+        
+        const data = await response.json();
+        const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        if (!inlineData || !inlineData.data) {
+           continue;
+        }
+        
+        const binaryData = Uint8Array.from(atob(inlineData.data), c => c.charCodeAt(0));
+        
+        return new Response(binaryData, {
+          status: 200,
+          headers: {
+            'Content-Type': inlineData.mimeType || 'audio/wav',
+            'Content-Length': binaryData.length.toString()
+          }
+        });
+      } catch (err) {
+        lastError = err;
       }
-    });
+    }
+    
+    return new Response(JSON.stringify({ error: lastError || { message: "No se pudo generar audio" } }), { status: 500 });
+
   } catch (error) {
     return new Response(JSON.stringify({ error: { message: error.message } }), { status: 500 });
   }
