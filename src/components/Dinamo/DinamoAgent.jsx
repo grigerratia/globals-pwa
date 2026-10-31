@@ -189,7 +189,18 @@ export default function DinamoAgent({ onClose }) {
 
     const ttsModel = 'gemini-3.8-flash-lite-tts';
     const reqBody = {
-      contents: [{ parts: [{ text: textChunk }] }]
+      contents: [{ parts: [{ text: textChunk }] }],
+      generationConfig: {
+        temperature: 0.1,
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: 'Puck'
+            }
+          }
+        }
+      }
     };
 
     for (const key of sortedKeys) {
@@ -219,6 +230,8 @@ export default function DinamoAgent({ onClose }) {
             }
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
+            audio.playbackRate = 1.0;
+            audio.preservesPitch = true;
             audio._blobUrl = audioUrl;
             return audio;
           }

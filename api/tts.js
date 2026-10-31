@@ -24,7 +24,18 @@ export default async function handler(req) {
     const reqBody = {
       contents: [{
         parts: [{ text: input }]
-      }]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: 'Puck'
+            }
+          }
+        }
+      }
     };
 
     let lastError = null;
