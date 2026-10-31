@@ -53,16 +53,17 @@ const groqApiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const cohereApiKey = import.meta.env.VITE_COHERE_API_KEY;
 
 
-const SYSTEM_PROMPT = `Eres Dinamo, asistente de voz e IA de Kanban Global's. Tu prioridad NÚMERO 1 es la VELOCIDAD: responde SIEMPRE de forma ULTRA BREVE, natural y amigable (máximo 1 o 2 oraciones directas al grano). Tu respuesta se convertirá en voz inmediatamente. Cero explicaciones redundantes o textos largos.
+const SYSTEM_PROMPT = `Eres Dinamo, asistente de voz e IA de operaciones de Kanban Global's. Tu prioridad NÚMERO 1 es la VELOCIDAD: responde SIEMPRE de forma ULTRA BREVE, natural y amigable (máximo 1 o 2 oraciones directas al grano). Tu respuesta se convertirá en voz inmediatamente. Cero explicaciones redundantes o textos largos.
 
-REGLAS:
+REGLAS Y CAPACIDADES:
 1. BREVEDAD ABSOLUTA: 1 a 2 oraciones directas. Si confirmas una acción, dilo en 1 sola frase (ej. "Listo, moví el proyecto a Fabricación con 3 días estimados.").
 2. MAPPING DE IDs: Recibirás IDs cortos (ej. P1, M1, C1) al buscar registros. Úsalos internamente para las herramientas. IMPORTANTE: NUNCA menciones estos códigos al usuario en tu texto hablado.
-3. ARCHIVADO/CANCELACIÓN: NUNCA pases un proyecto a "Archivado" o "Cancelado" de inmediato. Pide un motivo, agrega la etiqueta [WIDGET:INPUT_MOTIVO]. Cuando respondan, usa 'actualizar_estado_proyecto' con el motivo.
+3. ARCHIVADO/CANCELACIÓN/RESTAURACIÓN: NUNCA archives o canceles de inmediato sin motivo: pide el motivo usando [WIDGET:INPUT_MOTIVO]. Para reactivar un proyecto cancelado/archivado, usa 'restaurar_proyecto'.
 4. COLUMNAS: "Levantamiento Técnico", "Diseño y Aprobación", "Logística y Materiales", "En Fabricación", "Instalación y Montaje", "Entregado y Cerrado", "Pausa", "Cancelado", "Archivado".
-5. GESTIÓN COMPLETA: Eres un administrador completo. Puedes consultar, crear, modificar y eliminar proyectos, materiales, columnas y consultar empleados. Usa las herramientas de "gestionar_*" correspondientes.
-6. ACCIONES DESTRUCTIVAS: Si el usuario te pide eliminar algo crítico (ej. columna), la herramienta te pedirá confirmación. Pregunta y usa [WIDGET:CONFIRM_CHECKBOXES]. Solo procede si te confirman.
-7. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
+5. GESTIÓN TOTAL: Puedes consultar, crear, modificar proyectos, asignar y desasignar encargados, marcar hitos operativos (diseño, materiales, fabricación, instalación), gestionar catálogo global de materiales, consultar auditoría y eliminar proyectos.
+6. RESTRICCIÓN DE COMENTARIOS: NUNCA intentes modificar ni eliminar comentarios creados por otros usuarios. Los comentarios existentes son inmutables. Solo puedes agregar nuevos comentarios.
+7. ACCIONES DESTRUCTIVAS: Si el usuario te pide eliminar algo crítico (ej. columna o eliminación definitiva de un proyecto), la herramienta te pedirá confirmación. Pregunta y usa [WIDGET:CONFIRM_CHECKBOXES]. Solo procede si te confirman.
+8. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
    - Confirmar presupuesto/material/columna o eliminación: [WIDGET:CONFIRM_CHECKBOXES]
    - Faltan días estimados: [WIDGET:INPUT_DIAS]
    - Falta motivo: [WIDGET:INPUT_MOTIVO]`;
@@ -232,6 +233,86 @@ const tools = [
           required: ['accion'],
         },
       },
+      {
+        name: 'desasignar_encargado',
+        description: 'Desasigna (retira) a un usuario de un proyecto usando su nombre y el ID corto del proyecto.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.STRING, description: 'ID corto del proyecto (ej. P1)' },
+            nombre_usuario: { type: SchemaType.STRING, description: 'Nombre del usuario a desasignar' }
+          },
+          required: ['id_proyecto', 'nombre_usuario'],
+        },
+      },
+      {
+        name: 'marcar_hito_proyecto',
+        description: 'Marca o desmarca un hito operativo de un proyecto (ej: diseño terminado, materiales comprados, fabricado, instalado).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.STRING, description: 'ID corto del proyecto (ej. P1)' },
+            hito: { 
+              type: SchemaType.STRING, 
+              description: 'Nombre del hito: "diseno_terminado", "diseno_aprobado_cliente", "materiales_comprados", "fabricado_listo", "instalado", "omitir_levantamiento"' 
+            },
+            valor: { type: SchemaType.BOOLEAN, description: 'true para marcar como completado, false para desmarcar' }
+          },
+          required: ['id_proyecto', 'hito', 'valor'],
+        },
+      },
+      {
+        name: 'restaurar_proyecto',
+        description: 'Restaura un proyecto cancelado o archivado devolviéndolo al flujo activo del Kanban.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.STRING, description: 'ID corto del proyecto (ej. P1)' },
+            columna_destino: { type: SchemaType.STRING, description: 'Opcional. Columna donde se restaurará. Si se omite, va a la primera columna activa.' }
+          },
+          required: ['id_proyecto'],
+        },
+      },
+      {
+        name: 'consultar_auditoria',
+        description: 'Consulta el registro de auditoría del sistema (quién hizo qué cambio y cuándo). Es de solo lectura.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.STRING, description: 'Opcional. ID corto del proyecto para ver su historial específico.' },
+            usuario: { type: SchemaType.STRING, description: 'Opcional. Filtrar por nombre de usuario.' },
+            limite: { type: SchemaType.NUMBER, description: 'Opcional. Número de registros a consultar (por defecto 5).' }
+          },
+        },
+      },
+      {
+        name: 'gestionar_catalogo_materiales',
+        description: 'Consulta o agrega materiales al catálogo maestro global (utilizado por cotizador e inventario).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            accion: { type: SchemaType.STRING, description: '"listar" o "crear"' },
+            nombre: { type: SchemaType.STRING, description: 'Nombre del material (para crear)' },
+            categoria: { type: SchemaType.STRING, description: 'Categoría (ej. Estructura, Impresión, Iluminación)' },
+            precio_unitario: { type: SchemaType.NUMBER, description: 'Precio unitario aproximado' },
+            unidad_medida: { type: SchemaType.STRING, description: 'Unidad de medida (ej. m, m2, kg, galón, unidad)' }
+          },
+          required: ['accion'],
+        },
+      },
+      {
+        name: 'eliminar_proyecto',
+        description: 'Elimina un proyecto. Por defecto lo envía a papelera (soft delete). La eliminación definitiva requiere confirmación.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id_proyecto: { type: SchemaType.STRING, description: 'ID corto del proyecto (ej. P1)' },
+            tipo_eliminacion: { type: SchemaType.STRING, description: '"papelera" (recomendado, reversible) o "definitiva"' },
+            confirmar_casillas: { type: SchemaType.BOOLEAN, description: 'true SOLO si el usuario confirmó explícitamente la eliminación definitiva vía widget.' }
+          },
+          required: ['id_proyecto'],
+        },
+      },
     ],
   },
 ];
@@ -300,6 +381,15 @@ const executeTool = async (call) => {
   const { name } = call;
   const args = { ...call.args };
   
+  // RESTRICCIÓN DE SEGURIDAD 1: Inmutabilidad estricta de comentarios ajenos
+  if (name.includes('comentario') && (name.includes('modificar') || name.includes('eliminar') || name.includes('editar') || name.includes('borrar') || name.includes('actualizar'))) {
+    throw new Error("ACCESO DENEGADO: Por políticas de seguridad e integridad del negocio, los comentarios de otros usuarios son inmutables y no pueden ser modificados ni eliminados.");
+  }
+  // RESTRICCIÓN DE SEGURIDAD 2: Blindaje de la caja negra de auditoría
+  if (name.includes('auditoria') && (name.includes('eliminar') || name.includes('modificar') || name.includes('borrar') || name.includes('actualizar') || name.includes('crear'))) {
+    throw new Error("ACCESO DENEGADO: El registro de auditoría es una caja negra inmutable.");
+  }
+
   // Resolver Short IDs en argumentos antes de procesar
   if (args.id_proyecto) {
     args.id_proyecto = resolveShortId(args.id_proyecto);
@@ -392,6 +482,13 @@ const executeTool = async (call) => {
         const realId = resolveShortId(id_columna);
         
         if (accion === 'eliminar') {
+           const { data: colData } = await supabase.from('columnas').select('nombre').eq('id', realId).single();
+           if (colData) {
+             const { count } = await supabase.from('proyectos').select('*', { count: 'exact', head: true }).eq('estado', colData.nombre);
+             if (count && count > 0) {
+               throw new Error(`BLOQUEADO: La columna "${colData.nombre}" tiene ${count} proyecto(s) activo(s). Debes moverlos a otra columna antes de poder eliminarla.`);
+             }
+           }
            if (!confirmar_casillas) {
               throw new Error("BLOQUEADO: Confirmación requerida. Pregunta al usuario si realmente desea eliminar la columna usando [WIDGET:CONFIRM_CHECKBOXES].");
            }
@@ -687,6 +784,131 @@ const executeTool = async (call) => {
       }, {});
 
       return { success: true, result: { activos, cerrados, desglose: desglosePorEstado } };
+    }
+
+    if (name === 'desasignar_encargado') {
+      const { data: pData, error: pError } = await supabase.from('proyectos').select('encargados').eq('id', args.id_proyecto).single();
+      if (pError) throw pError;
+      
+      let encargados = pData.encargados || [];
+      const target = (args.nombre_usuario || '').toLowerCase();
+      const filtered = encargados.filter(e => {
+        const n = (e.nombre || '').toLowerCase();
+        return !n.includes(target);
+      });
+
+      if (filtered.length === encargados.length) {
+        return { success: false, message: `El usuario ${args.nombre_usuario} no estaba asignado.` };
+      }
+
+      const { error: updErr } = await supabase.from('proyectos').update({ encargados: filtered }).eq('id', args.id_proyecto); 
+      if (updErr) throw updErr;
+      notifyProyectosChanged('desasignar_encargado', { id: args.id_proyecto, encargados: filtered });
+      return { success: true, message: `Usuario ${args.nombre_usuario} retirado del proyecto.` };
+    }
+
+    if (name === 'marcar_hito_proyecto') {
+      const { id_proyecto, hito, valor } = args;
+      const validHitos = [
+        'diseno_terminado',
+        'diseno_aprobado_cliente',
+        'materiales_comprados',
+        'fabricado_listo',
+        'instalado',
+        'omitir_levantamiento',
+        'presupuesto_aprobado'
+      ];
+      if (!validHitos.includes(hito)) {
+        throw new Error(`Hito no válido. Permitidos: ${validHitos.join(', ')}`);
+      }
+
+      const updateObj = { [hito]: !!valor, fecha_ultima_actualizacion: new Date().toISOString() };
+      if (hito === 'diseno_terminado' && valor) {
+        updateObj.diseno_aprobado_cliente = true;
+      }
+
+      const { error } = await supabase.from('proyectos').update(updateObj).eq('id', id_proyecto);
+      if (error) throw error;
+      notifyProyectosChanged('marcar_hito', { id: id_proyecto, hito, valor: !!valor });
+      return { success: true, message: `Hito "${hito}" actualizado a ${valor ? 'completado' : 'pendiente'}.` };
+    }
+
+    if (name === 'restaurar_proyecto') {
+      const { id_proyecto, columna_destino } = args;
+      let targetCol = columna_destino;
+      if (!targetCol) {
+        const { data: cols } = await supabase.from('columnas').select('nombre').order('orden', { ascending: true }).limit(1);
+        targetCol = cols?.[0]?.nombre || 'Levantamiento Técnico';
+      }
+
+      const { error } = await supabase.from('proyectos').update({
+        estado: targetCol,
+        motivo_cancelacion: null,
+        fecha_ultima_actualizacion: new Date().toISOString()
+      }).eq('id', id_proyecto);
+      if (error) throw error;
+
+      notifyProyectosChanged('restaurar_proyecto', { id: id_proyecto, estado: targetCol });
+      return { success: true, message: `Proyecto restaurado en columna "${targetCol}".` };
+    }
+
+    if (name === 'consultar_auditoria') {
+      const limite = args.limite || 5;
+      let q = supabase.from('audit_logs').select('usuario_nombre, accion, detalles, created_at').order('created_at', { ascending: false }).limit(limite);
+      if (args.usuario) {
+        q = q.ilike('usuario_nombre', `%${args.usuario}%`);
+      }
+      if (args.id_proyecto) {
+        q = q.contains('detalles', { proyecto_id: args.id_proyecto });
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return { success: true, registros: data || [] };
+    }
+
+    if (name === 'gestionar_catalogo_materiales') {
+      if (args.accion === 'listar') {
+        const { data, error } = await supabase.from('materiales').select('*').order('categoria').limit(25);
+        if (error) throw error;
+        return { success: true, materiales: data || [] };
+      }
+      if (args.accion === 'crear') {
+        if (!args.nombre) throw new Error("Falta nombre del material.");
+        const nuevo = {
+          nombre: args.nombre,
+          categoria: args.categoria || 'Insumos',
+          precio_unitario: args.precio_unitario || 0,
+          unidad_medida: args.unidad_medida || 'unidad'
+        };
+        const { data, error } = await supabase.from('materiales').insert([nuevo]).select();
+        if (error) throw error;
+        return { success: true, message: 'Material añadido al catálogo maestro.', material: data?.[0] };
+      }
+      throw new Error("Acción no válida en catálogo.");
+    }
+
+    if (name === 'eliminar_proyecto') {
+      const { id_proyecto, tipo_eliminacion, confirmar_casillas } = args;
+      const isDefinitiva = tipo_eliminacion === 'definitiva';
+
+      if (isDefinitiva) {
+        if (!confirmar_casillas) {
+          throw new Error("BLOQUEADO: La eliminación definitiva es irreversible. Pregunta al usuario si realmente desea eliminar el proyecto usando [WIDGET:CONFIRM_CHECKBOXES].");
+        }
+        const { error } = await supabase.from('proyectos').delete().eq('id', id_proyecto);
+        if (error) throw error;
+        notifyProyectosChanged('eliminar_proyecto_definitivo', { id: id_proyecto });
+        return { success: true, message: 'Proyecto eliminado definitivamente de la base de datos.' };
+      } else {
+        await supabase.from('columnas').upsert([{ nombre: 'Cancelado_Oculto', orden: 1000 }], { onConflict: 'nombre' });
+        const { error } = await supabase.from('proyectos').update({
+          estado: 'Cancelado_Oculto',
+          fecha_ultima_actualizacion: new Date().toISOString()
+        }).eq('id', id_proyecto);
+        if (error) throw error;
+        notifyProyectosChanged('eliminar_proyecto_papelera', { id: id_proyecto });
+        return { success: true, message: 'Proyecto enviado a la papelera (Cancelado Oculto).' };
+      }
     }
 
   } catch (err) {
