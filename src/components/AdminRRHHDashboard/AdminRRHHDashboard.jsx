@@ -156,7 +156,7 @@ export default function AdminRRHHDashboard({ session }) {
       if (telNorm.startsWith('0')) telNorm = '58' + telNorm.substring(1);
       else if (telNorm.length === 10 && telNorm.startsWith('4')) telNorm = '58' + telNorm;
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: newUserData.email,
         password: newUserData.password,
         options: {

@@ -15,7 +15,7 @@ const addLog = (type, ...args) => {
   const msg = args.map(a => {
     if (a instanceof Error) return a.stack || a.message;
     if (typeof a === 'object') {
-      try { return JSON.stringify(a, null, 2); } catch(e) { return String(a); }
+      try { return JSON.stringify(a, null, 2); } catch { return String(a); }
     }
     return String(a);
   }).join(' ');
