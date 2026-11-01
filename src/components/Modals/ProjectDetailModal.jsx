@@ -898,17 +898,17 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
         )}
 
         {diasEstimadosNota !== null && (
-           <div style={{ padding: '0.75rem 1.25rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', borderLeft: '4px solid #3b82f6', marginBottom: '1rem', display: 'flex', alignItems: 'center', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-             <span style={{ fontSize: '0.9rem', color: '#93c5fd', fontWeight: 500, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-               Días estimados para terminar esta fase: <strong style={{ color: '#ffffff' }}>{diasEstimadosNota} días</strong>
+           <div style={{ padding: '0.65rem 1rem', background: '#eff6ff', borderRadius: '0 7px 7px 0', borderLeft: '3px solid #3b82f6', marginBottom: '1rem', display: 'flex', alignItems: 'center', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+             <span style={{ fontSize: '0.88rem', color: '#1d4ed8', fontWeight: 500, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+               Días estimados para terminar esta fase: <strong style={{ color: '#1e3a8a' }}>{diasEstimadosNota} días</strong>
              </span>
            </div>
         )}
 
         {(proyecto.estado?.toLowerCase().includes('espera') || proyecto.estado?.toLowerCase().includes('pausa') || proyecto.estado === 'Archivado' || proyecto.estado === 'Cancelado') && proyecto.motivo_cancelacion && (
-           <div style={{ padding: '1rem 1.25rem', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '10px', borderLeft: '4px solid #f59e0b', display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Motivo ({proyecto.estado})</span>
-             <span style={{ fontSize: '0.95rem', color: '#f8fafc', fontStyle: 'italic', lineHeight: '1.4', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>"{proyecto.motivo_cancelacion}"</span>
+           <div style={{ padding: '0.65rem 1rem', background: '#fffbeb', borderRadius: '0 7px 7px 0', borderLeft: '3px solid #f59e0b', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '1rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Motivo ({proyecto.estado})</span>
+             <span style={{ fontSize: '0.9rem', color: '#78350f', fontStyle: 'italic', lineHeight: '1.45', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>"{proyecto.motivo_cancelacion}"</span>
            </div>
         )}
 
@@ -1459,15 +1459,14 @@ export default function ProjectDetailModal({ proyectoId, estados, onClose, onPro
             </div>            
 
             {proyecto.estado !== 'Cancelado' && (
-              <div className={styles.section} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
+              <div className={styles.section}>
                 <div className={styles.sectionContent}>
-                <h3 style={{ color: '#1e3a8a' }}><FileText className={styles.icon} size={20} style={{ color: '#2563eb' }} /> Hoja de Levantamiento de Trabajo</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#3b82f6', marginBottom: '0.75rem' }}>
+                <h3><FileText className={styles.icon} size={20} /> Hoja de Levantamiento de Trabajo</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
                     Accede al formato oficial de levantamiento del proyecto.
                   </p>
                   <button 
                     className={styles.actionButton} 
-                    style={{ background: '#3b82f6', color: 'white', borderColor: '#2563eb' }}
                     onClick={() => setShowLevantamiento(true)}
                   >
                     <FileText size={16} /> Ver/Editar Hoja de Levantamiento
