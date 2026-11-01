@@ -206,7 +206,7 @@ export default function AdminRRHHDashboard({ session }) {
                           <span className={styles.badgeSuccess}>Aprobado</span>
                         </div>
                         <div className={styles.projectDetails}>
-                          <p><strong>Cliente:</strong> {p.cliente_empresa || p.cliente_nombre || 'N/A'}</p>
+                          <p><strong>Contacto:</strong> {p.cliente_nombre || p.cliente_empresa || 'N/A'}</p>
                           <p><strong>Fase:</strong> {p.estado}</p>
                         </div>
                         <div className={styles.actions}>
@@ -234,7 +234,7 @@ export default function AdminRRHHDashboard({ session }) {
                           <span className={styles.badgeWarning}>Pendiente</span>
                         </div>
                         <div className={styles.projectDetails}>
-                          <p><strong>Cliente:</strong> {p.cliente_empresa || p.cliente_nombre || 'N/A'}</p>
+                          <p><strong>Contacto:</strong> {p.cliente_nombre || p.cliente_empresa || 'N/A'}</p>
                           <p><strong>Fase:</strong> {p.estado}</p>
                         </div>
                         <div className={styles.actions}>

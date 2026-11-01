@@ -80,9 +80,9 @@ export default function AIAgentModal({ estadoPredefinido, estados = [], onClose,
 Eres un asistente de clasificación de proyectos Kanban para Globals. 
 Extrae los siguientes datos del texto del usuario y devuélvelos SOLO en un objeto JSON válido (sin markdown, sin explicaciones):
 {
-  "titulo": "Resumen muy corto de la solicitud (Ej: Letrero luminoso, Impresión lonas)",
-  "cliente_nombre": "Nombre del cliente si lo menciona",
-  "cliente_empresa": "Nombre de la empresa si la menciona",
+  "titulo": "Formato OBLIGATORIO: [Tipo de trabajo a realizar] - [Nombre de la empresa] (Ej: Valla frente al local - Ferrocarril, Letrero luminoso - Farmatodo)",
+  "cliente_nombre": "Nombre de la persona física de contacto si lo menciona (ej: Manuel Edgar)",
+  "cliente_empresa": "Nombre de la empresa o local comercial (ej: Ferrocarril, Farmatodo)",
   "cliente_telefono": "El número de teléfono (solo números y + si aplica), si no hay deja cadena vacía",
   "notas": "Descripción detallada del pedido completo tal cual lo pide el cliente",
   "estado": "Selecciona SOLO UNA de estas opciones que más se ajuste (por defecto '${defaultEstado}'): ${columnasDisponibles}",

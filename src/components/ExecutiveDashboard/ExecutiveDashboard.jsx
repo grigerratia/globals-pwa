@@ -467,7 +467,7 @@ export default function ExecutiveDashboard({ session }) {
                       <span className={styles.badge}>{p.estado}</span>
                     </div>
                     <div className={styles.activityMeta} style={{ marginTop: '4px' }}>
-                      <span>Cliente: {p.cliente_nombre || p.cliente_empresa || 'N/A'}</span>
+                      <span>Contacto: {p.cliente_nombre || p.cliente_empresa || 'N/A'}</span>
                       {p.dias !== undefined && <span>• {p.dias} días en fase</span>}
                     </div>
                   </div>

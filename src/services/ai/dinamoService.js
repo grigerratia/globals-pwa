@@ -63,7 +63,10 @@ REGLAS Y CAPACIDADES:
 5. GESTIÓN TOTAL: Puedes consultar, crear, modificar proyectos, asignar y desasignar encargados, marcar hitos operativos (diseño, materiales, fabricación, instalación), gestionar catálogo global de materiales, consultar auditoría y eliminar proyectos.
 6. RESTRICCIÓN DE COMENTARIOS: NUNCA intentes modificar ni eliminar comentarios creados por otros usuarios. Los comentarios existentes son inmutables. Solo puedes agregar nuevos comentarios.
 7. ACCIONES DESTRUCTIVAS: Si el usuario te pide eliminar algo crítico (ej. columna o eliminación definitiva de un proyecto), la herramienta te pedirá confirmación. Pregunta y usa [WIDGET:CONFIRM_CHECKBOXES]. Solo procede si te confirman.
-8. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
+8. TITULACIÓN DE PROYECTOS Y CLIENTE vs CONTACTO:
+   - TÍTULO: Debe ser OBLIGATORIAMENTE "[Tipo de trabajo a realizar] - [Nombre de la empresa]" (ej: "Valla frente al local - Ferrocarril", "Letras corpóreas - Farmatodo", "Instalación de vinil - Tiendas Traki"). NUNCA uses una descripción suelta sin la empresa.
+   - EMPRESA vs CONTACTO: En 'cliente_empresa' guarda el nombre de la empresa/marca/local (ej: "Ferrocar", "Farmatodo"). En 'cliente_nombre' guarda el nombre de la persona física de contacto (ej: "Manuel Edgar"). NUNCA pongas al contacto como si fuera la empresa.
+9. WIDGETS INTERACTIVOS (Usa cuando las herramientas te den error pidiendo esto):
    - Confirmar presupuesto/material/columna o eliminación: [WIDGET:CONFIRM_CHECKBOXES]
    - Faltan días estimados: [WIDGET:INPUT_DIAS]
    - Falta motivo: [WIDGET:INPUT_MOTIVO]`;
@@ -106,9 +109,9 @@ const tools = [
           type: SchemaType.OBJECT,
           properties: {
             id_proyecto: { type: SchemaType.STRING, description: 'ID corto (ej. P1)' },
-            titulo: { type: SchemaType.STRING },
-            cliente_nombre: { type: SchemaType.STRING },
-            cliente_empresa: { type: SchemaType.STRING },
+            titulo: { type: SchemaType.STRING, description: 'Formato: "[Tipo de trabajo] - [Nombre de la empresa]"' },
+            cliente_nombre: { type: SchemaType.STRING, description: 'Persona de contacto (ej: "Manuel Edgar")' },
+            cliente_empresa: { type: SchemaType.STRING, description: 'Empresa o local cliente' },
             cliente_telefono: { type: SchemaType.STRING },
             fecha_entrega: { type: SchemaType.STRING },
             notas: { type: SchemaType.STRING }
@@ -122,9 +125,18 @@ const tools = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            titulo: { type: SchemaType.STRING },
-            cliente_nombre: { type: SchemaType.STRING },
-            cliente_empresa: { type: SchemaType.STRING },
+            titulo: { 
+              type: SchemaType.STRING, 
+              description: 'OBLIGATORIO: "[Tipo de trabajo a realizar] - [Nombre de la empresa]" (ej: "Valla frente al local - Ferrocarril", "Letras corpóreas - Farmatodo"). Siempre incluye el tipo de trabajo y la empresa.' 
+            },
+            cliente_nombre: { 
+              type: SchemaType.STRING, 
+              description: 'Nombre de la persona física de contacto (ej: "Manuel Edgar"). Es el contacto, NO la empresa.' 
+            },
+            cliente_empresa: { 
+              type: SchemaType.STRING, 
+              description: 'Nombre de la empresa o local comercial (ej: "Ferrocar", "Farmatodo").' 
+            },
             cliente_telefono: { type: SchemaType.STRING },
             estado: { type: SchemaType.STRING, description: 'Columna inicial. Por defecto "Levantamiento Técnico".' },
             dias_estimados: { type: SchemaType.NUMBER, description: 'Obligatorio preguntar.' },
@@ -671,10 +683,17 @@ const executeTool = async (call) => {
          throw new Error("FALTAN DÍAS ESTIMADOS: Obligatorio preguntar.");
       }
 
+      // Asegurar formato estricto: "[Tipo de trabajo] - [Empresa]"
+      let finalTitulo = (args.titulo || 'Nuevo Proyecto').trim();
+      const cleanEmpresa = (args.cliente_empresa || '').trim();
+      if (cleanEmpresa && !finalTitulo.toLowerCase().includes(cleanEmpresa.toLowerCase())) {
+        finalTitulo = `${finalTitulo} - ${cleanEmpresa}`;
+      }
+
       const nuevoProy = {
-        titulo: args.titulo,
+        titulo: finalTitulo,
         cliente_nombre: args.cliente_nombre || '',
-        cliente_empresa: args.cliente_empresa || '',
+        cliente_empresa: cleanEmpresa,
         cliente_telefono: args.cliente_telefono || '',
         estado: args.estado || 'Levantamiento Técnico',
         encargados: encargadosPorDefecto,
