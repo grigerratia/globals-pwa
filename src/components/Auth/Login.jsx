@@ -63,6 +63,10 @@ export default function Login({ onLogin }) {
       authError = error;
       if (!error) {
         setSuccessMsg("Registro exitoso. Si tienes confirmación de email activada, revisa tu correo.");
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        if (backendUrl) {
+          fetch(`${backendUrl}/api/admin/notify-user-change`, { method: 'POST' }).catch(() => {});
+        }
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
