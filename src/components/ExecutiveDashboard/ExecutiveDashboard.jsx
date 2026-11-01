@@ -269,7 +269,7 @@ export default function ExecutiveDashboard({ session }) {
             title="Ver proyectos en Levantamiento Técnico"
           >
             <div className={styles.kpiHeader}>
-              <ClipboardList size={18} />
+              <ClipboardList size={22} />
               <h3>
                 <span className={styles.desktopTitle}>1. Levantamiento Técnico</span>
                 <span className={styles.mobileTitle}>1. Levantamiento</span>
@@ -291,7 +291,7 @@ export default function ExecutiveDashboard({ session }) {
             title="Ver proyectos en Diseño y Aprobación"
           >
             <div className={styles.kpiHeader}>
-              <Palette size={18} />
+              <Palette size={22} />
               <h3>
                 <span className={styles.desktopTitle}>2. Diseño y Aprobación</span>
                 <span className={styles.mobileTitle}>2. Diseño</span>
@@ -313,7 +313,7 @@ export default function ExecutiveDashboard({ session }) {
             title="Ver proyectos en Logística y Materiales"
           >
             <div className={styles.kpiHeader}>
-              <Package size={18} />
+              <Package size={22} />
               <h3>
                 <span className={styles.desktopTitle}>3. Logística y Materiales</span>
                 <span className={styles.mobileTitle}>3. Logística</span>
@@ -335,7 +335,7 @@ export default function ExecutiveDashboard({ session }) {
             title="Ver proyectos en En Fabricación"
           >
             <div className={styles.kpiHeader}>
-              <Wrench size={18} />
+              <Wrench size={22} />
               <h3>
                 <span className={styles.desktopTitle}>4. En Fabricación</span>
                 <span className={styles.mobileTitle}>4. Fabricación</span>
@@ -357,7 +357,7 @@ export default function ExecutiveDashboard({ session }) {
             title="Ver proyectos en Instalación y Montaje"
           >
             <div className={styles.kpiHeader}>
-              <Truck size={18} />
+              <Truck size={22} />
               <h3>
                 <span className={styles.desktopTitle}>5. Instalación y Montaje</span>
                 <span className={styles.mobileTitle}>5. Instalación</span>
@@ -379,7 +379,7 @@ export default function ExecutiveDashboard({ session }) {
             title="Ver proyectos Entregados y Cerrados"
           >
             <div className={styles.kpiHeader}>
-              <CheckCircle size={18} />
+              <CheckCircle size={22} />
               <h3>
                 <span className={styles.desktopTitle}>6. Entregado y Cerrado</span>
                 <span className={styles.mobileTitle}>6. Entregado</span>
